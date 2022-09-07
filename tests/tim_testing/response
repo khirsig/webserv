@@ -1,0 +1,23 @@
+HTTP/1.1 200 OK
+Server: nginx
+Date: Wed, 24 Aug 2022 07:14:22 GMT
+Content-Type: text/html
+Content-Length: 20
+Last-Modified: Tue, 23 Aug 2022 17:10:23 GMT
+Connection: keep-alive
+ETag: "630509ff-95"
+Accept-Ranges: bytes
+
+<!doctype html>
+<html>
+
+<head>
+    <meta charset=utf-8>
+    <title>hello webserv</title>
+</head>
+
+<body>
+    <h1>hello webserv</h1>
+</body>
+
+</html>
