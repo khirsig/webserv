@@ -1,0 +1,8 @@
+---
+BasedOnStyle: Google
+AlignConsecutiveDeclarations: 'true'
+ColumnLimit: '100'
+IndentWidth: '4'
+Language: Cpp
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: 'false'
