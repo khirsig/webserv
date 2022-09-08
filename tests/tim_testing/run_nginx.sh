@@ -25,7 +25,6 @@ docker rm -f $CONTAINER_NAME >/dev/null 2>&1
 docker run \
     --name $CONTAINER_NAME \
     -v $(pwd)/conf/nginx.conf:/etc/nginx/nginx.conf:ro \
-    -v $(pwd)/conf/default.conf:/etc/nginx/conf.d/default.conf:ro \
     -v $(pwd)/data:/var/www/html:ro \
     -v $(pwd)/$LOG_FOLDER:/var/log/nginx \
     -p $PORT:80 \
