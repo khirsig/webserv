@@ -25,10 +25,40 @@ DDIR        := $(BUILDDIR)/deps
 DEPS        := $(SRCS:%.cpp=$(DDIR)/%.d)
 
 # **************************************************************************** #
+#	SYSTEM SPECIFIC SETTINGS							   					   #
+# **************************************************************************** #
+
+UNAME	:= $(shell uname -s)
+NUMPROC	:= 8
+
+ifeq ($(UNAME), Linux)
+    NUMPROC  := $(shell grep -c ^processor /proc/cpuinfo)
+	CPPFLAGS += -D Linux
+	CXXFLAGS += -Wno-unused-result
+else ifeq ($(UNAME), Darwin)
+    NUMPROC  := $(shell sysctl -n hw.ncpu)
+	CXXFLAGS += -D DARWIN
+endif
+
+# **************************************************************************** #
 #   RULES                                                                      #
 # **************************************************************************** #
 
 .PHONY: all clean fclean re
+
+all:
+	@$(MAKE) $(BUILDDIR)/$(NAME) -j$(NUMPROC)
+
+clean:
+	$(RM) -r $(DDIR) $(ODIR)
+
+fclean: clean
+	$(RM) -r $(BUILDDIR)
+
+re: fclean all
+
+run: $(BUILDDIR)/$(NAME)
+	@$(BUILDDIR)/$(NAME) $(ARGS)
 
 $(BUILDDIR)/$(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $@ $(LDLIBS)
@@ -42,18 +72,6 @@ $(ODIR):
 $(DDIR):
 	mkdir -p $@
 
-all: $(BUILDDIR)/$(NAME)
-
-clean:
-	$(RM) -r $(DDIR) $(ODIR)
-
-fclean: clean
-	$(RM) -r $(BUILDDIR)
-
-re: fclean all
-
-run: $(BUILDDIR)/$(NAME)
-	@$(BUILDDIR)/$(NAME) $(ARGS)
-
 $(DEPS):
+
 -include $(DEPS)
