@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 13:42:53 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/09 15:57:49 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,12 +30,17 @@ class Parser {
     std::string _path;
 
     Server _parse_server(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it);
-    void   _parse_identifier(const std::vector<Token>           &v_token,
-                             std::vector<Token>::const_iterator &it,
-                             std::vector<std::string> &v_identifier, std::string err_code);
-    void   _parse_identifier(std::vector<Token>::const_iterator &it, std::string &identifier,
+    Location     _parse_location(const std::vector<Token>           &v_token,
+                                 std::vector<Token>::const_iterator &it);
+    void         _parse_identifier(const std::vector<Token>           &v_token,
+                                   std::vector<Token>::const_iterator &it,
+                                   std::vector<std::string> &v_identifier, std::string err_code);
+    void         _parse_identifier(std::vector<Token>::const_iterator &it, std::string &identifier,
+                                   std::string err_code);
+    LocationPath _parse_location_path(const Token &token);
+    void         _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier,
                              std::string err_code);
-    void   _exit_error(const Token &false_token, const std::string expected_text,
-                       const std::size_t expected_type);
+    void         _exit_error(const Token &false_token, const std::string expected_text,
+                             const std::size_t expected_type);
 };
 }  // namespace ft

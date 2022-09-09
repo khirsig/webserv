@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 13:43:16 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/09 15:50:46 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ int main() {
     std::stringstream buf;
     std::string       file_content;
 
-    std::cout << "PARSER\n\n";
+    std::cout << "Tokenizer: \n\n";
     file.open(file_path);
     if (!file.is_open()) {
         std::cerr << "Could not open the file \"" << file_path << "\"" << std::endl;
@@ -36,9 +36,11 @@ int main() {
     ft::Tokenizer          tokenizer;
     std::vector<ft::Token> v_token = tokenizer.parse(file_content);
 
-    // for (ft::Token currToken : v_token) {
-    //     currToken.debug_print();
-    // }
+    for (ft::Token currToken : v_token) {
+        currToken.debug_print();
+    }
+
+    std::cout << "PARSER: \n\n";
 
     std::vector<ft::Server> server;
     ft::Parser              parser(file_path);

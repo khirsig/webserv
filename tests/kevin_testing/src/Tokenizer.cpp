@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 09:31:18 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/09 16:00:33 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,12 @@ std::vector<Token> Tokenizer::parse(const std::string &input_file) {
             case '(':
             case ')':
             case ';':
-                _end_token(current_token, v_token);
-                current_token.type = OPERATOR;
-                current_token.text.append(1, input_file[i]);
-                _end_token(current_token, v_token);
+                if (current_token.type != COMMENT) {
+                    _end_token(current_token, v_token);
+                    current_token.type = OPERATOR;
+                    current_token.text.append(1, input_file[i]);
+                    _end_token(current_token, v_token);
+                }
                 break;
 
             case ' ':
