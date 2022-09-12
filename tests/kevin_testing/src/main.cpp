@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 15:50:46 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/12 08:55:21 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 #include "Tokenizer.hpp"
 
 int main() {
-    std::string       file_path = "./test.conf";
+    std::string       file_path = "./webserv.conf";
     std::ifstream     file;
     std::stringstream buf;
     std::string       file_content;

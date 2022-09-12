@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 16:33:55 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/12 09:00:34 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,9 +64,7 @@ Location Parser::_parse_location(const std::vector<Token>           &v_token,
     ++it;
     Location new_location;
     if (it->type == IDENTIFIER) {
-        LocationPath new_path = _parse_location_path(*it);
-        new_location.v_path.push_back(new_path);
-        ++it;
+        _parse_location(v_token, it, new_location.v_path);
     } else {
         std::cout << "No identifier for location in " << _path << ":" << it->line_number << "\n";
         exit(EXIT_FAILURE);
@@ -136,25 +134,45 @@ void Parser::_parse_identifier(std::vector<Token>::const_iterator &it, std::stri
     }
 }
 
-LocationPath Parser::_parse_location_path(const Token &token) {
+void Parser::_parse_location(const std::vector<Token>           &v_token,
+                             std::vector<Token>::const_iterator &it,
+                             std::vector<LocationPath>          &v_path) {
     LocationPath new_path;
 
-    if (token.text.size() <= 0) {
+    if (it->text.size() <= 0) {
         exit(EXIT_FAILURE);
     }
-    if (token.text[0] == '*') {
+    if (it->text[0] == '*') {
         new_path.wildcard = PREFIX;
-        new_path.str = token.text;
+        new_path.str = it->text;
         new_path.str.erase(0, 1);
-    } else if (token.text[token.text.size() - 1] == '*') {
+    } else if (it->text[it->text.size() - 1] == '*') {
         new_path.wildcard = POSTFIX;
-        new_path.str = token.text;
-        new_path.str.erase(token.text.size() - 1, 1);
+        new_path.str = it->text;
+        new_path.str.erase(it->text.size() - 1, 1);
     } else {
         new_path.wildcard = NONE;
-        new_path.str = token.text;
+        new_path.str = it->text;
     }
-    return (new_path);
+    ++it;
+
+    if (it->text == "(" && it->type == OPERATOR) {
+        ++it;
+        for (; it != v_token.end() && it->text != ")"; ++it) {
+            LocationPath multi_path(new_path);
+            std::cout << multi_path.str << " + " << it->text << " = ";
+            multi_path.str += it->text;
+            std::cout << multi_path.str << "\n";
+            v_path.push_back(multi_path);
+        }
+        if (it == v_token.end()) {
+            std::cerr << "Missing \")\" in " << _path << ":" << (it - 1)->line_number + 1 << "\n";
+            exit(EXIT_FAILURE);
+        }
+        ++it;
+    } else {
+        v_path.push_back(new_path);
+    }
 }
 
 void Parser::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifier,
