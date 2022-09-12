@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/12 13:16:42 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/12 14:17:05 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -192,25 +192,41 @@ void Parser::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifie
     }
 }
 
+std::string Parser::_timestamp() const {
+    std::time_t t = time(NULL);
+    struct tm  *time_master = localtime(&t);
+    std::string ret;
+
+    std::cerr << time_master->tm_year + 1900 << "/" << time_master->tm_mon + 1 << "/"
+              << time_master->tm_mday << " " << time_master->tm_hour << ":" << time_master->tm_min
+              << ":" << time_master->tm_sec << " ";
+
+    return ret;
+}
+
 void Parser::_invalid_directive(std::vector<Token>::const_iterator &it) const {
+    _timestamp();
     std::cerr << "\"" << *_last_directive << "\" directive is not allowed here in " << _path << ":"
               << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Parser::_unexpected_file_ending(std::vector<Token>::const_iterator &it) const {
+    _timestamp();
     std::cerr << "unexpected end of file, expecting \"}\" in " << _path << ":"
               << (it - 1)->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Parser::_none_terminated_directive(std::vector<Token>::const_iterator &it) const {
+    _timestamp();
     std::cerr << "directive \"" << *_last_directive << "\" is not terminated by \";\" in " << _path
               << ":" << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Parser::_invalid_bool_argument(std::vector<Token>::const_iterator &it) const {
+    _timestamp();
     std::cerr << "invalid value \"" << it->text << "\" in \"" << *_last_directive
               << "\" directive, it must be \"on\" or \"off\" in " << _path << ":" << it->line_number
               << "\n";
@@ -218,12 +234,14 @@ void Parser::_invalid_bool_argument(std::vector<Token>::const_iterator &it) cons
 }
 
 void Parser::_invalid_directive_argument_amount(std::vector<Token>::const_iterator &it) const {
+    _timestamp();
     std::cerr << "invalid number of arguments in \"" << *_last_directive << "\" directive in path"
               << _path << ":" << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Parser::_missing_opening(std::vector<Token>::const_iterator &it, const char &op) const {
+    _timestamp();
     std::cerr << "directive \"" << *_last_directive << "\" has no opening \"" << op << "\" in "
               << _path << ":" << it->line_number << "\n";
     exit(EXIT_FAILURE);
