@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/12 09:00:34 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/12 09:48:20 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,13 +31,13 @@ Server Parser::_parse_server(const std::vector<Token>           &v_token,
         ++it;
         for (; it != v_token.end() && it->text != "}"; ++it) {
             if (it->text == "listen") {
-                _parse_identifier(v_token, it, new_server.v_listen, "listen");
+                _parse_identifier(v_token, it, new_server.v_listen);
             } else if (it->text == "server_name") {
-                _parse_identifier(v_token, it, new_server.v_server_name, "server_name");
+                _parse_identifier(v_token, it, new_server.v_server_name);
             } else if (it->text == "error_page") {
-                _parse_identifier(v_token, it, new_server.v_error_page, "error_page");
+                _parse_identifier(v_token, it, new_server.v_error_page);
             } else if (it->text == "client_max_body_size") {
-                _parse_identifier(it, new_server.client_max_body_size, "client_max_body_size");
+                _parse_identifier(it, new_server.client_max_body_size);
             } else if (it->text == "location") {
                 Location temp;
                 temp = _parse_location(v_token, it);
@@ -73,22 +73,23 @@ Location Parser::_parse_location(const std::vector<Token>           &v_token,
     if (it->text == "{" && it->type == OPERATOR) {
         ++it;
         for (; it != v_token.end() && it->text != "}"; ++it) {
-            if (it->text == "accepted_methods") {
-                _parse_identifier(v_token, it, new_location.v_accepted_method, "accepted_methods");
-            } else if (it->text == "redirect") {
-                _parse_identifier(v_token, it, new_location.v_redirect, "redirect");
-            } else if (it->text == "root") {
-                _parse_identifier(it, new_location.root, "root");
-            } else if (it->text == "index") {
-                _parse_identifier(v_token, it, new_location.v_index, "index");
-            } else if (it->text == "location") {
+            _last_directive = &(it->text);
+            if (*_last_directive == "accepted_methods") {
+                _parse_identifier(v_token, it, new_location.v_accepted_method);
+            } else if (*_last_directive == "redirect") {
+                _parse_identifier(v_token, it, new_location.v_redirect);
+            } else if (*_last_directive == "root") {
+                _parse_identifier(it, new_location.root);
+            } else if (*_last_directive == "index") {
+                _parse_identifier(v_token, it, new_location.v_index);
+            } else if (*_last_directive == "location") {
                 Location temp;
                 temp = _parse_location(v_token, it);
                 new_location.v_location.push_back(temp);
-            } else if (it->text == "cgi_pass") {
-                _parse_identifier(v_token, it, new_location.v_cgi_pass, "cgi_pass");
-            } else if (it->text == "directory_listing") {
-                _parse_bool(it, new_location.directory_listing, "directory_listening");
+            } else if (*_last_directive == "cgi_pass") {
+                _parse_identifier(v_token, it, new_location.v_cgi_pass);
+            } else if (*_last_directive == "directory_listing") {
+                _parse_bool(it, new_location.directory_listing);
             } else {
                 std::cerr << "\"" << it->text << "\" directive is not allowed here in " << _path
                           << ":" << it->line_number << "\n";
@@ -108,7 +109,7 @@ Location Parser::_parse_location(const std::vector<Token>           &v_token,
 
 void Parser::_parse_identifier(const std::vector<Token>           &v_token,
                                std::vector<Token>::const_iterator &it,
-                               std::vector<std::string> &v_identifier, std::string err_code) {
+                               std::vector<std::string>           &v_identifier) {
     ++it;
     for (; it != v_token.end() && it->text != ";"; ++it) {
         std::string str(it->text);
@@ -116,20 +117,19 @@ void Parser::_parse_identifier(const std::vector<Token>           &v_token,
         str.erase();
     }
     if (it->text != ";") {
-        std::cerr << "directive \"" << err_code << "\" is not terminated by \";\" in " << _path
-                  << ":" << it->line_number << "\n";
+        std::cerr << "directive \"" << *_last_directive << "\" is not terminated by \";\" in "
+                  << _path << ":" << it->line_number << "\n";
         exit(EXIT_FAILURE);
     }
 }
 
-void Parser::_parse_identifier(std::vector<Token>::const_iterator &it, std::string &identifier,
-                               std::string err_code) {
+void Parser::_parse_identifier(std::vector<Token>::const_iterator &it, std::string &identifier) {
     ++it;
     identifier = it->text;
     ++it;
     if (it->text != ";") {
-        std::cerr << "directive \"" << err_code << "\" is not terminated by \";\" in " << _path
-                  << ":" << it->line_number << "\n";
+        std::cerr << "directive \"" << *_last_directive << "\" is not terminated by \";\" in "
+                  << _path << ":" << it->line_number << "\n";
         exit(EXIT_FAILURE);
     }
 }
@@ -160,9 +160,7 @@ void Parser::_parse_location(const std::vector<Token>           &v_token,
         ++it;
         for (; it != v_token.end() && it->text != ")"; ++it) {
             LocationPath multi_path(new_path);
-            std::cout << multi_path.str << " + " << it->text << " = ";
             multi_path.str += it->text;
-            std::cout << multi_path.str << "\n";
             v_path.push_back(multi_path);
         }
         if (it == v_token.end()) {
@@ -175,22 +173,21 @@ void Parser::_parse_location(const std::vector<Token>           &v_token,
     }
 }
 
-void Parser::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifier,
-                         std::string err_code) {
+void Parser::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifier) {
     ++it;
     if (it->text == "on") {
         identifier = true;
     } else if (it->text == "off") {
         identifier = false;
     } else {
-        std::cerr << "\"" << err_code << "\" wrong input for bool in " << _path << ":"
+        std::cerr << "\"" << *_last_directive << "\" wrong input for bool in " << _path << ":"
                   << it->line_number << "\n";
         exit(EXIT_FAILURE);
     }
     ++it;
     if (it->text != ";") {
-        std::cerr << "directive \"" << err_code << "\" is not terminated by \";\" in " << _path
-                  << ":" << it->line_number << "\n";
+        std::cerr << "directive \"" << *_last_directive << "\" is not terminated by \";\" in "
+                  << _path << ":" << it->line_number << "\n";
         exit(EXIT_FAILURE);
     }
 }
