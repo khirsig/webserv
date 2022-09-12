@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/12 09:45:20 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/12 13:16:08 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,13 @@ class Parser {
     void _parse_location(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                          std::vector<LocationPath> &v_path);
     void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
-    void _exit_error(const Token &false_token, const std::string expected_text,
-                     const std::size_t expected_type);
+
+    void _invalid_directive(std::vector<Token>::const_iterator &it) const;
+    void _unexpected_file_ending(std::vector<Token>::const_iterator &it) const;
+    void _none_terminated_directive(std::vector<Token>::const_iterator &it) const;
+    void _invalid_bool_argument(std::vector<Token>::const_iterator &it) const;
+    void _invalid_directive_argument_amount(std::vector<Token>::const_iterator &it) const;
+    void _missing_opening(std::vector<Token>::const_iterator &it, const char &op) const;
 };
+
 }  // namespace ft
