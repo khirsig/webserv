@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/08 15:06:06 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/09 09:31:18 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,12 +71,6 @@ void Tokenizer::_end_token(Token &current_token, std::vector<Token> &v_token) {
     }
     current_token.type = WHITESPACE;
     current_token.text.erase();
-}
-
-void Token::debug_print() const {
-    std::cout << "Token(" << token_type_string[type] << ", \"" << text << "\", " << line_number
-              << ")"
-              << "\n";
 }
 
 }  // namespace ft

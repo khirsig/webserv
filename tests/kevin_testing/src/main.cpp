@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/08 15:01:39 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/09 13:43:16 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,18 +14,20 @@
 #include <iostream>
 #include <sstream>
 
+#include "Parser.hpp"
+#include "Server.hpp"
 #include "Tokenizer.hpp"
 
 int main() {
-    std::string       path("./webserv.conf");
+    std::string       file_path = "./test.conf";
     std::ifstream     file;
     std::stringstream buf;
     std::string       file_content;
 
-    std::cout << "Tokenizer\n\n";
-    file.open(path);
+    std::cout << "PARSER\n\n";
+    file.open(file_path);
     if (!file.is_open()) {
-        std::cerr << "Could not open the file \"" << path << "\"" << std::endl;
+        std::cerr << "Could not open the file \"" << file_path << "\"" << std::endl;
         exit(EXIT_FAILURE);
     }
     buf << file.rdbuf();
@@ -34,8 +36,17 @@ int main() {
     ft::Tokenizer          tokenizer;
     std::vector<ft::Token> v_token = tokenizer.parse(file_content);
 
-    for (ft::Token currToken : v_token) {
-        currToken.debug_print();
+    // for (ft::Token currToken : v_token) {
+    //     currToken.debug_print();
+    // }
+
+    std::vector<ft::Server> server;
+    ft::Parser              parser(file_path);
+
+    parser.parse(v_token, server);
+    for (std::vector<ft::Server>::iterator it = server.begin(); it != server.end(); ++it) {
+        it->print();
+        std::cout << "\n\n";
     }
     return 0;
 }

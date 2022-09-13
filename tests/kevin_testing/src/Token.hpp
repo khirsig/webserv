@@ -1,30 +1,33 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Tokenizer.hpp                                      :+:      :+:    :+:   */
+/*   Token.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/07 16:13:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 09:30:38 by khirsig          ###   ########.fr       */
+/*   Created: 2022/09/09 09:29:30 by khirsig           #+#    #+#             */
+/*   Updated: 2022/09/09 09:31:03 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include <string>
-#include <vector>
-
-#include "Token.hpp"
+#include <iostream>
 
 namespace ft {
 
-class Tokenizer {
-   public:
-    std::vector<Token> parse(const std::string &input_file);
+enum TokenType { WHITESPACE, IDENTIFIER, OPERATOR, COMMENT };
 
-   private:
-    void _end_token(Token &current_token, std::vector<Token> &v_token);
+static const char *token_type_string[] = {"WHITESPACE", "IDENTIFIER", "OPERATOR", "COMMENT"};
+
+class Token {
+   public:
+    enum TokenType type;
+    std::string    text;
+    std::size_t    line_number;
+
+    void debug_print() const;
 };
 
-}  // namespace ft
+}
