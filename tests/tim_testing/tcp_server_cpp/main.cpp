@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "Connections.hpp"
-#include "Kqueue.hpp"
+#include "Eni.hpp"
 #include "Socket.hpp"
 
 void recv_msg(int fd, const Connections& con) {
@@ -17,29 +17,29 @@ void recv_msg(int fd, const Connections& con) {
 }
 
 int main(int argc, char* argv[]) {
-    Kqueue              kq;
+    Eni                 eni;
     std::vector<Socket> v_socket;
 
     v_socket.push_back(Socket(inet_addr("127.0.0.1"), 8080));
     v_socket.push_back(Socket(inet_addr("10.11.2.12"), 8080));
 
     for (std::vector<Socket>::iterator it = v_socket.begin(); it != v_socket.end(); ++it) {
-        kq.add_event((*it).fd, EVFILT_READ);
+        eni.add_event((*it).fd, EVFILT_READ);
     }
 
     Connections connections(1024);
     while (42) {
-        int num_events = kq.poll_events();
+        int num_events = eni.poll_events();
         for (int i = 0; i < num_events; i++) {
-            if (kq.events[i].flags & EV_ERROR) {
-                std::cerr << "kevent() error on " << kq.events[i].ident << '\n';
-            } else if (std::find(v_socket.begin(), v_socket.end(), kq.events[i].ident) !=
+            if (eni.events[i].flags & EV_ERROR) {
+                std::cerr << "kevent() error on " << eni.events[i].ident << '\n';
+            } else if (std::find(v_socket.begin(), v_socket.end(), eni.events[i].ident) !=
                        v_socket.end()) {
-                connections.accept_connection(kq.events[i].ident, kq);
-            } else if (kq.events[i].flags & EV_EOF) {
-                connections.close_connection(kq.events[i].ident, kq);
-            } else if (kq.events[i].filter == EVFILT_READ) {
-                recv_msg(kq.events[i].ident, connections);
+                connections.accept_connection(eni.events[i].ident, eni);
+            } else if (eni.events[i].flags & EV_EOF) {
+                connections.close_connection(eni.events[i].ident, eni);
+            } else if (eni.events[i].filter == EVFILT_READ) {
+                recv_msg(eni.events[i].ident, connections);
             }
         }
     }

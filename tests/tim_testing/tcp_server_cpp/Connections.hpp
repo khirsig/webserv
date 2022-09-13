@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Kqueue.hpp"
+#include "Eni.hpp"
 
 class Connections {
    private:
@@ -17,8 +17,8 @@ class Connections {
     Connections(size_t max_connections);
     ~Connections();
 
-    int         accept_connection(int fd, Kqueue& kq);
-    int         close_connection(int fd, Kqueue& kq);
+    int         accept_connection(int fd, Eni& kq);
+    int         close_connection(int fd, Eni& kq);
     std::string get_connection_ip(int fd) const;
     int         get_connection_port(int fd) const;
 };

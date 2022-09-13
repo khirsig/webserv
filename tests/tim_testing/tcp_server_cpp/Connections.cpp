@@ -22,7 +22,7 @@ Connections::~Connections() {
     }
 }
 
-int Connections::accept_connection(int fd, Kqueue& kq) {
+int Connections::accept_connection(int fd, Eni& kq) {
     int index = get_index(-1);
     if (index == -1) {
         struct sockaddr addr;
@@ -43,7 +43,7 @@ int Connections::accept_connection(int fd, Kqueue& kq) {
     return _v_fd[index];
 }
 
-int Connections::close_connection(int fd, Kqueue& kq) {
+int Connections::close_connection(int fd, Eni& kq) {
     int index = get_index(fd);
     if (index == -1)
         return -1;
