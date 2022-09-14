@@ -4,17 +4,9 @@
 
 #include "Eni.hpp"
 
-#define CONNECTION_TIMEOUT 5000
+#define CONNECTION_TIMEOUT 60000
 
 class Connections {
-   private:
-    std::vector<int>                _v_fd;
-    std::vector<struct sockaddr_in> _v_address;
-    std::vector<socklen_t>          _v_address_len;
-    std::size_t                     _max_connections;
-
-    int get_index(int fd) const;
-
    public:
     Connections(size_t max_connections);
     ~Connections();
@@ -23,4 +15,12 @@ class Connections {
     int         close_connection(int fd, Eni& kq);
     std::string get_connection_ip(int fd) const;
     int         get_connection_port(int fd) const;
+
+   private:
+    std::vector<int>                _v_fd;
+    std::vector<struct sockaddr_in> _v_address;
+    std::vector<socklen_t>          _v_address_len;
+    std::size_t                     _max_connections;
+
+    int get_index(int fd) const;
 };

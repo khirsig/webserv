@@ -9,8 +9,7 @@
 #include "Eni.hpp"
 #include "Socket.hpp"
 
-void recv_msg(int fd, const Connections& con, Eni& eni) {
-    eni.add_event(fd, EVFILT_TIMER, CONNECTION_TIMEOUT);
+void recv_msg(int fd, const Connections& con) {
     char buf[1024];
     int  bytes_read = recv(fd, buf, sizeof(buf) - 1, 0);
     buf[bytes_read] = 0;
@@ -28,7 +27,7 @@ int main(int argc, char* argv[]) {
         eni.add_event(it->fd, EVFILT_READ, 0);
     }
 
-    Connections connections(1024);
+    Connections connections(1);
     while (42) {
         int num_events = eni.poll_events();
         if (num_events == -1) {
@@ -41,15 +40,23 @@ int main(int argc, char* argv[]) {
                 std::cerr << "kevent() error on " << eni.events[i].ident << '\n';
             } else if (std::find(v_socket.begin(), v_socket.end(), eni.events[i].ident) !=
                        v_socket.end()) {
-                connections.accept_connection(eni.events[i].ident, eni);
+                int fd = connections.accept_connection(eni.events[i].ident, eni);
+                if (fd != -1)
+                    std::cerr << "Accept new connection: " << connections.get_connection_ip(fd)
+                              << ":" << connections.get_connection_port(fd) << '\n';
             } else if (eni.events[i].flags & EV_EOF || eni.events[i].filter == EVFILT_TIMER) {
-                if (eni.events[i].filter == EVFILT_TIMER)
+                if (eni.events[i].filter == EVFILT_TIMER) {
                     std::cerr << "Timeout on connection "
                               << connections.get_connection_ip(eni.events[i].ident) << ":"
                               << connections.get_connection_port(eni.events[i].ident) << '\n';
+                }
+                std::cerr << "Closed connection: "
+                          << connections.get_connection_ip(eni.events[i].ident) << ":"
+                          << connections.get_connection_port(eni.events[i].ident) << '\n';
                 connections.close_connection(eni.events[i].ident, eni);
             } else if (eni.events[i].filter == EVFILT_READ) {
-                recv_msg(eni.events[i].ident, connections, eni);
+                recv_msg(eni.events[i].ident, connections);
+                eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
             }
         }
     }
