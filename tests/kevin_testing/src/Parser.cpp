@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 13:24:36 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 14:54:07 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,13 +34,13 @@ Server Parser::_parse_server(const std::vector<Token>           &v_token,
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "listen") {
-                _parse_identifier(v_token, it, new_server.v_listen);
+                _parse_string(v_token, it, new_server.v_listen);
             } else if (*_last_directive == "server_name") {
-                _parse_identifier(v_token, it, new_server.v_server_name);
+                _parse_string(v_token, it, new_server.v_server_name);
             } else if (*_last_directive == "error_page") {
-                _parse_identifier(v_token, it, new_server.v_error_page);
+                _parse_string(v_token, it, new_server.v_error_page);
             } else if (*_last_directive == "client_max_body_size") {
-                _parse_identifier(it, new_server.client_max_body_size);
+                _parse_bytes(it, new_server.client_max_body_size);
             } else if (*_last_directive == "location") {
                 Location temp;
                 temp = _parse_location(v_token, it);
@@ -74,19 +74,19 @@ Location Parser::_parse_location(const std::vector<Token>           &v_token,
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "accepted_methods") {
-                _parse_identifier(v_token, it, new_location.v_accepted_method);
+                _parse_string(v_token, it, new_location.v_accepted_method);
             } else if (*_last_directive == "redirect") {
-                _parse_identifier(v_token, it, new_location.v_redirect);
+                _parse_string(v_token, it, new_location.v_redirect);
             } else if (*_last_directive == "root") {
-                _parse_identifier(it, new_location.root);
+                _parse_string(it, new_location.root);
             } else if (*_last_directive == "index") {
-                _parse_identifier(v_token, it, new_location.v_index);
+                _parse_string(v_token, it, new_location.v_index);
             } else if (*_last_directive == "location") {
                 Location temp;
                 temp = _parse_location(v_token, it);
                 new_location.v_location.push_back(temp);
             } else if (*_last_directive == "cgi_pass") {
-                _parse_identifier(v_token, it, new_location.v_cgi_pass);
+                _parse_string(v_token, it, new_location.v_cgi_pass);
             } else if (*_last_directive == "directory_listing") {
                 _parse_bool(it, new_location.directory_listing);
             } else {
@@ -102,9 +102,9 @@ Location Parser::_parse_location(const std::vector<Token>           &v_token,
     return (new_location);
 }
 
-void Parser::_parse_identifier(const std::vector<Token>           &v_token,
-                               std::vector<Token>::const_iterator &it,
-                               std::vector<std::string>           &v_identifier) {
+void Parser::_parse_string(const std::vector<Token>           &v_token,
+                           std::vector<Token>::const_iterator &it,
+                           std::vector<std::string>           &v_identifier) {
     ++it;
     for (; it != v_token.end(); ++it) {
         if (it->type == OPERATOR) {
@@ -123,9 +123,53 @@ void Parser::_parse_identifier(const std::vector<Token>           &v_token,
     }
 }
 
-void Parser::_parse_identifier(std::vector<Token>::const_iterator &it, std::string &identifier) {
+void Parser::_parse_string(std::vector<Token>::const_iterator &it, std::string &identifier) {
     ++it;
     identifier = it->text;
+    ++it;
+    if (it->text != ";") {
+        _none_terminated_directive(it);
+    }
+}
+
+void Parser::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier) {
+    ++it;
+    std::string   num = it->text;
+    std::uint64_t multiplier;
+    char          byte_size = num[it->text.size() - 1];
+
+    if (byte_size == 'G' || byte_size == 'g') {
+        multiplier = 1000000000;
+        num.erase(num.size() - 1, 1);
+    } else if (byte_size == 'M' || byte_size == 'm') {
+        multiplier = 1000000;
+        num.erase(num.size() - 1, 1);
+    } else if (byte_size == 'K' || byte_size == 'k') {
+        multiplier = 1000;
+        num.erase(num.size() - 1, 1);
+    } else if (byte_size == 'B' || byte_size == 'b') {
+        multiplier = 1;
+        num.erase(num.size() - 1, 1);
+    } else if (byte_size >= '0' && byte_size <= '9') {
+        multiplier = 1;
+    } else {
+        std::cerr << "Size Identifier is wrong\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (num.size() > 3) {
+        std::cerr << "Numeric amount too high. Maximum 3 digits allowed. Use 'B', 'K', 'M', 'G' "
+                     "instead\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (num.find_first_not_of("0123456789") != std::string::npos) {
+        std::cerr << "Long consists of wrong characters.\n";
+        exit(EXIT_FAILURE);
+    }
+    char *p_end;
+    identifier = strtol(num.c_str(), &p_end, 10) * multiplier;
+
     ++it;
     if (it->text != ";") {
         _none_terminated_directive(it);

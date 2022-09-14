@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 13:24:49 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 14:54:07 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,10 +34,10 @@ class Parser {
     Server _parse_server(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it);
     Location _parse_location(const std::vector<Token>           &v_token,
                              std::vector<Token>::const_iterator &it);
-    void     _parse_identifier(const std::vector<Token>           &v_token,
-                               std::vector<Token>::const_iterator &it,
-                               std::vector<std::string>           &v_identifier);
-    void     _parse_identifier(std::vector<Token>::const_iterator &it, std::string &identifier);
+    void _parse_string(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                       std::vector<std::string> &v_identifier);
+    void _parse_string(std::vector<Token>::const_iterator &it, std::string &identifier);
+    void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
     void _parse_location(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                          std::vector<LocationPath> &v_path);
     void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
