@@ -39,6 +39,7 @@ webserv
 *.su
 *.idb
 *.pdb
+*.log
 
 # OS generated files
 .DS_Store
