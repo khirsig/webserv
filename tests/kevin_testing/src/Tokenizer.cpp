@@ -6,13 +6,13 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 10:21:17 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:25:10 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Tokenizer.hpp"
 
-namespace ft {
+namespace config {
 
 std::vector<Token> Tokenizer::parse(const std::string &input_file) {
     std::vector<Token> v_token;
@@ -75,4 +75,4 @@ void Tokenizer::_end_token(Token &current_token, std::vector<Token> &v_token) {
     current_token.text.erase();
 }
 
-}  // namespace ft
+}  // namespace config

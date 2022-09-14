@@ -6,13 +6,13 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:14 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 16:16:50 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:24:54 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-namespace ft {
+namespace config {
 
 void Server::print() const {
     for (std::vector<std::string>::const_iterator it = v_listen.begin(); it != v_listen.end();
@@ -37,4 +37,4 @@ void Server::print() const {
     }
 }
 
-}  // namespace ft
+}  // namespace config

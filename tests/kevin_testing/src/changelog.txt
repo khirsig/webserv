@@ -1,11 +1,10 @@
-config parser client_max_body_size should be saved as int depending on last letter.
+config parser client_max_body_size should be saved as uint64_t depending on last letter.
 default server should be deleted and put to the back.
 listen should be saved in a struct with address and port.
 error_page should be saved in a vector of structs with error_code and link.
 accepted_methods should be limited to GET POST DELETE (HEAD).
 redirect should be a vector of structs with status_code, from & to.
 Tokenizer return reference
-Add Namespace for Config Parser config::
 After-Parser needed for later
 change _parse_location to _parse_location_path
 _parse_location_path use front back for string (is c++11?)

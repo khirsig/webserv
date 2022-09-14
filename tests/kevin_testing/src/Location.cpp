@@ -6,13 +6,13 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 16:01:57 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 16:34:22 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:24:16 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Location.hpp"
 
-namespace ft {
+namespace config {
 
 void Location::print(std::string prefix) const {
     for (std::vector<LocationPath>::const_iterator it = v_path.begin(); it != v_path.end(); ++it) {

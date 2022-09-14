@@ -6,13 +6,13 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/12 14:17:05 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:24:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Parser.hpp"
 
-namespace ft {
+namespace config {
 
 void Parser::parse(const std::vector<Token> &v_token, std::vector<Server> &v_server) {
     for (std::vector<Token>::const_iterator it = v_token.begin(); it != v_token.end(); ++it) {
@@ -247,4 +247,4 @@ void Parser::_missing_opening(std::vector<Token>::const_iterator &it, const char
     exit(EXIT_FAILURE);
 }
 
-}  // namespace ft
+}  // namespace config

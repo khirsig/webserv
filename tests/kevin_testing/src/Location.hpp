@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 14:10:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 16:09:05 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:24:21 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace ft {
+namespace config {
 
 enum wildcard { NONE, PREFIX, POSTFIX };
 
@@ -42,4 +42,4 @@ class Location {
     std::vector<std::string>  v_cgi_pass;
 };
 
-}  // namespace ft
+}  // namespace config

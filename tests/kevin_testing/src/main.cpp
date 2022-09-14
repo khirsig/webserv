@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/12 14:19:41 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:26:17 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,6 @@ int main() {
     std::stringstream buf;
     std::string       file_content;
 
-    // std::cout << "Tokenizer: \n\n";
     file.open(file_path);
     if (!file.is_open()) {
         std::cerr << "Could not open the file \"" << file_path << "\"" << std::endl;
@@ -33,21 +32,15 @@ int main() {
     buf << file.rdbuf();
     file_content = buf.str();
 
-    ft::Tokenizer          tokenizer;
-    std::vector<ft::Token> v_token = tokenizer.parse(file_content);
-
-    // for (ft::Token currToken : v_token) {
-    //     currToken.debug_print();
-    // }
-
-    // std::cout << "PARSER: \n\n";
+    config::Tokenizer          tokenizer;
+    std::vector<config::Token> v_token = tokenizer.parse(file_content);
     std::cout << "\n\n";
 
-    std::vector<ft::Server> server;
-    ft::Parser              parser(file_path);
+    std::vector<config::Server> server;
+    config::Parser              parser(file_path);
 
     parser.parse(v_token, server);
-    for (std::vector<ft::Server>::iterator it = server.begin(); it != server.end(); ++it) {
+    for (std::vector<config::Server>::iterator it = server.begin(); it != server.end(); ++it) {
         it->print();
         std::cout << "\n\n";
     }

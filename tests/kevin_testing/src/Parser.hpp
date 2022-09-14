@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 10:32:28 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 13:24:49 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 #include "Server.hpp"
 #include "Token.hpp"
 
-namespace ft {
+namespace config {
 
 class Parser {
    public:
@@ -52,4 +52,4 @@ class Parser {
     void _missing_opening(std::vector<Token>::const_iterator &it, const char &op) const;
 };
 
-}  // namespace ft
+}  // namespace config
