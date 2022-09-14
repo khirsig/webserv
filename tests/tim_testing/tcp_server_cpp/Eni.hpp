@@ -36,7 +36,7 @@ class Eni {
     Eni();
     ~Eni();
 
-    int add_event(int fd, int filter);
-    int delete_event(int fd, int filter);
+    int add_event(int fd, int16_t filter, int64_t data);
+    int delete_event(int fd, int16_t filter);
     int poll_events();
 };

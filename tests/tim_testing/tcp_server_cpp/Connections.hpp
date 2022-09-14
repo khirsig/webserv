@@ -4,12 +4,14 @@
 
 #include "Eni.hpp"
 
+#define CONNECTION_TIMEOUT 5000
+
 class Connections {
    private:
-    std::vector<int>                  _v_fd;
-    std::vector<struct ::sockaddr_in> _v_address;
-    std::vector<::socklen_t>          _v_address_len;
-    std::size_t                       _max_connections;
+    std::vector<int>                _v_fd;
+    std::vector<struct sockaddr_in> _v_address;
+    std::vector<socklen_t>          _v_address_len;
+    std::size_t                     _max_connections;
 
     int get_index(int fd) const;
 

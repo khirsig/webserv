@@ -1,7 +1,7 @@
+#include "Eni.hpp"
+
 #include <cerrno>
 #include <stdexcept>
-
-#include "Eni.hpp"
 
 Eni::Eni() {
     _kq = kqueue();
@@ -16,13 +16,13 @@ Eni::~Eni() {
     close(_kq);
 }
 
-int Eni::add_event(int fd, int filter) {
+int Eni::add_event(int fd, int16_t filter, int64_t data) {
     struct kevent event;
-    EV_SET(&event, fd, filter, EV_ADD, 0, 0, NULL);
+    EV_SET(&event, fd, filter, EV_ADD, 0, data, NULL);
     return kevent(_kq, &event, 1, NULL, 0, NULL);
 }
 
-int Eni::delete_event(int fd, int filter) {
+int Eni::delete_event(int fd, int16_t filter) {
     struct kevent event;
     EV_SET(&event, fd, filter, EV_DELETE, 0, 0, NULL);
     return kevent(_kq, &event, 1, NULL, 0, NULL);

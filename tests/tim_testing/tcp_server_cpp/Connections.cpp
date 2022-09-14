@@ -22,7 +22,7 @@ Connections::~Connections() {
     }
 }
 
-int Connections::accept_connection(int fd, Eni& kq) {
+int Connections::accept_connection(int fd, Eni& eni) {
     int index = get_index(-1);
     if (index == -1) {
         struct sockaddr addr;
@@ -38,17 +38,19 @@ int Connections::accept_connection(int fd, Eni& kq) {
         return -1;
     }
 
-    kq.add_event(_v_fd[index], EVFILT_READ);
+    eni.add_event(_v_fd[index], EVFILT_READ, 0);
+    eni.add_event(_v_fd[index], EVFILT_TIMER, CONNECTION_TIMEOUT);
 
     return _v_fd[index];
 }
 
-int Connections::close_connection(int fd, Eni& kq) {
+int Connections::close_connection(int fd, Eni& eni) {
     int index = get_index(fd);
     if (index == -1)
         return -1;
     _v_fd[index] = -1;
-    kq.delete_event(fd, EVFILT_READ);
+    eni.delete_event(fd, EVFILT_READ);
+    eni.delete_event(fd, EVFILT_TIMER);
     return close(fd);
 }
 
