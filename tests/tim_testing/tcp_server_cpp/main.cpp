@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     v_socket.push_back(Socket(inet_addr("10.11.2.12"), 8080));
 
     for (std::vector<Socket>::iterator it = v_socket.begin(); it != v_socket.end(); ++it) {
-        eni.add_event((*it).fd, EVFILT_READ);
+        eni.add_event(it->fd, EVFILT_READ);
     }
 
     Connections connections(1024);

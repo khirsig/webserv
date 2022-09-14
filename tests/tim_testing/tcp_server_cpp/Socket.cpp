@@ -45,7 +45,7 @@ int Socket::setsockopt(int level, int option_name, int option_value) {
 
 int Socket::bind(in_addr_t bind_addr, in_port_t port) {
     struct sockaddr_in address;
-    bzero(&address, sizeof(address));
+    std::memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = bind_addr;
     address.sin_port = htons(port);

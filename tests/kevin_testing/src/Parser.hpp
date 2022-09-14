@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/12 14:14:05 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 10:32:28 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,12 +23,12 @@ namespace ft {
 
 class Parser {
    public:
-    Parser(const std::string file_path) : _path(file_path) {}
+    Parser(const std::string &file_path) : _path(file_path) {}
 
     void parse(const std::vector<Token> &v_token, std::vector<Server> &v_server);
 
    private:
-    std::string        _path;
+    const std::string  _path;
     const std::string *_last_directive;
 
     Server _parse_server(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it);

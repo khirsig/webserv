@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 15:14:32 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 09:57:07 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ class Server {
     std::vector<std::string> v_listen;
     std::vector<std::string> v_server_name;
     std::vector<std::string> v_error_page;
-    std::string              client_max_body_size;
+    std::string              client_max_body_size;  // int
     std::vector<Location>    v_location;
 };
 
