@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 10:50:23 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 14:31:42 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,11 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "listen") {
-                _parse_string(v_token, it, new_server.v_listen);
+                Listen new_listen;
+                if (_parse_listen(v_token, it, new_listen))
+                    new_server.v_listen.insert(new_server.v_listen.begin(), new_listen);
+                else
+                    new_server.v_listen.push_back(new_listen);
             } else if (*_last_directive == "server_name") {
                 _parse_string(v_token, it, new_server.v_server_name);
             } else if (*_last_directive == "error_page") {
@@ -42,9 +46,9 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             } else if (*_last_directive == "client_max_body_size") {
                 _parse_bytes(it, new_server.client_max_body_size);
             } else if (*_last_directive == "location") {
-                Location temp;
-                temp = _parse_location(v_token, it);
-                new_server.v_location.push_back(temp);
+                Location new_location;
+                new_location = _parse_location(v_token, it);
+                new_server.v_location.push_back(new_location);
             } else {
                 _invalid_directive(it);
             }
@@ -128,6 +132,62 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
     if (it->text != ";") {
         _none_terminated_directive(it);
     }
+}
+
+bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
+                                std::vector<Token>::const_iterator &it, Listen &identifier) {
+    ++it;
+    bool default_server = false;
+
+    std::size_t seperator_index = it->text.find_first_of(':');
+    if (seperator_index != it->text.find_last_of(':')) {
+        std::cerr << "multiple \":\" operator used in " << _path << ":" << it->line_number << "\n";
+    } else if (seperator_index == std::string::npos) {
+        if (it->text.find_first_of('.') == std::string::npos) {
+            _parse_port(it, it->text, identifier.port);
+            identifier.addr = INADDR_ANY;
+        } else {
+            identifier.port = htons(80);
+            identifier.addr = inet_addr(it->text.c_str());
+        }
+    } else {
+        std::string addr_str = it->text.substr(0, seperator_index);
+        std::string port_str =
+            it->text.substr(seperator_index + 1, it->text.size() - seperator_index);
+
+        identifier.addr = inet_addr(addr_str.c_str());
+        _parse_port(it, port_str, identifier.port);
+    }
+    ++it;
+
+    for (; it != v_token.end() && it->text != ";"; ++it) {
+        if (it->text == "default_server") {
+            default_server = true;
+        } else {
+            std::cerr << "invalid parameter \"" << it->text << "\" in " << _path << ":"
+                      << it->line_number << "\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (it == v_token.end())
+        _unexpected_file_ending(it);
+    if (it->text != ";")
+        _none_terminated_directive(it);
+
+    return default_server;
+}
+
+void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
+                              in_port_t &port) {
+    if (str.find_first_not_of("0123456789") != std::string::npos) {
+        std::cerr << "invalid port in \"" << str << "\" of the \"" << *_last_directive
+                  << "\" directive in " << _path << ":" << it->line_number << "\n";
+        exit(EXIT_FAILURE);
+    }
+    int i;
+    std::istringstream(str) >> i;
+    port = htons(i);
 }
 
 void Interpreter::_parse_string(std::vector<Token>::const_iterator &it, std::string &identifier) {

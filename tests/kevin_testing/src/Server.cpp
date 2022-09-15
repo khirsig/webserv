@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:14 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 13:24:54 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 14:34:00 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,11 @@
 namespace config {
 
 void Server::print() const {
-    for (std::vector<std::string>::const_iterator it = v_listen.begin(); it != v_listen.end();
-         ++it) {
-        std::cout << "listen: " << *it << "\n";
+    for (std::vector<Listen>::const_iterator it = v_listen.begin(); it != v_listen.end(); ++it) {
+        std::cout << "listen\n{\n";
+        std::cout << "    address: \"" << it->addr << "\"\n";
+        std::cout << "    port: \"" << htons(it->port) << "\"\n";
+        std::cout << "}\n";
     }
     for (std::vector<std::string>::const_iterator it = v_server_name.begin();
          it != v_server_name.end(); ++it) {
