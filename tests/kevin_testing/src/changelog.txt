@@ -2,7 +2,6 @@ Tokenizer
 
 Parser
 
-change _parse_location to _parse_location_path
 accepted_methods should be limited to GET POST DELETE (HEAD).
 listen should be saved in a struct with address and port.
 error_page should be saved in a vector of structs with error_code and link.

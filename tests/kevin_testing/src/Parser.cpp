@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 14:58:48 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:50:53 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ Location Parser::_parse_location(const std::vector<Token>           &v_token,
     ++it;
     Location new_location;
     if (it->type == IDENTIFIER) {
-        _parse_location(v_token, it, new_location.v_path);
+        _parse_location_path(v_token, it, new_location.v_path);
     } else {
         std::cout << "No identifier for location in " << _path << ":" << it->line_number << "\n";
         exit(EXIT_FAILURE);
@@ -177,9 +177,9 @@ void Parser::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t 
     }
 }
 
-void Parser::_parse_location(const std::vector<Token>           &v_token,
-                             std::vector<Token>::const_iterator &it,
-                             std::vector<LocationPath>          &v_path) {
+void Parser::_parse_location_path(const std::vector<Token>           &v_token,
+                                  std::vector<Token>::const_iterator &it,
+                                  std::vector<LocationPath>          &v_path) {
     LocationPath new_path;
 
     if (it->text.size() <= 0) {

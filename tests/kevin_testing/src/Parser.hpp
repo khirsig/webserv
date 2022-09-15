@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 14:54:07 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:50:53 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,8 +38,9 @@ class Parser {
                        std::vector<std::string> &v_identifier);
     void _parse_string(std::vector<Token>::const_iterator &it, std::string &identifier);
     void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
-    void _parse_location(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
-                         std::vector<LocationPath> &v_path);
+    void _parse_location_path(const std::vector<Token>           &v_token,
+                              std::vector<Token>::const_iterator &it,
+                              std::vector<LocationPath>          &v_path);
     void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
 
     std::string _timestamp() const;
