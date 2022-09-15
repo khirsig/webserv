@@ -6,37 +6,24 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 09:36:02 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 10:53:10 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <fstream>
 #include <iostream>
-#include <sstream>
 
 #include "Parser.hpp"
-#include "Server.hpp"
-#include "Tokenizer.hpp"
 
 int main() {
-    std::string       file_path = "./webserv.conf";
-    std::ifstream     file;
-    std::stringstream buf;
-    std::string       file_content;
+    std::string file_path = "./webserv.conf";
 
-    file.open(file_path);
-    if (!file.is_open()) {
-        std::cerr << "Could not open the file \"" << file_path << "\"" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    buf << file.rdbuf();
-    file_content = buf.str();
+    config::Parser              parser;
+    std::vector<config::Server> v_server;
 
-    config::Tokenizer          tokenizer;
-    std::vector<config::Token> v_token;
-    tokenizer.parse(v_token, file_content);
+    parser.parse(file_path, v_server);
 
-    // for (std::vector<config::Token>::iterator it = v_token.begin(); it != v_token.end(); ++it) {
+    // for (std::vector<config::Token>::iterator it = v_token.begin(); it != v_token.end();
+    // ++it) {
     //     std::cout << "Text: \"" << it->text << "\" | Type: " <<
     //     config::token_type_string[it->type]
     //               << "\n";
@@ -44,11 +31,7 @@ int main() {
 
     std::cout << "\n\n";
 
-    std::vector<config::Server> server;
-    config::Parser              parser(file_path);
-
-    parser.parse(v_token, server);
-    for (std::vector<config::Server>::iterator it = server.begin(); it != server.end(); ++it) {
+    for (std::vector<config::Server>::iterator it = v_server.begin(); it != v_server.end(); ++it) {
         it->print();
         std::cout << "\n\n";
     }
