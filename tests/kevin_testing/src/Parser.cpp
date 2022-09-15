@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 09:50:53 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:56:19 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,6 +115,13 @@ void Parser::_parse_string(const std::vector<Token>           &v_token,
             }
         }
         std::string str(it->text);
+        if (*_last_directive == "accepted_methods") {
+            if (!(str == "GET" || str == "POST" || str == "DELETE" || str == "HEAD")) {
+                std::cerr << "\"" << str << "\" is not allowed as \"accepted_method\" in " << _path
+                          << ":" << it->line_number << "\n";
+                exit(EXIT_FAILURE);
+            }
+        }
         v_identifier.push_back(str);
         str.erase();
     }
