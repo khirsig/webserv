@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:13:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 09:36:45 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:38:03 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ class Tokenizer {
     void parse(std::vector<Token> &v_token, const std::string &input_file);
 
    private:
-    void _end_token(Token &current_token, std::vector<Token> &v_token);
+    void _end_token(std::vector<Token> &v_token, Token &current_token);
 };
 
 }  // namespace config
