@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:14 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 14:34:00 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 16:16:22 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,9 +25,16 @@ void Server::print() const {
          it != v_server_name.end(); ++it) {
         std::cout << "server_name: " << *it << "\n";
     }
-    for (std::vector<std::string>::const_iterator it = v_error_page.begin();
-         it != v_error_page.end(); ++it) {
-        std::cout << "error_page: " << *it << "\n";
+    for (std::vector<ErrorPage>::const_iterator it = v_error_page.begin(); it != v_error_page.end();
+         ++it) {
+        std::cout << "error_page\n{\n";
+        std::cout << "    status:";
+        for (std::vector<std::uint32_t>::const_iterator iter = it->v_code.begin();
+             iter != it->v_code.end(); ++iter) {
+            std::cout << " \"" << *iter << "\"";
+        }
+        std::cout << "\n    path: \"" << it->path << "\"\n";
+        std::cout << "}\n";
     }
     std::cout << "client_max_body_size: " << client_max_body_size << "\n";
     for (std::vector<Location>::const_iterator it = v_location.begin(); it != v_location.end();

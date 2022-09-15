@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 13:50:04 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 16:02:35 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,8 @@ class Interpreter {
                        Listen &identifier);
     void _parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
                      in_port_t &port);
+    void _parse_error_page(const std::vector<Token>           &v_token,
+                           std::vector<Token>::const_iterator &it, ErrorPage &identifier);
     void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
     void _parse_location_path(const std::vector<Token>           &v_token,
                               std::vector<Token>::const_iterator &it,

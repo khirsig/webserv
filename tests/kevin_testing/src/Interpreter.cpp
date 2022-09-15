@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 14:31:42 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 16:11:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,9 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             } else if (*_last_directive == "server_name") {
                 _parse_string(v_token, it, new_server.v_server_name);
             } else if (*_last_directive == "error_page") {
-                _parse_string(v_token, it, new_server.v_error_page);
+                ErrorPage new_error_page;
+                _parse_error_page(v_token, it, new_error_page);
+                new_server.v_error_page.push_back(new_error_page);
             } else if (*_last_directive == "client_max_body_size") {
                 _parse_bytes(it, new_server.client_max_body_size);
             } else if (*_last_directive == "location") {
@@ -134,6 +136,15 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
     }
 }
 
+void Interpreter::_parse_string(std::vector<Token>::const_iterator &it, std::string &identifier) {
+    ++it;
+    identifier = it->text;
+    ++it;
+    if (it->text != ";") {
+        _none_terminated_directive(it);
+    }
+}
+
 bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it, Listen &identifier) {
     ++it;
@@ -190,13 +201,31 @@ void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std:
     port = htons(i);
 }
 
-void Interpreter::_parse_string(std::vector<Token>::const_iterator &it, std::string &identifier) {
+void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
+                                    std::vector<Token>::const_iterator &it, ErrorPage &identifier) {
     ++it;
-    identifier = it->text;
-    ++it;
-    if (it->text != ";") {
-        _none_terminated_directive(it);
+    for (; it != v_token.end() && it->text != ";"; ++it) {
+        if (it->text.find_first_not_of("0123456789") == std::string::npos) {
+            std::uint32_t new_code;
+            std::stringstream(it->text) >> new_code;
+            identifier.v_code.push_back(new_code);
+        } else {
+            break;
+        }
     }
+    if (it == v_token.end() || it->text == ";" || identifier.v_code.size() <= 0) {
+        if (it == v_token.end())
+            _unexpected_file_ending(it);
+        else
+            _invalid_directive_argument_amount(it);
+    }
+
+    identifier.path = it->text;
+    ++it;
+    if (it == v_token.end())
+        _unexpected_file_ending(it);
+    if (it->text != ";")
+        _none_terminated_directive(it);
 }
 
 void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier) {

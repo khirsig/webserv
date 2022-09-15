@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 11:04:10 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 16:11:56 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,13 +28,19 @@ class Listen {
     in_port_t port;
 };
 
+class ErrorPage {
+   public:
+    std::string                path;
+    std::vector<std::uint32_t> v_code;
+};
+
 class Server {
    public:
     void print() const;
 
     std::vector<Listen>      v_listen;
     std::vector<std::string> v_server_name;
-    std::vector<std::string> v_error_page;
+    std::vector<ErrorPage>   v_error_page;
     std::uint64_t            client_max_body_size;
     std::vector<Location>    v_location;
 };
