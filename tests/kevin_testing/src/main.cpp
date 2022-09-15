@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 13:26:17 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:25:09 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,13 @@ int main() {
 
     config::Tokenizer          tokenizer;
     std::vector<config::Token> v_token = tokenizer.parse(file_content);
+
+    // for (std::vector<config::Token>::iterator it = v_token.begin(); it != v_token.end(); ++it) {
+    //     std::cout << "Text: \"" << it->text << "\" | Type: " <<
+    //     config::token_type_string[it->type]
+    //               << "\n";
+    // }
+
     std::cout << "\n\n";
 
     std::vector<config::Server> server;

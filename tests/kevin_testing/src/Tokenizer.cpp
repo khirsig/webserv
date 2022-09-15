@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 13:25:10 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:30:02 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,11 +28,14 @@ std::vector<Token> Tokenizer::parse(const std::string &input_file) {
             case '(':
             case ')':
             case ';':
-                if (current_token.type != COMMENT) {
+                if (current_token.type != COMMENT && current_token.type != ESCAPE) {
                     _end_token(current_token, v_token);
                     current_token.type = OPERATOR;
                     current_token.text.append(1, input_file[i]);
                     _end_token(current_token, v_token);
+                } else if (current_token.type == ESCAPE) {
+                    current_token.type = IDENTIFIER;
+                    current_token.text.append(1, input_file[i]);
                 }
                 break;
 
@@ -51,10 +54,18 @@ std::vector<Token> Tokenizer::parse(const std::string &input_file) {
 
             case '#':
                 current_token.type = COMMENT;
+                break;
+
+            case '\\':
+                current_token.type = ESCAPE;
+                break;
 
             default:
                 if (current_token.type == WHITESPACE) {
                     _end_token(current_token, v_token);
+                    current_token.type = IDENTIFIER;
+                    current_token.text.append(1, input_file[i]);
+                } else if (current_token.type == ESCAPE) {
                     current_token.type = IDENTIFIER;
                     current_token.text.append(1, input_file[i]);
                 } else {

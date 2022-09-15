@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:29:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 13:25:06 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:28:59 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,10 @@
 
 namespace config {
 
-enum TokenType { WHITESPACE, IDENTIFIER, OPERATOR, COMMENT };
+enum TokenType { WHITESPACE, IDENTIFIER, OPERATOR, COMMENT, ESCAPE };
 
-static const char *token_type_string[] = {"WHITESPACE", "IDENTIFIER", "OPERATOR", "COMMENT"};
+static const char *token_type_string[] = {"WHITESPACE", "IDENTIFIER", "OPERATOR", "COMMENT",
+                                          "ESCAPE"};
 
 class Token {
    public:

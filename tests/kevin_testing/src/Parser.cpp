@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/14 14:54:07 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/14 14:58:48 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -153,20 +153,21 @@ void Parser::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t 
     } else if (byte_size >= '0' && byte_size <= '9') {
         multiplier = 1;
     } else {
-        std::cerr << "Size Identifier is wrong\n";
+        std::cerr << "size identifier is wrong\n";
         exit(EXIT_FAILURE);
     }
 
     if (num.size() > 3) {
-        std::cerr << "Numeric amount too high. Maximum 3 digits allowed. Use 'B', 'K', 'M', 'G' "
+        std::cerr << "numeric amount too high. Maximum 3 digits allowed. Use 'B', 'K', 'M', 'G' "
                      "instead\n";
         exit(EXIT_FAILURE);
     }
 
     if (num.find_first_not_of("0123456789") != std::string::npos) {
-        std::cerr << "Long consists of wrong characters.\n";
+        std::cerr << "numeric characters expected but has other type.\n";
         exit(EXIT_FAILURE);
     }
+
     char *p_end;
     identifier = strtol(num.c_str(), &p_end, 10) * multiplier;
 
