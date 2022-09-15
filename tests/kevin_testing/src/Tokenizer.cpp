@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 09:36:55 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:37:24 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,6 @@ void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file
         }
     }
     _end_token(current_token, v_token);
-    return v_token;
 }
 
 void Tokenizer::_end_token(Token &current_token, std::vector<Token> &v_token) {
