@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 09:30:02 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/15 09:36:55 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,8 @@
 
 namespace config {
 
-std::vector<Token> Tokenizer::parse(const std::string &input_file) {
-    std::vector<Token> v_token;
-    Token              current_token;
+void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file) {
+    Token current_token;
 
     current_token.line_number = 1;
     current_token.type = WHITESPACE;

@@ -1,8 +1,5 @@
 Tokenizer
 
-return reference
-Escape character for tokenizer
-
 Parser
 
 change _parse_location to _parse_location_path
