@@ -46,7 +46,7 @@ void Socket::_bind(in_addr_t bind_addr, in_port_t port) {
     std::memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = bind_addr;
-    address.sin_port = htons(port);
+    address.sin_port = port;
     if (::bind(fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
         throw std::runtime_error("bind: " + std::string(strerror(errno)));
     }

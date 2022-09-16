@@ -12,6 +12,7 @@ def recv_all(sock):
 #----- A simple TCP client program in Python using send() function -----
 import sys
 import socket
+import time
 
 if len(sys.argv) != 4:
     print("usage:\npython3 tcp_client.py 127.0.0.1 9001 MSG_DATA")
@@ -26,6 +27,11 @@ clientSocket.connect((sys.argv[1], int(sys.argv[2])));
 # Send data to server
 data = sys.argv[3];
 clientSocket.send(data.encode());
+
+# time.sleep(2)
+
+# data = sys.argv[4];
+# clientSocket.send(data.encode());
 
 # Receive data from server
 # dataFromServer = clientSocket.recv(1024);

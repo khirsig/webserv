@@ -16,4 +16,7 @@ EOF
 
 c++ tcp_client.cpp -o tcp_client && ./tcp_client 127.0.0.1 9001 $'GET / HTTP/1.1\nHost: localhost\n\n'
 
+./a.out 127.0.0.1 9001 $'GET / HTTP/1.1\n' $'Host: localhost\n\n'
+
 python3 tcp_client.py 127.0.0.1 9001 $'GET / HTTP/1.1\nHost: localhost\n\n'
+
