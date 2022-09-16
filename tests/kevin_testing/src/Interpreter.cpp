@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/16 10:03:03 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/16 13:57:11 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,7 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
                                       std::vector<Token>::const_iterator &it) {
     ++it;
     Location new_location;
-    if (it->type == IDENTIFIER) {
+    if (it->type == IDENTIFIER || it->text == "*" || it->text == "(") {
         _parse_location_path(v_token, it, new_location.v_path);
     } else {
         std::cout << "No identifier for location in " << _path << ":" << it->line_number << "\n";
@@ -302,46 +302,79 @@ void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint
 void Interpreter::_parse_location_path(const std::vector<Token>           &v_token,
                                        std::vector<Token>::const_iterator &it,
                                        std::vector<LocationPath>          &v_path) {
-    LocationPath new_path;
+    std::vector<LocationPath> v_path_temp;
+    LocationPath              new_path;
 
     if (it->text.size() <= 0) {
         _invalid_directive_argument_amount(it);
     }
-    if (it->text[0] == '*') {
+    // ++it;
+    if (it->text == "*" && it->type == OPERATOR) {
         new_path.wildcard = PREFIX;
-        new_path.str = it->text;
-        new_path.str.erase(0, 1);
-    } else if (it->text[it->text.size() - 1] == '*') {
-        new_path.wildcard = POSTFIX;
-        new_path.str = it->text;
-        new_path.str.erase(it->text.size() - 1, 1);
+        ++it;
     } else {
         new_path.wildcard = NONE;
-        new_path.str = it->text;
     }
-    ++it;
 
-    if (it->text == "(" && it->type == OPERATOR) {
-        ++it;
-        for (; it != v_token.end() && it->text != ")"; ++it) {
-            if (it->text != ")" && it->type == OPERATOR) {
-                std::cerr << "multiple location path "
-                          << "is not terminated by \")\" in " << _path << ":" << it->line_number
+    for (; it != v_token.end() && it->text != "{"; ++it) {
+        if (it->text == "(" && it->type == OPERATOR) {
+            ++it;
+            for (; it != v_token.end() && it->text != ")"; ++it) {
+                if (it->text != ")" && it->type == OPERATOR) {
+                    std::cerr << "multiple location path "
+                              << "is not terminated by \")\" in " << _path << ":" << it->line_number
+                              << "\n";
+                    exit(EXIT_FAILURE);
+                }
+                LocationPath multi_path(new_path);
+                multi_path.str += it->text;
+                v_path_temp.push_back(multi_path);
+            }
+            if (it == v_token.end()) {
+                std::cerr << "missing \")\" in " << _path << ":" << (it - 1)->line_number + 1
                           << "\n";
                 exit(EXIT_FAILURE);
             }
-            LocationPath multi_path(new_path);
-            multi_path.str += it->text;
-            v_path.push_back(multi_path);
-        }
-        if (it == v_token.end()) {
-            std::cerr << "Missing \")\" in " << _path << ":" << (it - 1)->line_number + 1 << "\n";
+            // ++it;
+        } else if (it->type == IDENTIFIER) {
+            new_path.str += it->text;
+        } else if (it->type == OPERATOR && it->text == "*") {
+            if (it + 1 != v_token.end() && (it + 1)->text == "{") {
+                if (new_path.wildcard != PREFIX)
+                    new_path.wildcard = POSTFIX;
+                else {
+                    std::cerr << "unexpected operator \"" << it->text << "\" in " << _path << ":"
+                              << it->line_number << "\n";
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+                std::cerr << "unexpected operator \"" << it->text << "\" in " << _path << ":"
+                          << it->line_number << "\n";
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            std::cerr << "unexpected operator \"" << it->text << "\" in " << _path << ":"
+                      << it->line_number << "\n";
             exit(EXIT_FAILURE);
         }
-        ++it;
+    }
+    if (it != v_token.end() && it->text == "}") {
+        _unexpected_file_ending(it);
+    }
+
+    if (v_path_temp.size() > 0) {
+        for (std::vector<LocationPath>::iterator it = v_path_temp.begin(); it != v_path_temp.end();
+             ++it) {
+            if (new_path.wildcard == POSTFIX) {
+                it->str += new_path.str;
+                it->wildcard = POSTFIX;
+            }
+            v_path.push_back(*it);
+        }
     } else {
         v_path.push_back(new_path);
     }
+    // ++it;
 }
 
 void Interpreter::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifier) {
