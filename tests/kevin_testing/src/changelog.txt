@@ -4,7 +4,6 @@ Tokenizer
 
 Interpreter
 
-redirect should be a vector of structs with status_code, from & to.
 _parse_location_path error for wrong wildcard usage
 
 Analyzer

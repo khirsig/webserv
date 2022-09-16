@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 16:11:36 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/16 10:03:03 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,9 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
             if (*_last_directive == "accepted_methods") {
                 _parse_string(v_token, it, new_location.v_accepted_method);
             } else if (*_last_directive == "redirect") {
-                _parse_string(v_token, it, new_location.v_redirect);
+                Redirect new_redirect;
+                _parse_redirect(v_token, it, new_redirect);
+                new_location.v_redirect.push_back(new_redirect);
             } else if (*_last_directive == "root") {
                 _parse_string(it, new_location.root);
             } else if (*_last_directive == "index") {
@@ -221,6 +223,30 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
     }
 
     identifier.path = it->text;
+    ++it;
+    if (it == v_token.end())
+        _unexpected_file_ending(it);
+    if (it->text != ";")
+        _none_terminated_directive(it);
+}
+
+void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
+                                  std::vector<Token>::const_iterator &it, Redirect &identifier) {
+    ++it;
+    if (it->text.find_first_not_of("0123456789") == std::string::npos) {
+        std::stringstream(it->text) >> identifier.status_code;
+    } else {
+        std::cerr << "invalid status code for \"" << *_last_directive << "\" in " << _path << ":"
+                  << it->line_number << "\n";
+    }
+    ++it;
+    if (it == v_token.end())
+        _unexpected_file_ending(it);
+    identifier.origin = it->text;
+    ++it;
+    if (it == v_token.end())
+        _unexpected_file_ending(it);
+    identifier.direction = it->text;
     ++it;
     if (it == v_token.end())
         _unexpected_file_ending(it);

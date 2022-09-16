@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 09:41:00 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/16 09:50:53 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,8 +41,12 @@ void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file
             case ' ':
             case '\t':
             case '|':
-                if (current_token.type != COMMENT)
+                if (current_token.type != COMMENT && current_token.type != ESCAPE)
                     _end_token(v_token, current_token);
+                else if (current_token.type == ESCAPE) {
+                    current_token.type = IDENTIFIER;
+                    current_token.text.append(1, input_file[i]);
+                }
                 break;
 
             case '\r':
