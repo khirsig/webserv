@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/16 09:58:30 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/19 10:36:37 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@ class Interpreter {
 
     void _invalid_directive(std::vector<Token>::const_iterator &it) const;
     void _unexpected_file_ending(std::vector<Token>::const_iterator &it) const;
+    void _unexpected_operator(std::vector<Token>::const_iterator &it) const;
     void _none_terminated_directive(std::vector<Token>::const_iterator &it) const;
     void _invalid_bool_argument(std::vector<Token>::const_iterator &it) const;
     void _invalid_directive_argument_amount(std::vector<Token>::const_iterator &it) const;
