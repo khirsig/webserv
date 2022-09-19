@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/16 13:21:41 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/19 10:04:15 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file
             case ')':
             case ';':
             case '*':
+            case '|':
                 if (current_token.type != COMMENT && current_token.type != ESCAPE) {
                     _end_token(v_token, current_token);
                     current_token.type = OPERATOR;
@@ -41,7 +42,6 @@ void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file
 
             case ' ':
             case '\t':
-            case '|':
                 if (current_token.type != COMMENT && current_token.type != ESCAPE)
                     _end_token(v_token, current_token);
                 else if (current_token.type == ESCAPE) {
@@ -61,7 +61,13 @@ void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file
                 break;
 
             case '\\':
-                current_token.type = ESCAPE;
+                if (current_token.type != ESCAPE)
+                    current_token.type = ESCAPE;
+                else {
+                    current_token.type = IDENTIFIER;
+                    current_token.text.append(1, input_file[i]);
+                }
+
                 break;
 
             default:

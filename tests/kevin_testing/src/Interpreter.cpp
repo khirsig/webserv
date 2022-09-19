@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/16 13:57:11 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/19 10:22:08 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -308,7 +308,6 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
     if (it->text.size() <= 0) {
         _invalid_directive_argument_amount(it);
     }
-    // ++it;
     if (it->text == "*" && it->type == OPERATOR) {
         new_path.wildcard = PREFIX;
         ++it;
@@ -320,6 +319,19 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
         if (it->text == "(" && it->type == OPERATOR) {
             ++it;
             for (; it != v_token.end() && it->text != ")"; ++it) {
+                if (it->text == "|" && it->type == OPERATOR) {
+                    ++it;
+                    if (it->text == "|" && it->type == OPERATOR) {
+                        std::cerr << "multiple operator of type \"|\" in " << _path << ":"
+                                  << it->line_number << "\n";
+                        exit(EXIT_FAILURE);
+                    }
+                    if (it->text == ")" && it->type == OPERATOR) {
+                        std::cerr << "missing identifier after operator of type \"|\" in " << _path
+                                  << ":" << it->line_number << "\n";
+                        exit(EXIT_FAILURE);
+                    }
+                }
                 if (it->text != ")" && it->type == OPERATOR) {
                     std::cerr << "multiple location path "
                               << "is not terminated by \")\" in " << _path << ":" << it->line_number
@@ -335,7 +347,11 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
                           << "\n";
                 exit(EXIT_FAILURE);
             }
-            // ++it;
+            if (new_path.str.size() > 0 && (it + 1)->text != "{") {
+                std::cerr << "only post- or prefix regex wildcard allowed in " << _path << ":"
+                          << it->line_number << "\n";
+                exit(EXIT_FAILURE);
+            }
         } else if (it->type == IDENTIFIER) {
             new_path.str += it->text;
         } else if (it->type == OPERATOR && it->text == "*") {
@@ -358,7 +374,7 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
             exit(EXIT_FAILURE);
         }
     }
-    if (it != v_token.end() && it->text == "}") {
+    if (it == v_token.end() || it->text == "}") {
         _unexpected_file_ending(it);
     }
 
@@ -374,7 +390,6 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
     } else {
         v_path.push_back(new_path);
     }
-    // ++it;
 }
 
 void Interpreter::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifier) {
