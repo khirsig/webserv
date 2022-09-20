@@ -1,0 +1,11 @@
+Parser
+
+Tokenizer
+
+Interpreter
+
+_parse_location_path error for wrong wildcard usage
+| should be an operator
+Analyzer
+
+Analzyer needed
