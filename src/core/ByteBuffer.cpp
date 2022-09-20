@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ByteBuffer.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:58:19 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 14:33:54 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/20 15:52:49 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@ namespace core {
 void ByteBuffer::append(const char *str, std::size_t n) {
     if (str == NULL)
         return;
-    reserve(n);
+    reserve(size() + n);
     for (std::size_t i = 0; i < n; ++i) {
         push_back(str[i]);
     }
@@ -38,6 +38,13 @@ ByteBuffer operator+(const ByteBuffer &lhs, const ByteBuffer &rhs) {
     ret += rhs;
 
     return ret;
+}
+
+std::ostream &operator<<(std::ostream &os, const ByteBuffer &bb) {
+    for (size_t i = 0; i < bb.size(); ++i) {
+        os << bb[i];
+    }
+    return os;
 }
 
 }  // namespace core

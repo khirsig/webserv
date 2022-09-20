@@ -16,6 +16,7 @@ Connections::Connections(size_t max_connections) : _max_connections(max_connecti
     _v_socket_fd.resize(max_connections);
     _v_address.resize(max_connections);
     _v_address_len.resize(max_connections, sizeof(_v_address[0]));
+    _v_requests.resize(max_connections, NULL);
 }
 
 Connections::~Connections() {
@@ -52,6 +53,7 @@ int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
     eni.add_event(_v_fd[index], EVFILT_TIMER, CONNECTION_TIMEOUT);
 
     _v_socket_fd[index] = fd;
+    _v_requests[index] = new Request;
 
     return _v_fd[index];
 }
@@ -63,6 +65,7 @@ int Connections::close_connection(int fd, EventNotificationInterface& eni) {
     _v_fd[index] = -1;
     eni.delete_event(fd, EVFILT_READ);
     eni.delete_event(fd, EVFILT_TIMER);
+    delete _v_requests[index];
     return close(fd);
 }
 
@@ -80,6 +83,21 @@ int Connections::get_connection_port(int fd) const {
     return (int)ntohs(_v_address[index].sin_port);
 }
 
+int Connections::receive(int fd) {
+    int index = get_index(fd);
+    if (index == -1)
+        return -1;
+    char buf[1024];
+    int  bytes_read = recv(fd, buf, sizeof(buf), 0);
+    std::cerr << "bytes_read: " << bytes_read << '\n';
+    if (bytes_read == -1)
+        return -1;
+    _v_requests[index]->parse_input(buf, bytes_read);
+    // std::cout << get_connection_ip(fd) << ":" << get_connection_port(fd) << " # "
+    //           << _v_requests[index]->_buffer;
+    return 0;
+}
+
 int Connections::get_index(int fd) const {
     for (size_t i = 0; i < _max_connections; i++) {
         if (_v_fd[i] == fd) {
@@ -89,4 +107,4 @@ int Connections::get_index(int fd) const {
     return -1;
 }
 
-}
+}  // namespace core

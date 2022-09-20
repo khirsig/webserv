@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 10:52:52 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/09/20 17:08:55 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,13 +24,16 @@
 
 #define DEBUG
 
-void recv_msg(int fd, const core::Connections& con) {
-    char buf[1024];
-    int  bytes_read = recv(fd, buf, sizeof(buf) - 1, 0);
-    std::cerr << "bytes_read: " << bytes_read << '\n';
-    buf[bytes_read] = 0;
-    std::cout << con.get_connection_ip(fd) << ":" << con.get_connection_port(fd) << " # " << buf;
-}
+// void recv_msg(int fd, core::Connections& con) {
+//     char buf[1024];
+//     int  bytes_read = recv(fd, buf, sizeof(buf) - 1, 0);
+//     std::cerr << "bytes_read: " << bytes_read << '\n';
+//     if (bytes_read == -1)
+//         return;
+//     con.buffer.append(buf, bytes_read);
+//     std::cout << con.get_connection_ip(fd) << ":" << con.get_connection_port(fd) << " # "
+//               << con.buffer;
+// }
 
 int main(int argc, char* argv[]) {
     std::string file_path;
@@ -92,16 +95,17 @@ int main(int argc, char* argv[]) {
                               << connections.get_connection_ip(eni.events[i].ident) << ":"
                               << connections.get_connection_port(eni.events[i].ident) << '\n';
                 } else if (eni.events[i].flags & EV_EOF) {
-                    recv_msg(eni.events[i].ident, connections);
-                    eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
-                    write(eni.events[i].ident, "response\n", 9);
+                    // recv_msg(eni.events[i].ident, connections);
+                    // eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
+                    // write(eni.events[i].ident, "response\n", 9);
                 }
                 std::cerr << "Closed connection: "
                           << connections.get_connection_ip(eni.events[i].ident) << ":"
                           << connections.get_connection_port(eni.events[i].ident) << '\n';
                 connections.close_connection(eni.events[i].ident, eni);
             } else if (eni.events[i].filter == EVFILT_READ) {
-                recv_msg(eni.events[i].ident, connections);
+                connections.receive(eni.events[i].ident);
+                // recv_msg(eni.events[i].ident, connections);
                 eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
             }
         }
