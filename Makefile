@@ -13,8 +13,19 @@ DEPFLAGS     = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
 LDFLAGS     :=
 LDLIBS      :=
 
-VPATH       := src/
-SRCS        := webserv.cpp
+VPATH       := src/								\
+			   src/config/						\
+			   src/core/
+SRCS        := webserv.cpp						\
+			   Interpreter.cpp					\
+			   Location.cpp						\
+			   Parser.cpp						\
+			   Server.cpp						\
+			   Token.cpp						\
+			   Tokenizer.cpp					\
+			   Connections.cpp					\
+			   EventNotificationInterface.cpp	\
+			   Socket.cpp
 
 BUILDDIR    := build
 

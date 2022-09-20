@@ -1,32 +1,34 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   Token.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/07 16:04:24 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 09:57:26 by khirsig          ###   ########.fr       */
+/*   Created: 2022/09/09 09:29:30 by khirsig           #+#    #+#             */
+/*   Updated: 2022/09/15 09:28:59 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#pragma once
+
 #include <iostream>
+#include <string>
 
-#include "Parser.hpp"
+namespace config {
 
-int main() {
-    std::string file_path = "./webserv.conf";
+enum TokenType { WHITESPACE, IDENTIFIER, OPERATOR, COMMENT, ESCAPE };
 
-    config::Parser              parser;
-    std::vector<config::Server> v_server;
+static const char *token_type_string[] = {"WHITESPACE", "IDENTIFIER", "OPERATOR", "COMMENT",
+                                          "ESCAPE"};
 
-    parser.parse(file_path, v_server);
+class Token {
+   public:
+    enum TokenType type;
+    std::string    text;
+    std::size_t    line_number;
 
-    std::cout << "\n\n";
+    void debug_print() const;
+};
 
-    for (std::vector<config::Server>::iterator it = v_server.begin(); it != v_server.end(); ++it) {
-        it->print();
-        std::cout << "\n\n";
-    }
-    return 0;
-}
+}  // namespace config
