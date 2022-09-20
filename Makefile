@@ -2,30 +2,33 @@
 #   VARIABLES                                                                  #
 # **************************************************************************** #
 
-NAME        := webserv
+NAME        :=	webserv
 
-CXX         := c++
-CXXFLAGS    := -Wall -Wextra -Werror -std=c++98
+CXX         :=	c++
+CXXFLAGS    :=	-Wall -Wextra -Werror -std=c++98
 
 CPPFLAGS    :=
-DEPFLAGS     = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
+DEPFLAGS     =	-MT $@ -MMD -MP -MF $(DDIR)/$*.d
 
 LDFLAGS     :=
 LDLIBS      :=
 
-VPATH       := src/								\
-			   src/config/						\
-			   src/core/
-SRCS        := webserv.cpp						\
-			   Interpreter.cpp					\
-			   Location.cpp						\
-			   Parser.cpp						\
-			   Server.cpp						\
-			   Token.cpp						\
-			   Tokenizer.cpp					\
-			   Connections.cpp					\
-			   EventNotificationInterface.cpp	\
-			   Socket.cpp
+VPATH       :=	src/							\
+				src/config/						\
+				src/core/
+
+SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
+
+# SRCS        := webserv.cpp					\
+# 			   Interpreter.cpp					\
+# 			   Location.cpp						\
+# 			   Parser.cpp						\
+# 			   Server.cpp						\
+# 			   Token.cpp						\
+# 			   Tokenizer.cpp					\
+# 			   Connections.cpp					\
+# 			   EventNotificationInterface.cpp	\
+# 			   Socket.cpp
 
 BUILDDIR    := build
 
@@ -48,7 +51,7 @@ ifeq ($(UNAME), Linux)
 	CXXFLAGS += -Wno-unused-result
 else ifeq ($(UNAME), Darwin)
     NUMPROC  := $(shell sysctl -n hw.ncpu)
-	CXXFLAGS += -D DARWIN
+	CPPFLAGS += -D Darwin
 endif
 
 # **************************************************************************** #
