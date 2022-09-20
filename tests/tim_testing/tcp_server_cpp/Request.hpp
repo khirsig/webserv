@@ -19,8 +19,6 @@ enum Methods { GET = 1, HEAD = 2, POST = 3, DELETE = 5 };
 
 class Request {
    private:
-    // static RequestParser               request_parser;
-
     std::string                        _string;
     int                                _method;
     std::string                        _uri;
@@ -98,8 +96,7 @@ char *get_next_str(char *req_line, const size_t &len, size_t &i) {
     while (i < len && req_line[i] != ' ') {
         i++;
     }
-    if (i <= len)
-        req_line[i] = '\0';
+    req_line[i] = '\0';
     if (i < len)
         i++;
     return next_str;
