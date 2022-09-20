@@ -24,9 +24,9 @@ docker rm -f $CONTAINER_NAME >/dev/null 2>&1
 
 docker run \
     --name $CONTAINER_NAME \
-    -v $(pwd)/conf/nginx.conf:/etc/nginx/nginx.conf:ro \
-    -v $(pwd)/data:/var/www/html:ro \
+    -v $(pwd)/conf/nginx.conf:/etc/nginx/nginx.conf \
+    -v $(pwd)/data:/var/www/html \
     -v $(pwd)/$LOG_FOLDER:/var/log/nginx \
     -p $PORT:80 \
     -d \
-    nginx:1.22 nginx-debug -g 'daemon off;'
+    nginx:1.22-alpine nginx-debug -g 'daemon off;'

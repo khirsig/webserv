@@ -11,12 +11,6 @@
 #endif
 
 class Socket {
-   private:
-    int socket(int family, int type, int protocol);
-    int setsockopt(int level, int option_name, int option_value);
-    int bind(in_addr_t bind_addr, in_port_t port);
-    int listen(int backlog = SOMAXCONN);
-
    public:
     int fd;
 
@@ -27,6 +21,12 @@ class Socket {
     Socket& operator=(const Socket& other);
 
     int close();
+
+   private:
+    void _socket(int family, int type, int protocol);
+    void _setsockopt(int level, int option_name, int option_value);
+    void _bind(in_addr_t bind_addr, in_port_t port);
+    void _listen(int backlog = SOMAXCONN);
 };
 
 bool operator==(const Socket& lhs, const Socket& rhs);

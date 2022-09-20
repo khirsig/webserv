@@ -1,6 +1,7 @@
 #include "Connections.hpp"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -10,6 +11,7 @@
 
 Connections::Connections(size_t max_connections) : _max_connections(max_connections) {
     _v_fd.resize(max_connections, -1);
+    _v_socket_fd.resize(max_connections);
     _v_address.resize(max_connections);
     _v_address_len.resize(max_connections, sizeof(_v_address[0]));
 }
@@ -22,7 +24,7 @@ Connections::~Connections() {
     }
 }
 
-int Connections::accept_connection(int fd, Eni& kq) {
+int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
     int index = get_index(-1);
     if (index == -1) {
         struct sockaddr addr;
@@ -38,17 +40,27 @@ int Connections::accept_connection(int fd, Eni& kq) {
         return -1;
     }
 
-    kq.add_event(_v_fd[index], EVFILT_READ);
+    if (fcntl(_v_fd[index], F_SETFL, O_NONBLOCK) == -1) {
+        std::cerr << "fcntl: " << strerror(errno) << '\n';
+        close_connection(_v_fd[index], eni);
+        return -1;
+    }
+
+    eni.add_event(_v_fd[index], EVFILT_READ, 0);
+    eni.add_event(_v_fd[index], EVFILT_TIMER, CONNECTION_TIMEOUT);
+
+    _v_socket_fd[index] = fd;
 
     return _v_fd[index];
 }
 
-int Connections::close_connection(int fd, Eni& kq) {
+int Connections::close_connection(int fd, EventNotificationInterface& eni) {
     int index = get_index(fd);
     if (index == -1)
         return -1;
     _v_fd[index] = -1;
-    kq.delete_event(fd, EVFILT_READ);
+    eni.delete_event(fd, EVFILT_READ);
+    eni.delete_event(fd, EVFILT_TIMER);
     return close(fd);
 }
 
