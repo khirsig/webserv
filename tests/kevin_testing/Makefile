@@ -6,7 +6,7 @@
 #    By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/09/07 09:56:24 by tjensen           #+#    #+#              #
-#    Updated: 2022/09/09 16:17:01 by khirsig          ###   ########.fr        #
+#    Updated: 2022/09/15 10:53:22 by khirsig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,6 +28,7 @@ SRCS        := main.cpp 	\
 			Parser.cpp		\
 			Server.cpp		\
 			Location.cpp	\
+			Interpreter.cpp \
 
 BUILDDIR    := build
 

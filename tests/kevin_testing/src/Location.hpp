@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 14:10:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 16:09:05 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/16 09:05:04 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace ft {
+namespace config {
 
 enum wildcard { NONE, PREFIX, POSTFIX };
 
@@ -28,13 +28,20 @@ class LocationPath {
     wildcard    wildcard;
 };
 
+class Redirect {
+   public:
+    std::uint32_t status_code;
+    std::string   direction;
+    std::string   origin;
+};
+
 class Location {
    public:
     void print(std::string prefix) const;
 
     std::vector<LocationPath> v_path;
     std::vector<std::string>  v_accepted_method;
-    std::vector<std::string>  v_redirect;
+    std::vector<Redirect>     v_redirect;
     std::string               root;
     bool                      directory_listing;
     std::vector<std::string>  v_index;
@@ -42,4 +49,4 @@ class Location {
     std::vector<std::string>  v_cgi_pass;
 };
 
-}  // namespace ft
+}  // namespace config

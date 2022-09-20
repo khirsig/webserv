@@ -6,13 +6,13 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 16:01:57 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/09 16:34:22 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/09/16 10:04:05 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Location.hpp"
 
-namespace ft {
+namespace config {
 
 void Location::print(std::string prefix) const {
     for (std::vector<LocationPath>::const_iterator it = v_path.begin(); it != v_path.end(); ++it) {
@@ -23,9 +23,12 @@ void Location::print(std::string prefix) const {
          it != v_accepted_method.end(); ++it) {
         std::cout << prefix << "accepted_methods: " << *it << "\n";
     }
-    for (std::vector<std::string>::const_iterator it = v_redirect.begin(); it != v_redirect.end();
+    for (std::vector<Redirect>::const_iterator it = v_redirect.begin(); it != v_redirect.end();
          ++it) {
-        std::cout << prefix << "redirect: " << *it << "\n";
+        std::cout << prefix << "redirect\n" << prefix << "{\n";
+        std::cout << prefix << "    status_code: \"" << it->status_code << "\"\n";
+        std::cout << prefix << "    origin: \"" << it->origin << "\"\n";
+        std::cout << prefix << "    direction: \"" << it->direction << "\"\n" << prefix << "}\n";
     }
     if (root.size() > 0)
         std::cout << prefix << "root: " << root << "\n";
@@ -45,4 +48,4 @@ void Location::print(std::string prefix) const {
         std::cout << prefix << "}\n";
     }
 }
-}  // namespace ft
+}  // namespace config
