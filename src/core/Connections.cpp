@@ -92,7 +92,11 @@ int Connections::receive(int fd) {
     std::cerr << "bytes_read: " << bytes_read << '\n';
     if (bytes_read == -1)
         return -1;
-    _v_requests[index]->parse_input(buf, bytes_read);
+    if (_v_requests[index]->parse_input(buf, bytes_read)) {
+        std::cerr << "Error status: " << _v_requests[index]->_status_code << '\n';
+        write(fd, "Bad request\n", 12);
+        return -1;
+    }
     // std::cout << get_connection_ip(fd) << ":" << get_connection_port(fd) << " # "
     //           << _v_requests[index]->_buffer;
     return 0;

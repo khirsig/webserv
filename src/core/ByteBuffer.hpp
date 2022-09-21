@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:51:44 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 15:49:48 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/09/21 14:42:32 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ namespace core {
 class ByteBuffer : public std::vector<std::uint8_t> {
    public:
     void append(const char *str, std::size_t n);
+    bool equal(ByteBuffer::iterator pos, const char *str, std::size_t n);
 
     ByteBuffer &operator+=(const ByteBuffer &buf);
     ByteBuffer &operator+=(std::uint8_t c);

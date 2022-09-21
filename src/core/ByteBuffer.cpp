@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:58:19 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 15:52:49 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/09/21 14:51:53 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,15 @@ void ByteBuffer::append(const char *str, std::size_t n) {
     for (std::size_t i = 0; i < n; ++i) {
         push_back(str[i]);
     }
+}
+
+bool ByteBuffer::equal(ByteBuffer::iterator pos, const char *str, std::size_t n) {
+    size_t i = 0;
+    for (; pos != end() && i < n; pos++, i++) {
+        if (*pos != str[i])
+            return false;
+    }
+    return i == n;
 }
 
 ByteBuffer &ByteBuffer::operator+=(const ByteBuffer &buf) {

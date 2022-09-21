@@ -4,53 +4,10 @@
 
 namespace core {
 
-// inline int Request::check_version(const char *version) {
-//     if (strcmp(version, "HTTP/1.1")) {
-//         _status_code = 505;
-//         return -1;
-//     }
-//     return 0;
-// }
+#define MAX_BUFFER_SIZE 8192
 
-// inline int Request::check_method(const char *method) {
-//     for (size_t i = 0; i < sizeof(valid_methods) / sizeof(valid_methods[0]); i++) {
-//         if (method == valid_methods[i].first) {
-//             if (valid_methods[i].second == IMPLEMENTED) {
-//                 std::cerr << "valid method: \"" << method << "\"\n";
-//                 _method = int(i);
-//                 return 0;
-//             }
-//             std::cerr << "method not implemented: \"" << method << "\"\n";
-//             _status_code = 501;
-//             return -1;
-//         }
-//     }
-//     std::cerr << "invalid method: \"" << method << "\"\n";
-//     _status_code = 400;
-//     return -1;
-// }
-
-// inline int Request::check_uri(const char *uri) {
-//     if (uri[0] != '/' && strcmp(uri, "http://")) {
-//         _status_code = 401;
-//         return -1;
-//     }
-//     for (size_t i = 0; uri[i] != '\0'; i++) {
-//         if (!isprint(uri[i])) {
-//             _status_code = 402;
-//             return -1;
-//         } else if (uri[i] == '%' && (!isxdigit(uri[i + 1]) || !isxdigit(uri[i + 2]))) {
-//             _status_code = 403;
-//             return -1;
-//         }
-//     }
-//     _uri = uri;
-//     return 0;
-// }
-
-Request::Request() : _status_code(0), _parse_state(REQUEST_LINE) {
+Request::Request() : _buffer_parsed_chars(0), _parse_state(REQUEST_LINE), _status_code(0) {
     _buffer.reserve(4096);
-    _buffer_parse_end = _buffer.begin();
 }
 
 Request::~Request() {}
@@ -58,74 +15,137 @@ Request::~Request() {}
 int Request::parse_input(const char* input, std::size_t len) {
     size_t i = 0;
     if (_buffer.empty()) {
-        for (; i < len && input[i] == '\n'; i++)
-            ;
+        while (i < len && input[i] == '\n')
+            i++;
+        if (i == len)
+            return 0;
     }
-    if (i == len)
-        return 0;
+    if (_buffer.size() + len - i > MAX_BUFFER_SIZE) {
+        _status_code = 400;
+        return -1;
+    }
     _buffer.append(&(input[i]), len - i);
-    ByteBuffer::iterator it = std::find(_buffer_parse_end, _buffer.end(), '\n');
-    if (it != _buffer.end()) {
-        std::cerr << "appended\n";
-        if (_parse_state == REQUEST_LINE) {
-            return parse_request_line(_buffer_parse_end, it);
+
+    ByteBuffer::iterator line_end =
+        std::find(_buffer.begin() + _buffer_parsed_chars, _buffer.end(), '\n');
+    if (line_end == _buffer.end())
+        return 0;
+    if (_parse_state == REQUEST_LINE) {
+        _parse_state = HEADER;
+        return parse_request_line(_buffer.begin() + _buffer_parsed_chars, line_end);
+    } else if (_parse_state == HEADER) {
+        std::cerr << "parse_headers()\n";
+    } else if (_parse_state == BODY) {
+        std::cerr << "parse_body()\n";
+    }
+    return 0;
+}
+
+bool is_space(const char& c) { return c == ' '; }
+
+int Request::parse_request_line(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
+    std::cerr << "parse_request_line()\n";
+    ByteBuffer::iterator space = std::find(begin, end, ' ');
+    if (space == end) {
+        _status_code = 400;
+        return -1;
+    }
+    if (parse_request_method(begin, space)) {
+        return -1;
+    }
+
+    begin = std::find_if_not(space, end, is_space);
+    if (begin == end) {
+        _status_code = 400;
+        return -1;
+    }
+    space = std::find(begin, end, ' ');
+    if (space == end) {
+        _status_code = 400;
+        return -1;
+    }
+    if (parse_request_uri(begin, space)) {
+        return -1;
+    }
+
+    begin = std::find_if_not(space, end, is_space);
+    if (begin == end) {
+        _status_code = 400;
+        return -1;
+    }
+    space = std::find(begin, end, ' ');
+    if (space - begin != 8 || !_buffer.equal(begin, "HTTP/1.1", 8)) {
+        _status_code = 400;
+        return -1;
+    }
+
+    begin = std::find_if_not(space, end, is_space);
+    if (begin != end) {
+        _status_code = 400;
+        return -1;
+    }
+    return 0;
+}
+
+int Request::parse_request_method(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
+    for (size_t i = 0; i < sizeof(valid_methods) / sizeof(valid_methods[0]); ++i) {
+        for (size_t j = 0; begin != end && j < valid_methods[i].first.size(); begin++, j++) {
+            if (_buffer[j] != valid_methods[i].first[j]) {
+                break;
+            }
         }
-        //     // else if (_parse_state == HEADER) {
-        //     //     parse_header();
-        //     // }
+        if (begin == end) {
+            if (valid_methods[i].second == NOT_IMPLEMENTED) {
+                _status_code = 501;
+                return -1;
+            }
+            return 0;
+        }
     }
+    _status_code = 400;
+    return -1;
+}
+
+int Request::parse_request_uri_http(const ByteBuffer::iterator& begin,
+                                    const ByteBuffer::iterator& end) {
+    if (*begin == '/')
+        return 0;
+    if (!_buffer.equal(begin, "http://", 7))
+        return -1;
+    ByteBuffer::iterator it = begin + 7;
+    if (it == end)
+        return -1;
+    if (!isalnum(*it) && *it != '-')
+        return -1;
     return 0;
 }
 
-int Request::parse_request_line(ByteBuffer::iterator& begin, ByteBuffer::iterator end) {
-    std::cout << "Request line: ";
-    for (; begin != end; ++begin) {
-        std::cout << *begin;
+int Request::parse_request_uri(const ByteBuffer::iterator& begin, const ByteBuffer::iterator& end) {
+    if (parse_request_uri_http(begin, end)) {
+        _status_code = 401;
+        return -1;
     }
-    std::cout << std::endl;
+    for (ByteBuffer::iterator it = begin; it != end; it++) {
+        if (!isprint(*it)) {
+            _status_code = 402;
+            return -1;
+        } else if (*it == '%' &&
+                   (it + 1 == end || !isxdigit(*it + 1) || it + 2 == end || !isxdigit(*it + 2))) {
+            _status_code = 403;
+            return -1;
+        }
+    }
+    _uri = std::string(begin, end);
     return 0;
 }
 
-// void skip_whitespaces(const char *str, const size_t &len, size_t &i) {
-//     while (i < len && str[i] == ' ') {
-//         i++;
-//     }
-// }
-
-// char *get_next_str(char *req_line, const size_t &len, size_t &i) {
-//     if (i > 0)
-//         skip_whitespaces(req_line, len, i);
-//     char *next_str = &(req_line[i]);
-//     while (i < len && req_line[i] != ' ') {
-//         i++;
-//     }
-//     req_line[i] = '\0';
-//     if (i < len)
-//         i++;
-//     return next_str;
-// }
-
-// int Request::parse_request_line(char *req_line, const size_t &len) {
-//     size_t i = 0;
-
-//     char *method = get_next_str(req_line, len, i);
-//     if (check_method(method))
-//         return _status_code;
-
-//     char *uri = get_next_str(req_line, len, i);
-//     std::cerr << "URI: \"" << uri << "\"\n";
-//     if (check_uri(uri))
-//         return _status_code;
-
-//     char *version = get_next_str(req_line, len, i);
-//     std::cerr << "Version: \"" << version << "\"\n";
-//     if (check_version(version))
-//         return _status_code;
-
-//     skip_whitespaces(req_line, len, i);
-//     if (i != len)
-//         _status_code = 400;
-//     return _status_code;
-// }
+int Request::parse_header_line(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
+    std::cout << "Header line: ";
+    while (begin != end) {
+        ++begin;
+        // line_end = std::find(_buffer.begin() + _buffer_parsed_chars, _buffer.end(), '\n');
+    }
+    return 0;
+}
 
 }  // namespace core

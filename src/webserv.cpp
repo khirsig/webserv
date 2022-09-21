@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 17:08:55 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/09/21 14:59:06 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,9 +95,9 @@ int main(int argc, char* argv[]) {
                               << connections.get_connection_ip(eni.events[i].ident) << ":"
                               << connections.get_connection_port(eni.events[i].ident) << '\n';
                 } else if (eni.events[i].flags & EV_EOF) {
+                    connections.receive(eni.events[i].ident);
                     // recv_msg(eni.events[i].ident, connections);
-                    // eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
-                    // write(eni.events[i].ident, "response\n", 9);
+                    eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
                 }
                 std::cerr << "Closed connection: "
                           << connections.get_connection_ip(eni.events[i].ident) << ":"

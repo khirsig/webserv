@@ -1,0 +1,60 @@
+2022/09/21 07:15:39 [emerg] 1#1: invalid value "POST" in /etc/nginx/nginx.conf:38
+2022/09/21 07:15:52 [emerg] 1#1: invalid value "POST" in /etc/nginx/nginx.conf:38
+2022/09/21 07:16:13 [notice] 1#1: using the "epoll" event method
+2022/09/21 07:16:13 [notice] 1#1: nginx/1.22.0
+2022/09/21 07:16:13 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/21 07:16:13 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/21 07:16:13 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/21 07:16:13 [notice] 1#1: start worker processes
+2022/09/21 07:16:13 [notice] 1#1: start worker process 32
+2022/09/21 08:39:39 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2022/09/21 08:39:39 [notice] 32#32: gracefully shutting down
+2022/09/21 08:39:39 [notice] 32#32: exiting
+2022/09/21 08:39:39 [notice] 32#32: exit
+2022/09/21 08:39:39 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2022/09/21 08:39:39 [notice] 1#1: worker process 32 exited with code 0
+2022/09/21 08:39:39 [notice] 1#1: exit
+2022/09/21 08:39:40 [emerg] 1#1: invalid value "POST" in /etc/nginx/nginx.conf:40
+2022/09/21 08:40:58 [notice] 1#1: using the "epoll" event method
+2022/09/21 08:40:58 [notice] 1#1: nginx/1.22.0
+2022/09/21 08:40:58 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/21 08:40:58 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/21 08:40:58 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/21 08:40:58 [notice] 1#1: start worker processes
+2022/09/21 08:40:58 [notice] 1#1: start worker process 32
+2022/09/21 08:45:06 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2022/09/21 08:45:06 [notice] 32#32: gracefully shutting down
+2022/09/21 08:45:06 [notice] 32#32: exiting
+2022/09/21 08:45:06 [notice] 32#32: exit
+2022/09/21 08:45:06 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2022/09/21 08:45:06 [notice] 1#1: worker process 32 exited with code 0
+2022/09/21 08:45:06 [notice] 1#1: exit
+2022/09/21 08:45:06 [notice] 1#1: using the "epoll" event method
+2022/09/21 08:45:06 [notice] 1#1: nginx/1.22.0
+2022/09/21 08:45:06 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/21 08:45:06 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/21 08:45:06 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/21 08:45:06 [notice] 1#1: start worker processes
+2022/09/21 08:45:06 [notice] 1#1: start worker process 32
+2022/09/21 09:05:27 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2022/09/21 09:05:27 [notice] 32#32: gracefully shutting down
+2022/09/21 09:05:27 [notice] 32#32: exiting
+2022/09/21 09:05:27 [notice] 32#32: exit
+2022/09/21 09:05:27 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2022/09/21 09:05:27 [notice] 1#1: worker process 32 exited with code 0
+2022/09/21 09:05:27 [notice] 1#1: exit
+2022/09/21 09:05:28 [emerg] 1#1: unknown log format "info" in /etc/nginx/nginx.conf:28
+2022/09/21 09:11:13 [notice] 1#1: using the "epoll" event method
+2022/09/21 09:11:13 [notice] 1#1: nginx/1.22.0
+2022/09/21 09:11:13 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/21 09:11:13 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/21 09:11:13 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/21 09:11:13 [notice] 1#1: start worker processes
+2022/09/21 09:11:13 [notice] 1#1: start worker process 32
+2022/09/21 12:55:25 [notice] 1#1: using the "epoll" event method
+2022/09/21 12:55:25 [notice] 1#1: nginx/1.22.0
+2022/09/21 12:55:25 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/21 12:55:25 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/21 12:55:25 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/21 12:55:25 [notice] 1#1: start worker processes
+2022/09/21 12:55:25 [notice] 1#1: start worker process 32

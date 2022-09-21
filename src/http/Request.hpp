@@ -24,9 +24,8 @@ enum ParseState { REQUEST_LINE, HEADER, BODY };
 
 class Request {
    private:
-    int                                _status_code;
     ByteBuffer                         _buffer;
-    ByteBuffer::iterator               _buffer_parse_end;
+    size_t                             _buffer_parsed_chars;
     ParseState                         _parse_state;
     int                                _method;
     std::string                        _uri;
@@ -37,17 +36,30 @@ class Request {
     int check_uri(const char *uri);
 
    public:
+    int _status_code;
     Request();
     ~Request();
 
     int parse_input(const char *input, std::size_t len);
-    int parse_request_line(ByteBuffer::iterator &begin, ByteBuffer::iterator end);
-    int parse_header_line(ByteBuffer::iterator &begin, ByteBuffer::iterator end);
-    // int parse_request_line(char *req_line, const size_t &len);
-    // int parse_headers();
-    // int parse_body();
+    int parse_request_line(ByteBuffer::iterator begin, const ByteBuffer::iterator &end);
+    int parse_header_line(ByteBuffer::iterator begin, const ByteBuffer::iterator &end);
+    int parse_request_method(ByteBuffer::iterator begin, const ByteBuffer::iterator &end);
+    int parse_request_uri(const ByteBuffer::iterator &begin, const ByteBuffer::iterator &end);
+    int parse_request_uri_http(const ByteBuffer::iterator &begin, const ByteBuffer::iterator &end);
 };
 
 }  // namespace core
 
-// GET / HTTP/1.1
+// REQUEST LINE Parsing
+// -
+
+// HEADER Parsing
+// - durch den buffer Line by line
+// - check if line is too long
+// - check if line starts with space, append value to last header
+// - check if line contains ':'
+// - extract key / value and store it in map
+
+// BODY Parsing
+// - check if body size is correct
+// - append read calls to buffer
