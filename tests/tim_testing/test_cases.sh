@@ -30,6 +30,10 @@ DELETE /index.html HTTP/1.1
 # Content-Length: 12
 
 
+make run
+(while true; do nc -l 900 ; done) | nc localhost 80
+echo -ne '' | nc localhost 900
+
 
 
 echo -ne '-' | nc localhost 900

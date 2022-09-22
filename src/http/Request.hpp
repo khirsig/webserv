@@ -11,41 +11,59 @@
 #define IMPLEMENTED true
 #define NOT_IMPLEMENTED false
 
-static const std::pair<std::string, bool> valid_methods[] = {
-    std::make_pair("OPTIONS", NOT_IMPLEMENTED), std::make_pair("GET", IMPLEMENTED),
-    std::make_pair("HEAD", IMPLEMENTED),        std::make_pair("POST", IMPLEMENTED),
-    std::make_pair("PUT", NOT_IMPLEMENTED),     std::make_pair("DELETE", IMPLEMENTED),
-    std::make_pair("TRACE", NOT_IMPLEMENTED),   std::make_pair("CONNECT", NOT_IMPLEMENTED)};
+// static const std::pair<std::string, bool> valid_methods[] = {
+//     std::make_pair("OPTIONS", NOT_IMPLEMENTED), std::make_pair("GET", IMPLEMENTED),
+//     std::make_pair("HEAD", IMPLEMENTED),        std::make_pair("POST", IMPLEMENTED),
+//     std::make_pair("PUT", NOT_IMPLEMENTED),     std::make_pair("DELETE", IMPLEMENTED),
+//     std::make_pair("TRACE", NOT_IMPLEMENTED),   std::make_pair("CONNECT", NOT_IMPLEMENTED)};
 
 namespace core {
 
-enum Methods { GET = 1, HEAD = 2, POST = 3, DELETE = 5 };
-enum ParseState { REQUEST_LINE, HEADER, BODY };
+enum method { NONE, GET, HEAD, POST, DELETE };
+enum state { REQUEST_LINE, HEADER, BODY };
+
+enum state_request_line {
+    START,
+    METHOD,
+    AFTER_METHOD,
+    URI_PATH,
+    URI_HTTP,
+    AFTER_URI,
+    VERSION_H,
+    VERSION_HT,
+    VERSION_HTT,
+    VERSION_HTTP,
+    VERSION_HTTP_SLASH,
+    VERSION_HTTP_SLASH_MAJOR,
+    VERSION_HTTP_SLASH_MAJOR_DOT,
+    VERSION_HTTP_SLASH_MAJOR_DOT_MINOR,
+    AFTER_VERSION,
+    ALMOST_DONE,
+    DONE
+};
 
 class Request {
    private:
-    ByteBuffer                         _buffer;
-    size_t                             _buffer_parsed_chars;
-    ParseState                         _parse_state;
-    int                                _method;
-    std::string                        _uri;
-    std::map<std::string, std::string> _header;
+    ByteBuffer  _buf;
+    std::size_t _buf_pos;
+    std::size_t _request_end;
+    std::size_t _method_start;
+    std::size_t _method_end;
+    method      _method;
+    std::size_t _uri_start;
+    std::size_t _uri_end;
 
-    int check_version(const char *version);
-    int check_method(const char *method);
-    int check_uri(const char *uri);
+    state              _state;
+    state_request_line _state_request_line;
 
    public:
-    int _status_code;
+    int status_code;
+
     Request();
     ~Request();
 
-    int parse_input(const char *input, std::size_t len);
-    int parse_request_line(ByteBuffer::iterator begin, const ByteBuffer::iterator &end);
-    int parse_header_line(ByteBuffer::iterator begin, const ByteBuffer::iterator &end);
-    int parse_request_method(ByteBuffer::iterator begin, const ByteBuffer::iterator &end);
-    int parse_request_uri(const ByteBuffer::iterator &begin, const ByteBuffer::iterator &end);
-    int parse_request_uri_http(const ByteBuffer::iterator &begin, const ByteBuffer::iterator &end);
+    int parse_input(const char* input, std::size_t len);
+    int parse_request_line();
 };
 
 }  // namespace core

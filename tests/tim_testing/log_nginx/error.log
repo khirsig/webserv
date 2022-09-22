@@ -58,3 +58,17 @@
 2022/09/21 12:55:25 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
 2022/09/21 12:55:25 [notice] 1#1: start worker processes
 2022/09/21 12:55:25 [notice] 1#1: start worker process 32
+2022/09/22 07:12:03 [notice] 1#1: using the "epoll" event method
+2022/09/22 07:12:03 [notice] 1#1: nginx/1.22.0
+2022/09/22 07:12:03 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/22 07:12:03 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/22 07:12:03 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/22 07:12:03 [notice] 1#1: start worker processes
+2022/09/22 07:12:03 [notice] 1#1: start worker process 32
+2022/09/22 14:27:29 [notice] 1#1: using the "epoll" event method
+2022/09/22 14:27:29 [notice] 1#1: nginx/1.22.0
+2022/09/22 14:27:29 [notice] 1#1: built by gcc 11.2.1 20220219 (Alpine 11.2.1_git20220219) 
+2022/09/22 14:27:29 [notice] 1#1: OS: Linux 5.10.76-linuxkit
+2022/09/22 14:27:29 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2022/09/22 14:27:29 [notice] 1#1: start worker processes
+2022/09/22 14:27:29 [notice] 1#1: start worker process 32

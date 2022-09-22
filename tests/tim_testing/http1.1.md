@@ -47,6 +47,25 @@ If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT
 
 
 GET / HTTP/1.1
-Host: local
-Connection: close
-Content-Length: 0
+Host:local
+Connection:close
+Content-Length:0
+
+
+
+
+
+
+
+
+
+
+# PARSING
+
+#define CR                  '\r'
+#define LF                  '\n'
+
+IS_HEADER_CHAR
+IS_URL_CHAR
+IS_HOST_CHAR
+

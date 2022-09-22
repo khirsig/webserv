@@ -89,12 +89,16 @@ int Connections::receive(int fd) {
         return -1;
     char buf[1024];
     int  bytes_read = recv(fd, buf, sizeof(buf), 0);
-    std::cerr << "bytes_read: " << bytes_read << '\n';
+    std::cerr << "bytes_read: " << bytes_read << " # \'";
+    write(2, buf, bytes_read);
+    std::cerr << "\'\n";
     if (bytes_read == -1)
         return -1;
     if (_v_requests[index]->parse_input(buf, bytes_read)) {
-        std::cerr << "Error status: " << _v_requests[index]->_status_code << '\n';
+        // std::cerr << "Error status: " << _v_requests[index]->_status_code << '\n';
         write(fd, "Bad request\n", 12);
+        delete _v_requests[index];
+        _v_requests[index] = new Request;
         return -1;
     }
     // std::cout << get_connection_ip(fd) << ":" << get_connection_port(fd) << " # "
