@@ -26,7 +26,11 @@ enum state_request_line {
     START,
     METHOD,
     AFTER_METHOD,
-    URI_PATH,
+    URI_SLASH,
+    URI_ENCODE_1,
+    URI_ENCODE_2,
+    URI_QUERY,
+    URI_FRAGMENT,
     URI_HTTP,
     AFTER_URI,
     VERSION_H,
@@ -50,8 +54,17 @@ class Request {
     std::size_t _method_start;
     std::size_t _method_end;
     method      _method;
+    std::size_t _version_start;
+    std::size_t _version_end;
+
     std::size_t _uri_start;
     std::size_t _uri_end;
+    std::size_t _uri_path_start;
+    std::size_t _uri_path_end;
+    std::size_t _uri_query_start;
+    std::size_t _uri_query_end;
+    std::size_t _uri_fragment_start;
+    std::size_t _uri_fragment_end;
 
     state              _state;
     state_request_line _state_request_line;
@@ -64,6 +77,8 @@ class Request {
 
     int parse_input(const char* input, std::size_t len);
     int parse_request_line();
+
+    void print();
 };
 
 }  // namespace core

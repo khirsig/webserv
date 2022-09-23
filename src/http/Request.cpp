@@ -10,7 +10,24 @@ namespace core {
 
 #define MAX_BUFFER_SIZE 8192
 
-Request::Request() : _buf_pos(0), _method(NONE), _state(REQUEST_LINE), _state_request_line(START) {
+Request::Request()
+    : _buf_pos(0),
+      _request_end(0),
+      _method_start(0),
+      _method_end(0),
+      _method(NONE),
+      _version_start(0),
+      _version_end(0),
+      _uri_start(0),
+      _uri_end(0),
+      _uri_path_start(0),
+      _uri_path_end(0),
+      _uri_query_start(0),
+      _uri_query_end(0),
+      _uri_fragment_start(0),
+      _uri_fragment_end(0),
+      _state(REQUEST_LINE),
+      _state_request_line(START) {
     _buf.reserve(8192);
 }
 
@@ -95,7 +112,6 @@ int Request::parse_request_line() {
                     default:
                         return 492;
                 }
-                std::cout << "found valid method: " << _method << std::endl;
                 _state_request_line = AFTER_METHOD;
                 break;
             case AFTER_METHOD:
@@ -104,7 +120,8 @@ int Request::parse_request_line() {
                 _uri_start = _buf_pos;
                 switch (c) {
                     case '/':
-                        _state_request_line = URI_PATH;
+                        _uri_path_start = _buf_pos;
+                        _state_request_line = URI_SLASH;
                         break;
                     case 'h':
                         // _state_request_line = URI_HTTP;
@@ -114,13 +131,85 @@ int Request::parse_request_line() {
                         return 493;
                 }
                 break;
-            case URI_PATH:
-                if (c == ' ') {
-                    _uri_end = _buf_pos;
-                    _state_request_line = AFTER_URI;
-                    break;
-                } else if (!isalnum(c) && c != '-') {
-                    return 494;
+            case URI_SLASH:
+                switch (c) {
+                    case ' ':
+                        _uri_end = _buf_pos;
+                        _uri_path_end = _buf_pos;
+                        _state_request_line = AFTER_URI;
+                        break;
+                    case '\r':
+                        return 400;
+                    case '\n':
+                        return 400;
+                    // case '.':
+                    //     _uri_complex = true;
+                    //     break;
+                    case '%':
+                        _state_request_line = URI_ENCODE_1;
+                        break;
+                    case '?':
+                        _uri_path_end = _buf_pos;
+                        _uri_query_start = _buf_pos + 1;
+                        _state_request_line = URI_QUERY;
+                        break;
+                    case '#':
+                        _uri_path_end = _buf_pos;
+                        _uri_fragment_start = _buf_pos + 1;
+                        _state_request_line = URI_FRAGMENT;
+                        break;
+                    default:
+                        if (!isprint(c))
+                            return 400;
+                        break;
+                }
+                break;
+            case URI_ENCODE_1:
+                if (!isxdigit(c))
+                    return 400;
+                _state_request_line = URI_ENCODE_2;
+                break;
+            case URI_ENCODE_2:
+                if (!isxdigit(c))
+                    return 400;
+                _state_request_line = URI_SLASH;
+                break;
+            case URI_QUERY:
+                switch (c) {
+                    case ' ':
+                        _uri_end = _buf_pos;
+                        _uri_query_end = _buf_pos;
+                        _state_request_line = AFTER_URI;
+                        break;
+                    case '\r':
+                        return 400;
+                    case '\n':
+                        return 400;
+                    case '#':
+                        _uri_query_end = _buf_pos;
+                        _uri_fragment_start = _buf_pos + 1;
+                        _state_request_line = URI_FRAGMENT;
+                    default:
+                        if (!isprint(c))
+                            return 400;
+                        break;
+                }
+                break;
+            case URI_FRAGMENT:
+                switch (c) {
+                    case ' ':
+                        _uri_end = _buf_pos;
+                        _uri_fragment_end = _buf_pos;
+                        _state_request_line = AFTER_URI;
+                        break;
+                    case '\r':
+                        return 400;
+                    case '\n':
+                        return 400;
+                    default:
+                        if (!isprint(c))
+                            return 400;
+                        break;
                 }
                 break;
             case URI_HTTP:
@@ -129,6 +218,7 @@ int Request::parse_request_line() {
                 if (c == ' ')
                     break;
                 _state_request_line = VERSION_H;
+                _version_start = _buf_pos;
                 //  break;
             case VERSION_H:
                 if (c == 'H')
@@ -183,6 +273,7 @@ int Request::parse_request_line() {
                     return 501;
                 else
                     return 4959;
+                _version_end = _buf_pos + 1;
                 break;
             case AFTER_VERSION:
                 if (c == ' ')
@@ -204,6 +295,7 @@ int Request::parse_request_line() {
                 break;
         }
         if (_state_request_line == DONE) {
+            _buf_pos++;
             _request_end = _buf_pos;
             return 0;
         }
@@ -289,6 +381,56 @@ int Request::parse_request_line() {
 //     }
 //     return 0;
 // }
+
+void Request::print() {
+    std::cout << "REQUEST: \n\'";
+    for (size_t i = 0; i != _request_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "REQUEST-LINE: \n\'";
+    for (size_t i = _method_start; i != _version_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "METHOD: \n\'";
+    for (size_t i = _method_start; i != _method_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "URI: \n\'";
+    for (size_t i = _uri_start; i != _uri_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "PATH: \n\'";
+    for (size_t i = _uri_path_start; i != _uri_path_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "QUERY: \n\'";
+    for (size_t i = _uri_query_start; i != _uri_query_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "FRAGMENT: \n\'";
+    for (size_t i = _uri_fragment_start; i != _uri_fragment_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+
+    std::cout << "VERSION: \n\'";
+    for (size_t i = _version_start; i != _version_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
+}
 
 // int Request::parse_request_method(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
 //     for (size_t i = 0; i < sizeof(valid_methods) / sizeof(valid_methods[0]); ++i) {

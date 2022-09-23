@@ -19,3 +19,6 @@ https://www.slideshare.net/joshzhu/nginx-internals
 https://www.rfc-editor.org/rfc/rfc9110.html
 https://www.jmarshall.com/easy/http/
 
+
+## URI
+https://www.talisman.org/%7Eerlkonig/misc/lunatech%5Ewhat-every-webdev-must-know-about-url-encoding/#Whichcharacterencoding%3F
