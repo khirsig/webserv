@@ -8,7 +8,7 @@
 #include "ByteBuffer.hpp"
 #include "EventNotificationInterface.hpp"
 
-#define CONNECTION_TIMEOUT 600000
+#define CONNECTION_TIMEOUT 60000
 
 namespace core {
 
@@ -17,8 +17,9 @@ class Connections {
     Connections(size_t max_connections);
     ~Connections();
 
-    int         accept_connection(int fd, EventNotificationInterface& kq);
-    int         close_connection(int fd, EventNotificationInterface& kq);
+    int         accept_connection(int fd, EventNotificationInterface& eni);
+    int         close_connection(int fd, EventNotificationInterface& eni);
+    int         timeout_connection(int fd, EventNotificationInterface& eni);
     std::string get_connection_ip(int fd) const;
     int         get_connection_port(int fd) const;
     int         receive(int fd);

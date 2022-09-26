@@ -55,6 +55,9 @@ int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
     _v_socket_fd[index] = fd;
     _v_requests[index] = new Request;
 
+    std::cout << "Accepted new connection: " << get_connection_ip(_v_fd[index]) << ":"
+              << get_connection_port(_v_fd[index]) << std::endl;
+
     return _v_fd[index];
 }
 
@@ -62,11 +65,19 @@ int Connections::close_connection(int fd, EventNotificationInterface& eni) {
     int index = get_index(fd);
     if (index == -1)
         return -1;
+    std::cerr << "Closed connection: " << get_connection_ip(fd) << ":" << get_connection_port(fd)
+              << '\n';
     _v_fd[index] = -1;
     eni.delete_event(fd, EVFILT_READ);
     eni.delete_event(fd, EVFILT_TIMER);
     delete _v_requests[index];
     return close(fd);
+}
+
+int Connections::timeout_connection(int fd, EventNotificationInterface& eni) {
+    std::cerr << "Timeout on connection: " << get_connection_ip(fd) << ":"
+              << get_connection_port(fd) << '\n';
+    return close_connection(fd, eni);
 }
 
 std::string Connections::get_connection_ip(int fd) const {
@@ -89,21 +100,15 @@ int Connections::receive(int fd) {
         return -1;
     char buf[1024];
     int  bytes_read = recv(fd, buf, sizeof(buf), 0);
-    // std::cerr << "bytes_read: " << bytes_read << " # \'";
-    // write(2, buf, bytes_read);
-    // std::cerr << "\'\n";
     if (bytes_read == -1)
         return -1;
     if (_v_requests[index]->parse_input(buf, bytes_read)) {
-        // std::cerr << "Error status: " << _v_requests[index]->_status_code << '\n';
         write(fd, "Bad request\n", 12);
         delete _v_requests[index];
         _v_requests[index] = new Request;
+        // close_connection(fd, );
         return -1;
     }
-
-    // std::cout << get_connection_ip(fd) << ":" << get_connection_port(fd) << " # "
-    //           << _v_requests[index]->_buffer;
     return 0;
 }
 
