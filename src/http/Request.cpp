@@ -6,9 +6,23 @@
 
 namespace core {
 
+#define MAX_BUFFER_SIZE 8192
+
 #define IS_METHOD_CHAR(c) (c >= 'A' && c <= 'Z')
 
-#define MAX_BUFFER_SIZE 8192
+#define IS_SEPERATOR_CHAR(c)                                                               \
+    (c == '(' || c == ')' || c == '<' || c == '>' || c == '@' || c == ',' || c == ';' ||   \
+     c == ':' || c == '\\' || c == '\"' || c == '/' || c == '[' || c == ']' || c == '?' || \
+     c == '=' || c == '{' || c == '}' || c == ' ' || c == '\t')
+#define IS_TEXT_CHAR(c) (isprint(c) || c == '\t')
+#define IS_TOKEN_CHAR(c) (isprint(c) && !IS_SEPERATOR_CHAR(c))
+
+// #define IS_HEADER_KEY_CHAR(c) (IS_TOKEN_CHAR(c))
+// #define IS_HEADER_VALUE_CHAR(c) (IS_TEXT_CHAR(c))
+
+static const std::pair<std::string, bool> headers[] = {std::make_pair("host", false),
+                                                       std::make_pair("connection", true),
+                                                       std::make_pair("content-length", true)};
 
 Request::Request()
     : _buf_pos(0),
@@ -26,8 +40,15 @@ Request::Request()
       _uri_query_end(0),
       _uri_fragment_start(0),
       _uri_fragment_end(0),
+      _header_start(0),
+      _header_end(0),
+      _header_key_start(0),
+      _header_key_end(0),
+      _header_value_start(0),
+      _header_value_end(0),
       _state(REQUEST_LINE),
-      _state_request_line(START) {
+      _state_request_line(START),
+      _state_header(H_START) {
     _buf.reserve(8192);
 }
 
@@ -46,16 +67,29 @@ int Request::parse_input(const char* input, std::size_t len) {
         } else {
             std::cout << "READ AGAIN\n";
         }
-    } else {
-        write(1, (char*)_buf.data() + _buf_pos, _buf.size() - _buf_pos);
     }
+    if (_state == HEADER) {
+        int status = parse_header();
+        if (status == 0) {
+            std::cout << "DONE PARSING HEADER\n";
+            _state = BODY;
+        } else if (status > 99) {
+            std::cerr << "Error: " << status << '\n';
+            return -1;
+        } else {
+            std::cout << "READ AGAIN\n";
+        }
+        // write(1, (char*)_buf.data() + _buf_pos, _buf.size() - _buf_pos);
+    }
+    print();
     return 0;
 }
 
 int Request::parse_request_line() {
     char c;
-    for (ByteBuffer::iterator it = _buf.begin() + _buf_pos; it != _buf.end(); _buf_pos++, it++) {
-        c = *it;
+    // for (ByteBuffer::iterator it = _buf.begin() + _buf_pos; it != _buf.end(){
+    for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
+        c = _buf[i];
         switch (_state_request_line) {
             case START:
                 _method_start = _buf_pos;
@@ -296,7 +330,152 @@ int Request::parse_request_line() {
         }
         if (_state_request_line == DONE) {
             _buf_pos++;
-            _request_end = _buf_pos;
+            _request_end = _header_start = _buf_pos;
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void print_header_pair(const ByteBuffer& buf, size_t key_start, size_t key_end, size_t value_start,
+                       size_t value_end) {
+    std::cout << "Key: \'";
+    for (; key_start != key_end; key_start++) {
+        std::cout << buf[key_start];
+    }
+    std::cout << "\'\n";
+    std::cout << "Value: \'";
+    for (; value_start != value_end; value_start++) {
+        std::cout << buf[value_start];
+    }
+    std::cout << "\'\n\n";
+}
+
+int Request::parse_header() {
+    std::cerr << "parse_header():\n";
+    char c;
+    // for (ByteBuffer::iterator it = _buf.begin() + _buf_pos; it != _buf.end(); _buf_pos++,
+    // it++) {
+    for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
+        c = _buf[i];
+        switch (_state_header) {
+            case H_START:
+                switch (c) {
+                    case ' ':
+                    case ':':
+                        return 481;
+                    case '\r':
+                        _state_header = H_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_header = H_DONE;
+                        break;
+                    default:
+                        if (!IS_TOKEN_CHAR(c))
+                            return 481;
+                        _state_header = H_KEY;
+                        _header_key_start = _buf_pos;
+                        break;
+                }
+                break;
+            case H_KEY:
+                if (IS_TOKEN_CHAR(c))
+                    break;
+                _header_key_end = _buf_pos;
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_header = H_DONE;
+                        break;
+                    case ' ':
+                    case ':':
+                        _state_header = H_AFTER_KEY;
+                        break;
+                    default:
+                        return 482;
+                }
+                break;
+            case H_AFTER_KEY:
+                if (c == ' ' || c == ':')
+                    break;
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_header = H_DONE;
+                        break;
+                    default:
+                        _header_value_start = _buf_pos;
+                        _state_header = H_VALUE;
+                        break;
+                }
+                break;
+            case H_VALUE:
+                if (IS_TEXT_CHAR(c))
+                    break;
+                _header_value_end = _buf_pos;
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_header = H_DONE;
+                        break;
+                    default:
+                        return 483;
+                }
+                break;
+            case H_AFTER_VALUE:
+                break;
+            case H_ALMOST_DONE:
+                if (c == '\n')
+                    _state_header = H_DONE;
+                else
+                    return 480;
+                break;
+            case H_DONE:
+                print_header_pair(_buf, _header_key_start, _header_key_end, _header_value_start,
+                                  _header_value_end);
+                {
+                    std::string key(_buf.begin() + _header_key_start,
+                                    _buf.begin() + _header_key_end);
+                    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+                    for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
+                        if (key == headers[i].first) {
+                            std::string value(_buf.begin() + _header_value_start,
+                                              _buf.begin() + _header_value_end);
+                            std::pair<std::map<std::string, std::string>::iterator, bool> ret;
+                            ret = m_header.insert(std::make_pair(key, value));
+                            if (ret.second == false) {
+                                if (headers[i].second == false)
+                                    return 489;
+                                else {
+                                    (*ret.first).second += ", ";
+                                    (*ret.first).second += value;
+                                }
+                            }
+                            std::cout << "Map Key: \'" << (*ret.first).first << "\'\nMap Value: \'"
+                                      << (*ret.first).second << "\'\n\n";
+                            break;
+                        }
+                    }
+                }
+                _header_key_start = _header_key_end = _buf_pos;
+                _header_value_start = _header_value_end = 0;
+                if (c == '\n')
+                    _state_header = H_REQUEST_DONE;
+                else
+                    _state_header = H_KEY;
+                break;
+            case H_REQUEST_DONE:
+                break;
+        }
+        if (_state_header == H_REQUEST_DONE) {
+            _buf_pos++;
+            _header_end = _buf_pos;
             return 0;
         }
     }
@@ -338,7 +517,8 @@ int Request::parse_request_line() {
 
 // bool is_space(const char& c) { return c == ' '; }
 
-// int Request::parse_request_line(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
+// int Request::parse_request_line(ByteBuffer::iterator begin, const ByteBuffer::iterator&
+// end) {
 //     std::cerr << "parse_request_line()\n";
 //     ByteBuffer::iterator space = std::find(begin, end, ' ');
 //     if (space == end) {
@@ -430,11 +610,19 @@ void Request::print() {
         std::cout << _buf[i];
     }
     std::cout << "\'\n\n";
+
+    std::cout << "HEADER: \n\'";
+    for (size_t i = _header_start; i != _header_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << "\'\n\n";
 }
 
-// int Request::parse_request_method(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
+// int Request::parse_request_method(ByteBuffer::iterator begin, const ByteBuffer::iterator&
+// end) {
 //     for (size_t i = 0; i < sizeof(valid_methods) / sizeof(valid_methods[0]); ++i) {
-//         for (size_t j = 0; begin != end && j < valid_methods[i].first.size(); begin++, j++) {
+//         for (size_t j = 0; begin != end && j < valid_methods[i].first.size(); begin++,
+//         j++) {
 //             if (_buffer[j] != valid_methods[i].first[j]) {
 //                 break;
 //             }
@@ -465,8 +653,8 @@ void Request::print() {
 //     return 0;
 // }
 
-// int Request::parse_request_uri(const ByteBuffer::iterator& begin, const ByteBuffer::iterator&
-// end) {
+// int Request::parse_request_uri(const ByteBuffer::iterator& begin, const
+// ByteBuffer::iterator& end) {
 //     if (parse_request_uri_http(begin, end)) {
 //         _status_code = 401;
 //         return -1;
@@ -476,7 +664,8 @@ void Request::print() {
 //             _status_code = 402;
 //             return -1;
 //         } else if (*it == '%' &&
-//                    (it + 1 == end || !isxdigit(*it + 1) || it + 2 == end || !isxdigit(*it + 2)))
+//                    (it + 1 == end || !isxdigit(*it + 1) || it + 2 == end || !isxdigit(*it
+//                    + 2)))
 //                    {
 //             _status_code = 403;
 //             return -1;
@@ -486,11 +675,13 @@ void Request::print() {
 //     return 0;
 // }
 
-// int Request::parse_header_line(ByteBuffer::iterator begin, const ByteBuffer::iterator& end) {
+// int Request::parse_header_line(ByteBuffer::iterator begin, const ByteBuffer::iterator&
+// end) {
 //     std::cout << "Header line: ";
 //     while (begin != end) {
 //         ++begin;
-//         // line_end = std::find(_buffer.begin() + _buffer_parsed_chars, _buffer.end(), '\n');
+//         // line_end = std::find(_buffer.begin() + _buffer_parsed_chars, _buffer.end(),
+//         '\n');
 //     }
 //     return 0;
 // }

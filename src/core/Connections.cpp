@@ -101,8 +101,7 @@ int Connections::receive(int fd) {
         _v_requests[index] = new Request;
         return -1;
     }
-    _v_requests[index]->print();
-    
+
     // std::cout << get_connection_ip(fd) << ":" << get_connection_port(fd) << " # "
     //           << _v_requests[index]->_buffer;
     return 0;

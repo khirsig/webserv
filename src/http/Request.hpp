@@ -46,6 +46,17 @@ enum state_request_line {
     DONE
 };
 
+enum state_header {
+    H_START,
+    H_KEY,
+    H_AFTER_KEY,
+    H_VALUE,
+    H_AFTER_VALUE,
+    H_ALMOST_DONE,
+    H_DONE,
+    H_REQUEST_DONE
+};
+
 class Request {
    private:
     ByteBuffer  _buf;
@@ -66,8 +77,19 @@ class Request {
     std::size_t _uri_fragment_start;
     std::size_t _uri_fragment_end;
 
+    std::size_t _header_start;
+    std::size_t _header_end;
+
+    std::size_t _header_key_start;
+    std::size_t _header_key_end;
+    std::size_t _header_value_start;
+    std::size_t _header_value_end;
+
     state              _state;
     state_request_line _state_request_line;
+    state_header       _state_header;
+
+    std::map<std::string, std::string> m_header;
 
    public:
     int status_code;
@@ -77,6 +99,7 @@ class Request {
 
     int parse_input(const char* input, std::size_t len);
     int parse_request_line();
+    int parse_header();
 
     void print();
 };
@@ -96,3 +119,5 @@ class Request {
 // BODY Parsing
 // - check if body size is correct
 // - append read calls to buffer
+
+// key: value\r\n

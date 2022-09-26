@@ -36,11 +36,12 @@ Header: value1,
 - nur whitespaces nicht erlaubt
 
 # Headers to handle
-Connection: close
-Cookie: $Version=1; Skin=new;
-Content-Length: 348
-Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==
 Host: en.wikipedia.org
+Connection: close
+Content-Length: 348
+Cookie: $Version=1; Skin=new;
+
+Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==
 If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT
 
 
@@ -51,8 +52,10 @@ Host:local
 Connection:close
 Content-Length:0
 
-
-
+GET / HTTP/1.1
+Host: localhost:900
+Connection: 22
+Content-Length: g
 
 
 
