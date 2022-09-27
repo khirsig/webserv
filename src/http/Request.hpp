@@ -20,7 +20,7 @@
 namespace core {
 
 enum method { NONE, GET, HEAD, POST, DELETE };
-enum state { REQUEST_LINE, HEADER, BODY };
+enum state { REQUEST_LINE, HEADER, BODY, END };
 
 enum state_request_line {
     START,
@@ -51,10 +51,10 @@ enum state_header {
     H_KEY,
     H_AFTER_KEY,
     H_VALUE,
-    H_AFTER_VALUE,
-    H_ALMOST_DONE,
-    H_DONE,
-    H_REQUEST_DONE
+    H_ALMOST_DONE_LINE,
+    H_DONE_LINE,
+    H_ALMOST_DONE_REQUEST,
+    H_DONE_REQUEST
 };
 
 class Request {
@@ -90,6 +90,8 @@ class Request {
     state_header       _state_header;
 
     std::map<std::string, std::string> m_header;
+
+    int _add_header();
 
    public:
     int status_code;

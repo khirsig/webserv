@@ -41,25 +41,9 @@ Connection: close
 Content-Length: 348
 Cookie: $Version=1; Skin=new;
 
+Transfer-Encoding: chunked
 Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==
 If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT
-
-
-
-
-GET / HTTP/1.1
-Host:local
-Connection:close
-Content-Length:0
-
-GET / HTTP/1.1
-Host: localhost:900
-Connection: 22
-Content-Length: g
-
-
-
-
 
 
 
@@ -71,4 +55,40 @@ Content-Length: g
 IS_HEADER_CHAR
 IS_URL_CHAR
 IS_HOST_CHAR
+
+
+###### TO DO
+
+# Request line
+* http://
+
+# HEADER
+* start header line with space/tab
+
+# Error Handling
+
+# Debug printer
+
+# Analyse Request
+* Check for 1 host
+* Check Path for ../
+* Content-Length
+* Set Connection bool
+
+
+
+
+
+REQUEST-LINE:
+'GET' '/1/../?42#test' 'HTTP/1.1'
+
+HEADER:
+'KEY' = 'VALUE'
+
+ANALYZED:
+'Host' = ''
+'keep-alive' = 'false'
+
+
+
 

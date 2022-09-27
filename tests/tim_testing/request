@@ -1,5 +1,5 @@
 GET / HTTP/1.1
-Host: localhost:900
-Connection: " close
-Content-Length: 22
+Host: google.de
+Connection:
+Content-Length: 0
 

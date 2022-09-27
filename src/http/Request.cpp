@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include "../log/Log.hpp"
+
 namespace core {
 
 #define MAX_BUFFER_SIZE 8192
@@ -59,29 +61,24 @@ int Request::parse_input(const char* input, std::size_t len) {
     if (_state == REQUEST_LINE) {
         int status = parse_request_line();
         if (status == 0) {
-            std::cout << "DONE PARSING REQUEST LINE\n";
             _state = HEADER;
         } else if (status > 99) {
             std::cerr << "Error: " << status << '\n';
             return -1;
-        } else {
-            std::cout << "READ AGAIN\n";
         }
     }
     if (_state == HEADER) {
         int status = parse_header();
+        std::cout << "status: " << status << "\n";
         if (status == 0) {
-            std::cout << "DONE PARSING HEADER\n";
-            _state = BODY;
+            _state = END;
         } else if (status > 99) {
             std::cerr << "Error: " << status << '\n';
             return -1;
-        } else {
-            std::cout << "READ AGAIN\n";
         }
-        // write(1, (char*)_buf.data() + _buf_pos, _buf.size() - _buf_pos);
     }
-    print();
+    if (_state == END)
+        print();
     return 0;
 }
 
@@ -103,7 +100,6 @@ int Request::parse_request_line() {
                 if (c != ' ')
                     return 490;
                 _method_end = _buf_pos;
-                std::cout << (_method_end - _method_start) << std::endl;
                 switch (_method_end - _method_start) {
                     case 3:
                         if (_buf.equal(_buf.begin() + _method_start, "GET", 3)) {
@@ -351,24 +347,42 @@ void print_header_pair(const ByteBuffer& buf, size_t key_start, size_t key_end, 
     std::cout << "\'\n\n";
 }
 
+int Request::_add_header() {
+    if (_header_value_start == _header_value_end)
+        return 0;
+    std::string key(_buf.begin() + _header_key_start, _buf.begin() + _header_key_end);
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
+        if (key == headers[i].first) {
+            std::string value(_buf.begin() + _header_value_start, _buf.begin() + _header_value_end);
+            std::pair<std::map<std::string, std::string>::iterator, bool> ret;
+            ret = m_header.insert(std::make_pair(key, value));
+            if (ret.second == false) {
+                if (headers[i].second == false)
+                    return 489;
+                else {
+                    (*ret.first).second += ", ";
+                    (*ret.first).second += value;
+                }
+            }
+            break;
+        }
+    }
+    return 0;
+}
+
 int Request::parse_header() {
-    std::cerr << "parse_header():\n";
     char c;
-    // for (ByteBuffer::iterator it = _buf.begin() + _buf_pos; it != _buf.end(); _buf_pos++,
-    // it++) {
     for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
         c = _buf[i];
         switch (_state_header) {
             case H_START:
                 switch (c) {
-                    case ' ':
-                    case ':':
-                        return 481;
                     case '\r':
-                        _state_header = H_ALMOST_DONE;
+                        _state_header = H_ALMOST_DONE_REQUEST;
                         break;
                     case '\n':
-                        _state_header = H_DONE;
+                        _state_header = H_DONE_REQUEST;
                         break;
                     default:
                         if (!IS_TOKEN_CHAR(c))
@@ -379,101 +393,89 @@ int Request::parse_header() {
                 }
                 break;
             case H_KEY:
-                if (IS_TOKEN_CHAR(c))
-                    break;
-                _header_key_end = _buf_pos;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE;
+                        _state_header = H_ALMOST_DONE_LINE;
                         break;
                     case '\n':
-                        _state_header = H_DONE;
+                        _state_header = H_DONE_LINE;
                         break;
-                    case ' ':
                     case ':':
                         _state_header = H_AFTER_KEY;
+                        _header_key_end = _buf_pos;
                         break;
                     default:
-                        return 482;
+                        if (!IS_TOKEN_CHAR(c))
+                            return 482;
+                        break;
                 }
                 break;
             case H_AFTER_KEY:
-                if (c == ' ' || c == ':')
-                    break;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE;
+                        _state_header = H_ALMOST_DONE_LINE;
                         break;
                     case '\n':
-                        _state_header = H_DONE;
+                        _state_header = H_DONE_LINE;
+                        break;
+                    case '\t':
+                    case ' ':
                         break;
                     default:
-                        _header_value_start = _buf_pos;
+                        if (!IS_TEXT_CHAR(c))
+                            return 483;
                         _state_header = H_VALUE;
+                        _header_value_start = _buf_pos;
                         break;
                 }
                 break;
             case H_VALUE:
-                if (IS_TEXT_CHAR(c))
-                    break;
-                _header_value_end = _buf_pos;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE;
+                        _state_header = H_ALMOST_DONE_LINE;
+                        _header_value_end = _buf_pos;
                         break;
                     case '\n':
-                        _state_header = H_DONE;
+                        _state_header = H_DONE_LINE;
+                        _header_value_end = _buf_pos;
                         break;
                     default:
-                        return 483;
+                        if (!IS_TEXT_CHAR(c))
+                            return 484;
+                        break;
                 }
                 break;
-            case H_AFTER_VALUE:
+            case H_ALMOST_DONE_LINE:
+                if (c != '\n')
+                    return 485;
+                _state_header = H_DONE_LINE;
                 break;
-            case H_ALMOST_DONE:
-                if (c == '\n')
-                    _state_header = H_DONE;
-                else
-                    return 480;
-                break;
-            case H_DONE:
-                print_header_pair(_buf, _header_key_start, _header_key_end, _header_value_start,
-                                  _header_value_end);
-                {
-                    std::string key(_buf.begin() + _header_key_start,
-                                    _buf.begin() + _header_key_end);
-                    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-                    for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
-                        if (key == headers[i].first) {
-                            std::string value(_buf.begin() + _header_value_start,
-                                              _buf.begin() + _header_value_end);
-                            std::pair<std::map<std::string, std::string>::iterator, bool> ret;
-                            ret = m_header.insert(std::make_pair(key, value));
-                            if (ret.second == false) {
-                                if (headers[i].second == false)
-                                    return 489;
-                                else {
-                                    (*ret.first).second += ", ";
-                                    (*ret.first).second += value;
-                                }
-                            }
-                            std::cout << "Map Key: \'" << (*ret.first).first << "\'\nMap Value: \'"
-                                      << (*ret.first).second << "\'\n\n";
-                            break;
-                        }
-                    }
+            case H_DONE_LINE:
+                _add_header();
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE_REQUEST;
+                        break;
+                    case '\n':
+                        _state_header = H_DONE_REQUEST;
+                        break;
+                    default:
+                        if (!IS_TOKEN_CHAR(c))
+                            return 486;
+                        _state_header = H_KEY;
+                        _header_key_start = _buf_pos;
+                        break;
                 }
-                _header_key_start = _header_key_end = _buf_pos;
-                _header_value_start = _header_value_end = 0;
-                if (c == '\n')
-                    _state_header = H_REQUEST_DONE;
-                else
-                    _state_header = H_START;
                 break;
-            case H_REQUEST_DONE:
+            case H_ALMOST_DONE_REQUEST:
+                if (c != '\n')
+                    return 487;
+                _state_header = H_DONE_REQUEST;
+                break;
+            case H_DONE_REQUEST:
                 break;
         }
-        if (_state_header == H_REQUEST_DONE) {
+        if (_state_header == H_DONE_REQUEST) {
             _buf_pos++;
             _header_end = _buf_pos;
             return 0;
@@ -482,60 +484,210 @@ int Request::parse_header() {
     return 1;
 }
 
+// int Request::parse_header() {
+//     char c;
+//     for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
+//         c = _buf[i];
+//         switch (_state_header) {
+//             case H_START:
+//                 switch (c) {
+//                     case '\r':
+//                         _state_header = H_ALMOST_DONE_REQUEST;
+//                         break;
+//                     case '\n':
+//                         _state_header = H_DONE_REQUEST;
+//                         break;
+//                     case ' ':
+//                     case ':':
+//                         return 481;
+//                     default:
+//                         if (!IS_TOKEN_CHAR(c))
+//                             return 481;
+//                         break;
+//                 }
+//                 _state_header = H_KEY;
+//                 _header_key_start = _buf_pos;
+//                 break;
+//             case H_KEY:
+//                 if (IS_TOKEN_CHAR(c))
+//                     break;
+//                 _header_key_end = _buf_pos;
+//                 switch (c) {
+//                     case '\r':
+//                         _state_header = H_ALMOST_DONE_LINE;
+//                         break;
+//                     case '\n':
+//                         // _add_header();
+//                         _state_header = H_START;
+//                         break;
+//                     case ' ':
+//                     case ':':
+//                         _state_header = H_AFTER_KEY;
+//                         break;
+//                     default:
+//                         return 482;
+//                 }
+//                 break;
+//             case H_AFTER_KEY:
+//                 if (c == ' ' || c == ':')
+//                     break;
+//                 _header_value_start = _buf_pos;
+//                 _state_header = H_VALUE;
+//                 // break;
+//             case H_VALUE:
+//                 if (IS_TEXT_CHAR(c))
+//                     break;
+//                 _header_value_end = _buf_pos;
+//                 switch (c) {
+//                     case '\r':
+//                         _state_header = H_ALMOST_DONE_LINE;
+//                         break;
+//                     case '\n':
+//                         _add_header();
+//                         _state_header = H_START;
+//                         // _state_header = H_DONE_LINE;
+//                         break;
+//                     default:
+//                         return 483;
+//                 }
+//                 break;
+//             case H_ALMOST_DONE_LINE:
+//                 if (c == '\n') {
+//                     // _state_header = H_DONE_LINE;
+//                     _add_header();
+//                     _state_header = H_START;
+//                 } else
+//                     return 480;
+//                 break;
+//             // case H_DONE_LINE:
+//             //     {
+//             //         _add_header();
+//             //     }
+//             //     _header_key_start = _header_key_end = _buf_pos;
+//             //     _header_value_start = _header_value_end = 0;
+//             //     if (c == '\n')
+//             //         _state_header = H_DONE_REQUEST;
+//             //     else
+//             //         _state_header = H_START;
+//             //     break;
+//             case H_ALMOST_DONE_REQUEST:
+//                 if (c == '\n')
+//                     _state_header = H_DONE_REQUEST;
+//                 else
+//                     return 480;
+//                 break;
+//             case H_DONE_REQUEST:
+//                 break;
+//         }
+//         if (_state_header == H_DONE_REQUEST) {
+//             _buf_pos++;
+//             _header_end = _buf_pos;
+//             return 0;
+//         }
+//     }
+//     return 1;
+// }
+
 void Request::print() {
-    std::cout << "REQUEST: \n\'";
-    for (size_t i = 0; i < _request_end; i++) {
-        std::cout << _buf[i];
-    }
-    std::cout << "\'\n\n";
-
-    std::cout << "REQUEST-LINE: \n\'";
-    for (size_t i = _method_start; i < _version_end; i++) {
-        std::cout << _buf[i];
-    }
-    std::cout << "\'\n\n";
-
-    std::cout << "METHOD: \n\'";
+    std::cout << "\nREQUEST LINE: \n";
+    std::cout << "\'" << log::COLOR_RE;
     for (size_t i = _method_start; i < _method_end; i++) {
         std::cout << _buf[i];
     }
-    std::cout << "\'\n\n";
-
-    std::cout << "URI: \n\'";
-    for (size_t i = _uri_start; i < _uri_end; i++) {
-        std::cout << _buf[i];
-    }
-    std::cout << "\'\n\n";
-
-    std::cout << "PATH: \n\'";
+    std::cout << log::COLOR_NO << "\' ";
+    std::cout << "\'" << log::COLOR_CY;
     for (size_t i = _uri_path_start; i < _uri_path_end; i++) {
         std::cout << _buf[i];
     }
-    std::cout << "\'\n\n";
-
-    std::cout << "QUERY: \n\'";
+    std::cout << log::COLOR_NO << "\' ";
+    std::cout << "\'" << log::COLOR_GR;
     for (size_t i = _uri_query_start; i < _uri_query_end; i++) {
         std::cout << _buf[i];
     }
-    std::cout << "\'\n\n";
-
-    std::cout << "FRAGMENT: \n\'";
+    std::cout << log::COLOR_NO << "\' ";
+    std::cout << "\'" << log::COLOR_YE;
     for (size_t i = _uri_fragment_start; i < _uri_fragment_end; i++) {
         std::cout << _buf[i];
     }
-    std::cout << "\'\n\n";
-
-    std::cout << "VERSION: \n\'";
+    std::cout << log::COLOR_NO << "\' ";
+    std::cout << "\'" << log::COLOR_BL;
     for (size_t i = _version_start; i < _version_end; i++) {
         std::cout << _buf[i];
     }
-    std::cout << "\'\n\n";
+    std::cout << log::COLOR_NO << "\'";
+    std::cout << "\n\n";
 
-    std::cout << "HEADER: \n\'";
-    for (size_t i = _header_start; i < _header_end; i++) {
-        std::cout << _buf[i];
+    if (!m_header.empty()) {
+        std::cout << "HEADER [" << m_header.size() << "]:\n";
+        for (std::map<std::string, std::string>::iterator it = m_header.begin();
+             it != m_header.end(); it++) {
+            std::cout << "\'" << log::COLOR_GR;
+            std::cout << (*it).first;
+            std::cout << log::COLOR_NO << "\'";
+            std::cout << " = ";
+            std::cout << "\'" << log::COLOR_BL;
+            std::cout << (*it).second;
+            std::cout << log::COLOR_NO << "\'";
+            std::cout << "\n";
+        }
     }
-    std::cout << "\'\n\n";
+    std::cout << "\n";
 }
+
+// void Request::print() {
+//     std::cout << "REQUEST: \n\'";
+//     for (size_t i = 0; i < _request_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "REQUEST-LINE: \n\'";
+//     for (size_t i = _method_start; i < _version_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "METHOD: \n\'";
+//     for (size_t i = _method_start; i < _method_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "URI: \n\'";
+//     for (size_t i = _uri_start; i < _uri_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "PATH: \n\'";
+//     for (size_t i = _uri_path_start; i < _uri_path_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "QUERY: \n\'";
+//     for (size_t i = _uri_query_start; i < _uri_query_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "FRAGMENT: \n\'";
+//     for (size_t i = _uri_fragment_start; i < _uri_fragment_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "VERSION: \n\'";
+//     for (size_t i = _version_start; i < _version_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+
+//     std::cout << "HEADER: \n\'";
+//     for (size_t i = _header_start; i < _header_end; i++) {
+//         std::cout << _buf[i];
+//     }
+//     std::cout << "\'\n\n";
+// }
 
 }  // namespace core

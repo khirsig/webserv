@@ -51,8 +51,31 @@ URI=$'/:@-._~!$&\'()*+,=?/?:@-._~!$\'()*+,;=/?:@-._~!$\'()*+,;==#/?:@-._~!$&\'()
 printf "\r\nGET %s HTTP/1.1\n" "$URI" | nc localhost 80
 
 
+```
 GET / HTTP/1.1
 Host: localhost:900
 Connection::: ::: close
 abc:: test
 abc: test
+```
+
+```
+GET /1/../ HTTP/1.1
+Host: localhost:900
+Connection: keep-alive
+Content-Length: 1
+
+aGET /1/ HTTP/1.1
+Host: localhost:900
+Connection: keep-alive
+Content-Length: 0
+```
+
+
+```
+GET / HTTP/1.1
+Host: d
+Connection: hallokeep-alivehalloclosehallokeep-alivehallo
+Content-Length: 0
+```
+
