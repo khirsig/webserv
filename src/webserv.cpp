@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/04 12:25:11 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/04 15:33:33 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,17 +36,21 @@ void recv_msg(int fd, const core::Connections& con) {
 int main(int argc, char* argv[]) {
     std::string file_path;
     if (argc == 1)
-        file_path = "/goinfre/khirsig/10GB.bin";
+        file_path = "./test.txt";
     else if (argc == 2)
         file_path = argv[1];
     else
         return 1;
+    try {
+        file::Handler file_handler(file_path);
+        std::cout << file_handler.max_size() << "\n";
 
-    file::Handler file_handler(file_path);
+    } catch (const int i) {
+        std::cerr << i << '\n';
+    }
 
-    std::cout << file_handler.max_size() << "\n";
-    while (file_handler.left_size() > 0)
-        file_handler.read_buffer(1024);
+    // while (file_handler.left_size() > 0)
+    //     file_handler.read_buffer(1024);
 
     //     config::Parser              parser;
     //     std::vector<config::Server> v_server;

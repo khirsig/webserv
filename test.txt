@@ -1,19 +1,49 @@
+gold_rare   10
+gold_common 40
+silver_rare 100
 
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-hahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahahahahahahahahaahahhaahhahahahaha
-Ende
+gold_rare 81 - 94
+
+--------------------------------------------
+max_rating = 94;
+min_rating = 81;
+probabilitySum = 0;
+
+foreach (Card card in cards)
+{
+	tempRating = card.rating;
+	card.probabilty = CalculateProbabilty(card.rating);
+	probabilitySum += card.probabilty;
+}
+foreach (Card card in cards)
+{
+	card.probabilty /= probabilitySum;
+}
+sum = 0;
+foreach (Card card in cards)
+{
+	sum += card.probability;
+	card.x = sum;
+}
+
+rnd = Random.Range(0.0f, 1.0f);
+
+foreach (Card card in cards)
+{
+	if (rnd < card.x)
+		return card.x;
+}
+
+
+80 85 85 85
+
+20 2 2 2
+
+probabilitySum = 26
+
+0.6 0.07 0.07 0.07
+
+0.77 0.85 0.93 1.00
+---------------------------------------------
+
+
