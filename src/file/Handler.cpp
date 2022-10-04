@@ -6,10 +6,60 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:31 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/20 14:34:02 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/04 12:19:50 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Handler.hpp"
 
-namespace file {}
+namespace file {
+
+Handler::Handler(const std::string &path) {
+    _path = path;
+    _file.open(_path);
+    if (!_file.is_open()) {
+        throw std::runtime_error("File Handler: Could not open file");
+    }
+    _file.seekg(0, _file.end);
+    _max_size = _file.tellg();
+    _file.seekg(0, _file.beg);
+    _read_size = 0;
+}
+
+Handler::~Handler() {
+    if (_file.is_open()) {
+        _file.close();
+    }
+}
+
+void Handler::read_buffer(const std::size_t buffer_size) {
+    if (_file) {
+        char *buffer = new char[buffer_size];
+
+        _file.read(buffer, buffer_size);
+        _read_size += _file.gcount();
+
+        // std::cout << "max_size: " << max_size() << "\n";
+        // std::cout << "read_size: " << read_size() << "\n";
+        // std::cout << "left_size: " << left_size() << "\n";
+        // std::cout << "\nBuffer: \n\"";
+        // for (std::int64_t i = 0; i < _file.gcount(); ++i)
+        //     std::cout << buffer[i];
+        // std::cout << "\"\n";
+        delete[] buffer;
+    }
+}
+
+void Handler::delete_file() {
+    if (!_file) {
+        remove(_path.c_str());
+    }
+}
+
+std::size_t Handler::max_size() const { return _max_size; }
+
+std::size_t Handler::read_size() const { return _read_size; }
+
+std::size_t Handler::left_size() const { return _max_size - _read_size; }
+
+}  // namespace file

@@ -15,20 +15,10 @@ LDLIBS      :=
 
 VPATH       :=	src/							\
 				src/config/						\
-				src/core/
+				src/core/						\
+				src/file/
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
-
-# SRCS        := webserv.cpp					\
-# 			   Interpreter.cpp					\
-# 			   Location.cpp						\
-# 			   Parser.cpp						\
-# 			   Server.cpp						\
-# 			   Token.cpp						\
-# 			   Tokenizer.cpp					\
-# 			   Connections.cpp					\
-# 			   EventNotificationInterface.cpp	\
-# 			   Socket.cpp
 
 BUILDDIR    := build
 
