@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:31 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/04 15:17:08 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/05 09:26:19 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,10 @@ Handler::Handler(const std::string &path) {
     _path = path;
     _file.open(_path);
     if (!_file.is_open()) {
-        throw 1;
+        if (errno == 13)
+            throw 403;
+        else
+            throw 404;
     }
     _file.seekg(0, _file.end);
     _max_size = _file.tellg();
