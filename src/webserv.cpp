@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/26 16:00:19 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/05 17:24:46 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
          it_server != v_server.end(); ++it_server) {
         for (std::vector<config::Listen>::iterator it_listen = it_server->v_listen.begin();
              it_listen != it_server->v_listen.end(); ++it_listen) {
+            // v_socket.insert(
+            //     std::make_pair(it_listen->port, core::Socket(it_listen->addr, it_listen->port)));
             v_socket.push_back(core::Socket(it_listen->addr, it_listen->port));
         }
     }
@@ -63,7 +65,7 @@ int main(int argc, char* argv[]) {
         eni.add_event(it->fd, EVFILT_READ, 0);
     }
 
-    core::Connections connections(1);
+    core::Connections connections(1024);
     while (42) {
         int num_events = eni.poll_events();
         if (num_events == -1) {
@@ -80,15 +82,18 @@ int main(int argc, char* argv[]) {
                 connections.accept_connection(eni.events[i].ident, eni);
             } else if (eni.events[i].filter == EVFILT_TIMER) {
                 if (eni.events[i].filter == EVFILT_READ)
-                    connections.receive(eni.events[i].ident);
+                    connections.receive(eni.events[i].ident, eni);
                 connections.timeout_connection(eni.events[i].ident, eni);
             } else if (eni.events[i].flags & EV_EOF) {
                 if (eni.events[i].filter == EVFILT_READ)
-                    connections.receive(eni.events[i].ident);
+                    connections.receive(eni.events[i].ident, eni);
                 connections.close_connection(eni.events[i].ident, eni);
+            } else if (eni.events[i].filter == EVFILT_WRITE) {
+                // write(eni.events[i].ident, "RESPONSE WRITE\n", 15);
+                // eni.delete_event(eni.events[i].ident, EVFILT_WRITE);
+                // eni.add_event(eni.events[i].ident, EVFILT_READ, 0);
             } else if (eni.events[i].filter == EVFILT_READ) {
-                connections.receive(eni.events[i].ident);
-                eni.add_event(eni.events[i].ident, EVFILT_TIMER, CONNECTION_TIMEOUT);
+                connections.receive(eni.events[i].ident, eni);
             }
         }
     }

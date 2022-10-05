@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:58:19 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/21 14:51:53 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/05 16:54:52 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,20 @@
 
 namespace core {
 
+ByteBuffer::ByteBuffer(std::size_t size) : vector(), pos(0) { reserve(size); }
+
+ByteBuffer::ByteBuffer(const ByteBuffer &other) : vector(other), pos(other.pos) {}
+
+ByteBuffer::~ByteBuffer() {}
+
 void ByteBuffer::append(const char *str, std::size_t n) {
     if (str == NULL)
         return;
-    reserve(size() + n);
-    for (std::size_t i = 0; i < n; ++i) {
-        push_back(str[i]);
+    if (n + size() > capacity()) {
+        erase(begin(), begin() + pos);
+        pos = 0;
     }
+    insert(end(), str, str + n);
 }
 
 bool ByteBuffer::equal(ByteBuffer::iterator pos, const char *str, std::size_t n) {

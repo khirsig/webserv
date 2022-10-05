@@ -59,11 +59,14 @@ IS_HOST_CHAR
 
 ###### TO DO
 
+# Request
+* reset after body is fully read to get new request
+
 # Request line
-* http://
+* path with http://
 
 # HEADER
-* start header line with space/tab
+* header line start with space/tab
 
 # Error Handling
 
@@ -71,24 +74,7 @@ IS_HOST_CHAR
 
 # Analyse Request
 * Check for 1 host
-* Check Path for ../
 * Content-Length
 * Set Connection bool
 
-
-
-
-
-REQUEST-LINE:
-'GET' '/1/../?42#test' 'HTTP/1.1'
-
-HEADER:
-'KEY' = 'VALUE'
-
-ANALYZED:
-'Host' = ''
-'keep-alive' = 'false'
-
-
-
-
+* Check Path for ../

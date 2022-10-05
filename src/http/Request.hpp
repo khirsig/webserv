@@ -17,23 +17,31 @@
 //     std::make_pair("PUT", NOT_IMPLEMENTED),     std::make_pair("DELETE", IMPLEMENTED),
 //     std::make_pair("TRACE", NOT_IMPLEMENTED),   std::make_pair("CONNECT", NOT_IMPLEMENTED)};
 
-namespace core {
+namespace http {
 
 enum method { NONE, GET, HEAD, POST, DELETE };
-enum state { REQUEST_LINE, HEADER, BODY, END };
+enum state { REQUEST_LINE, REQUEST_HEADER, REQUEST_BODY, REQUEST_DONE, REQUEST_ERROR };
 
 enum state_request_line {
     START,
     METHOD,
     AFTER_METHOD,
+    URI_HT,
+    URI_HTT,
+    URI_HTTP,
+    URI_HTTP_COLON,
+    URI_HTTP_COLON_SLASH,
+    URI_HTTP_COLON_SLASH_SLASH,
+    URI_HTTP_COLON_SLASH_SLASH_HOST,
+    URI_HOST_ENCODE_1,
+    URI_HOST_ENCODE_2,
+    URI_HOST_PORT,
     URI_SLASH,
     URI_ENCODE_1,
     URI_ENCODE_2,
     URI_QUERY,
     URI_FRAGMENT,
-    URI_HTTP,
     AFTER_URI,
-    VERSION_H,
     VERSION_HT,
     VERSION_HTT,
     VERSION_HTTP,
@@ -47,20 +55,20 @@ enum state_request_line {
 };
 
 enum state_header {
-    H_START,
+    H_KEY_START,
     H_KEY,
-    H_AFTER_KEY,
+    H_VALUE_START,
     H_VALUE,
-    H_ALMOST_DONE_LINE,
-    H_DONE_LINE,
-    H_ALMOST_DONE_REQUEST,
-    H_DONE_REQUEST
+    H_ALMOST_DONE_HEADER_LINE,
+    H_ALMOST_DONE_HEADER
 };
 
+enum CONNECTION_STATE { CONNECTION_CLOSE, CONNECTION_KEEP_ALIVE };
+
 class Request {
-   private:
-    ByteBuffer  _buf;
-    std::size_t _buf_pos;
+   public:
+    core::ByteBuffer& _buf;
+
     std::size_t _request_end;
     std::size_t _method_start;
     std::size_t _method_end;
@@ -70,6 +78,10 @@ class Request {
 
     std::size_t _uri_start;
     std::size_t _uri_end;
+    std::size_t _uri_host_start;
+    std::size_t _uri_host_end;
+    std::size_t _uri_port_start;
+    std::size_t _uri_port_end;
     std::size_t _uri_path_start;
     std::size_t _uri_path_end;
     std::size_t _uri_query_start;
@@ -85,28 +97,35 @@ class Request {
     std::size_t _header_value_start;
     std::size_t _header_value_end;
 
+    std::size_t _body_expected_size;
+
+    CONNECTION_STATE connection_state;
+
     state              _state;
     state_request_line _state_request_line;
     state_header       _state_header;
 
-    std::map<std::string, std::string> m_header;
+    std::map<std::string, std::string> _m_header;
 
     int _add_header();
+    int _parse_method();
+    int _analyze_request();
 
    public:
     int status_code;
 
-    Request();
+    Request(core::ByteBuffer& buf);
     ~Request();
 
-    int parse_input(const char* input, std::size_t len);
+    int parse_input();
     int parse_request_line();
     int parse_header();
 
     void print();
+    bool done();
 };
 
-}  // namespace core
+}  // namespace http
 
 // REQUEST LINE Parsing
 // -

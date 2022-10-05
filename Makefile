@@ -5,7 +5,7 @@
 NAME        :=	webserv
 
 CXX         :=	c++
-CXXFLAGS    :=	-Wall -Wextra -Werror -std=c++98
+CXXFLAGS    :=	-Wall -Wextra  -std=c++98 -fsanitize=address -fsanitize=undefined #-Werror
 
 CPPFLAGS    :=
 DEPFLAGS     =	-MT $@ -MMD -MP -MF $(DDIR)/$*.d

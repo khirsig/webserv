@@ -6,7 +6,7 @@
 
 #include "../log/Log.hpp"
 
-namespace core {
+namespace http {
 
 #define MAX_BUFFER_SIZE 8192
 
@@ -19,15 +19,23 @@ namespace core {
 #define IS_TEXT_CHAR(c) (isprint(c) || c == '\t')
 #define IS_TOKEN_CHAR(c) (isprint(c) && !IS_SEPERATOR_CHAR(c))
 
+#define IS_URI_SUBDELIM(c)                                                                \
+    (c == '!' || c == '$' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '*' || \
+     c == '+' || c == ',' || c == ';' || c == '=')
+#define IS_UNRESERVED_URI_CHAR(c) (isalnum(c) || c == '-' || c == '.' || c == '_' || c == '~')
+#define IS_HOST_CHAR(c) (IS_UNRESERVED_URI_CHAR(c) || IS_URI_SUBDELIM(c))
+
 // #define IS_HEADER_KEY_CHAR(c) (IS_TOKEN_CHAR(c))
 // #define IS_HEADER_VALUE_CHAR(c) (IS_TEXT_CHAR(c))
 
-static const std::pair<std::string, bool> headers[] = {std::make_pair("host", false),
-                                                       std::make_pair("connection", true),
-                                                       std::make_pair("content-length", true)};
+static const std::pair<std::string, bool> headers[] = {
+    std::make_pair("host", false),
+    //    std::make_pair("connection", true),
+    //    std::make_pair("content-length", true)
+};
 
-Request::Request()
-    : _buf_pos(0),
+Request::Request(core::ByteBuffer& buf)
+    : _buf(buf),
       _request_end(0),
       _method_start(0),
       _method_end(0),
@@ -36,6 +44,10 @@ Request::Request()
       _version_end(0),
       _uri_start(0),
       _uri_end(0),
+      _uri_host_start(0),
+      _uri_host_end(0),
+      _uri_port_start(0),
+      _uri_port_end(0),
       _uri_path_start(0),
       _uri_path_end(0),
       _uri_query_start(0),
@@ -48,213 +60,335 @@ Request::Request()
       _header_key_end(0),
       _header_value_start(0),
       _header_value_end(0),
+      _body_expected_size(0),
+      connection_state(CONNECTION_KEEP_ALIVE),
       _state(REQUEST_LINE),
       _state_request_line(START),
-      _state_header(H_START) {
+      _state_header(H_KEY_START) {
     _buf.reserve(8192);
 }
 
 Request::~Request() {}
 
-int Request::parse_input(const char* input, std::size_t len) {
-    _buf.append(input, len);
+int Request::parse_input() {
     if (_state == REQUEST_LINE) {
-        int status = parse_request_line();
-        if (status == 0) {
-            _state = HEADER;
-        } else if (status > 99) {
-            std::cerr << "Error: " << status << '\n';
-            return -1;
+        status_code = parse_request_line();
+        if (status_code == 0) {
+            _state = REQUEST_HEADER;
+        } else if (status_code > 99) {
+            std::cerr << "Error: " << status_code << '\n';
+            _state = REQUEST_ERROR;
+            return status_code;
         }
     }
-    if (_state == HEADER) {
-        int status = parse_header();
-        std::cout << "status: " << status << "\n";
-        if (status == 0) {
-            _state = END;
-        } else if (status > 99) {
-            std::cerr << "Error: " << status << '\n';
-            return -1;
+    if (_state == REQUEST_HEADER) {
+        status_code = parse_header();
+        if (status_code == 0) {
+            status_code = _analyze_request();
+            if (status_code != 0)
+                return status_code;
+            _state = REQUEST_BODY;
+        } else if (status_code > 99) {
+            std::cerr << "Error: " << status_code << '\n';
+            _state = REQUEST_ERROR;
+            return status_code;
         }
     }
-    if (_state == END)
+    if (_state == REQUEST_BODY) {
         print();
+        if (_body_expected_size <= _buf.size() - _buf.pos)
+            _state = REQUEST_DONE;
+    }
+    return 0;
+}
+
+inline int Request::_parse_method() {
+    switch (_method_end - _method_start) {
+        case 3:
+            if (_buf.equal(_buf.begin() + _method_start, "GET", 3)) {
+                _method = GET;
+                break;
+            }
+            if (_buf.equal(_buf.begin() + _method_start, "PUT", 3)) {
+                return 501;
+            }
+            return 401;
+        case 4:
+            if (_buf.equal(_buf.begin() + _method_start, "HEAD", 4)) {
+                _method = HEAD;
+                break;
+            }
+            if (_buf.equal(_buf.begin() + _method_start, "POST", 4)) {
+                _method = POST;
+                break;
+            }
+            return 402;
+        case 5:
+            if (_buf.equal(_buf.begin() + _method_start, "TRACE", 5)) {
+                return 501;
+            }
+            return 403;
+        case 6:
+            if (_buf.equal(_buf.begin() + _method_start, "DELETE", 6)) {
+                _method = DELETE;
+                break;
+            }
+            return 404;
+        case 7:
+            if (_buf.equal(_buf.begin() + _method_start, "CONNECT", 7)) {
+                return 501;
+            }
+            if (_buf.equal(_buf.begin() + _method_start, "OPTIONS", 7)) {
+                return 501;
+            }
+            return 405;
+    }
+    return 0;
+}
+
+int Request::_analyze_request() {
+    if (_m_header.find("host") == _m_header.end())
+        return 400;
+    std::map<std::string, std::string>::iterator it = _m_header.find("content-length");
+    if (it != _m_header.end()) {
+        _body_expected_size = atoi(it->second.c_str());  // error handling?
+    }
+    it = _m_header.find("connection");
+    if (it != _m_header.end()) {
+        if (it->second == "close")
+            connection_state = CONNECTION_CLOSE;
+    }
     return 0;
 }
 
 int Request::parse_request_line() {
     char c;
-    // for (ByteBuffer::iterator it = _buf.begin() + _buf_pos; it != _buf.end(){
-    for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
+    int  error;
+    for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
         c = _buf[i];
         switch (_state_request_line) {
             case START:
-                _method_start = _buf_pos;
-                if (c == '\r' || c == '\n')
-                    break;
-                _state_request_line = METHOD;
-                // break;
+                switch (c) {
+                    case '\r':
+                        break;
+                    case '\n':
+                        break;
+                    default:
+                        if (!IS_METHOD_CHAR(c))
+                            return 490;
+                        _method_start = _buf.pos;
+                        _state_request_line = METHOD;
+                        break;
+                }
+                break;
             case METHOD:
                 if (IS_METHOD_CHAR(c))
                     break;
                 if (c != ' ')
                     return 490;
-                _method_end = _buf_pos;
-                switch (_method_end - _method_start) {
-                    case 3:
-                        if (_buf.equal(_buf.begin() + _method_start, "GET", 3)) {
-                            _method = GET;
-                            break;
-                        }
-                        if (_buf.equal(_buf.begin() + _method_start, "PUT", 3)) {
-                            return 501;
-                        }
-                        return 491;
-                    case 4:
-                        if (_buf.equal(_buf.begin() + _method_start, "HEAD", 4)) {
-                            _method = HEAD;
-                            break;
-                        }
-                        if (_buf.equal(_buf.begin() + _method_start, "POST", 4)) {
-                            _method = POST;
-                            break;
-                        }
-                        return 491;
-                    case 5:
-                        if (_buf.equal(_buf.begin() + _method_start, "TRACE", 5)) {
-                            return 501;
-                        }
-                        return 491;
-                    case 6:
-                        if (_buf.equal(_buf.begin() + _method_start, "DELETE", 6)) {
-                            _method = DELETE;
-                            break;
-                        }
-                        return 491;
-                    case 7:
-                        if (_buf.equal(_buf.begin() + _method_start, "CONNECT", 7)) {
-                            return 501;
-                        }
-                        if (_buf.equal(_buf.begin() + _method_start, "OPTIONS", 7)) {
-                            return 501;
-                        }
-                        return 491;
-                    default:
-                        return 492;
-                }
+                _method_end = _buf.pos;
                 _state_request_line = AFTER_METHOD;
+                error = _parse_method();
+                if (error > 0)
+                    return error;
                 break;
             case AFTER_METHOD:
-                if (c == ' ')
-                    break;
-                _uri_start = _buf_pos;
                 switch (c) {
+                    case ' ':
+                        break;
                     case '/':
-                        _uri_path_start = _buf_pos;
+                        _uri_start = _uri_path_start = _buf.pos;
                         _state_request_line = URI_SLASH;
                         break;
                     case 'h':
-                        // _state_request_line = URI_HTTP;
-                        // break;
-                        return 1200;
+                        _uri_start = _buf.pos;
+                        _state_request_line = URI_HT;
+                        break;
                     default:
                         return 493;
+                }
+                break;
+            case URI_HT:
+                switch (c) {
+                    case 't':
+                        _state_request_line = URI_HTT;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case URI_HTT:
+                switch (c) {
+                    case 't':
+                        _state_request_line = URI_HTTP;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case URI_HTTP:
+                switch (c) {
+                    case 'p':
+                        _state_request_line = URI_HTTP_COLON;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case URI_HTTP_COLON:
+                switch (c) {
+                    case ':':
+                        _state_request_line = URI_HTTP_COLON_SLASH;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case URI_HTTP_COLON_SLASH:
+                switch (c) {
+                    case '/':
+                        _state_request_line = URI_HTTP_COLON_SLASH_SLASH;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case URI_HTTP_COLON_SLASH_SLASH:
+                switch (c) {
+                    case '/':
+                        _state_request_line = URI_HTTP_COLON_SLASH_SLASH_HOST;
+                        _uri_host_start = _uri_host_end = _buf.pos + 1;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case URI_HTTP_COLON_SLASH_SLASH_HOST:
+                _uri_host_end = _buf.pos;
+                switch (c) {
+                    case ' ':
+                        _state_request_line = AFTER_URI;
+                        break;
+                    case '%':
+                        _state_request_line = URI_HOST_ENCODE_1;
+                        break;
+                    case '/':
+                        _uri_path_start = _uri_path_end = _buf.pos;
+                        _state_request_line = URI_SLASH;
+                        break;
+                    case ':':
+                        _uri_port_start = _uri_port_end = _buf.pos + 1;
+                        _state_request_line = URI_HOST_PORT;
+                        break;
+                    default:
+                        if (!IS_HOST_CHAR(c))
+                            return 400;
+                        break;
+                }
+                break;
+            case URI_HOST_ENCODE_1:
+                if (!isxdigit(c))
+                    return 400;
+                _state_request_line = URI_HOST_ENCODE_2;
+                break;
+            case URI_HOST_ENCODE_2:
+                if (!isxdigit(c))
+                    return 400;
+                _state_request_line = URI_HTTP_COLON_SLASH_SLASH_HOST;
+                break;
+            case URI_HOST_PORT:
+                _uri_port_end = _buf.pos;
+                switch (c) {
+                    case ' ':
+                        _state_request_line = AFTER_URI;
+                        break;
+                    case '/':
+                        _uri_path_start = _uri_path_end = _buf.pos;
+                        _state_request_line = URI_SLASH;
+                        break;
+                    default:
+                        if (!isdigit(c))
+                            return 400;
+                        break;
                 }
                 break;
             case URI_SLASH:
                 switch (c) {
                     case ' ':
-                        _uri_end = _buf_pos;
-                        _uri_path_end = _buf_pos;
+                        _uri_end = _buf.pos;
+                        _uri_path_end = _buf.pos;
                         _state_request_line = AFTER_URI;
                         break;
-                    case '\r':
-                        return 400;
-                    case '\n':
-                        return 400;
-                    // case '.':
-                    //     _uri_complex = true;
-                    //     break;
                     case '%':
                         _state_request_line = URI_ENCODE_1;
                         break;
                     case '?':
-                        _uri_path_end = _buf_pos;
-                        _uri_query_start = _buf_pos + 1;
+                        _uri_path_end = _buf.pos;
+                        _uri_query_start = _buf.pos + 1;
                         _state_request_line = URI_QUERY;
                         break;
                     case '#':
-                        _uri_path_end = _buf_pos;
-                        _uri_fragment_start = _buf_pos + 1;
+                        _uri_path_end = _buf.pos;
+                        _uri_fragment_start = _buf.pos + 1;
                         _state_request_line = URI_FRAGMENT;
                         break;
                     default:
                         if (!isprint(c))
-                            return 400;
+                            return 494;
                         break;
                 }
                 break;
             case URI_ENCODE_1:
                 if (!isxdigit(c))
-                    return 400;
+                    return 495;
                 _state_request_line = URI_ENCODE_2;
                 break;
             case URI_ENCODE_2:
                 if (!isxdigit(c))
-                    return 400;
+                    return 496;
                 _state_request_line = URI_SLASH;
                 break;
             case URI_QUERY:
                 switch (c) {
                     case ' ':
-                        _uri_end = _buf_pos;
-                        _uri_query_end = _buf_pos;
+                        _uri_end = _buf.pos;
+                        _uri_query_end = _buf.pos;
                         _state_request_line = AFTER_URI;
                         break;
-                    case '\r':
-                        return 400;
-                    case '\n':
-                        return 400;
                     case '#':
-                        _uri_query_end = _buf_pos;
-                        _uri_fragment_start = _buf_pos + 1;
+                        _uri_query_end = _buf.pos;
+                        _uri_fragment_start = _buf.pos + 1;
                         _state_request_line = URI_FRAGMENT;
                     default:
                         if (!isprint(c))
-                            return 400;
+                            return 497;
                         break;
                 }
                 break;
             case URI_FRAGMENT:
                 switch (c) {
                     case ' ':
-                        _uri_end = _buf_pos;
-                        _uri_fragment_end = _buf_pos;
+                        _uri_end = _buf.pos;
+                        _uri_fragment_end = _buf.pos;
                         _state_request_line = AFTER_URI;
                         break;
-                    case '\r':
-                        return 400;
-                    case '\n':
-                        return 400;
                     default:
                         if (!isprint(c))
-                            return 400;
+                            return 498;
                         break;
                 }
                 break;
-            case URI_HTTP:
-                break;
             case AFTER_URI:
-                if (c == ' ')
-                    break;
-                _state_request_line = VERSION_H;
-                _version_start = _buf_pos;
-                //  break;
-            case VERSION_H:
-                if (c == 'H')
-                    _state_request_line = VERSION_HT;
-                else
-                    return 4951;
+                switch (c) {
+                    case ' ':
+                        break;
+                    case 'H':
+                        _state_request_line = VERSION_HT;
+                        _version_start = _buf.pos;
+                        break;
+                    default:
+                        return 499;
+                }
                 break;
             case VERSION_HT:
                 if (c == 'T')
@@ -281,39 +415,54 @@ int Request::parse_request_line() {
                     return 4955;
                 break;
             case VERSION_HTTP_SLASH_MAJOR:
-                if (c == '1')
-                    _state_request_line = VERSION_HTTP_SLASH_MAJOR_DOT;
-                else if (isdigit(c))
-                    return 501;
-                else
-                    return 4957;
+                switch (c) {
+                    case '1':
+                        _state_request_line = VERSION_HTTP_SLASH_MAJOR_DOT;
+                        break;
+                    default:
+                        if (isdigit(c))
+                            return 501;
+                        return 4957;
+                }
                 break;
             case VERSION_HTTP_SLASH_MAJOR_DOT:
-                if (c == '.')
-                    _state_request_line = VERSION_HTTP_SLASH_MAJOR_DOT_MINOR;
-                else if (isdigit(c))
-                    return 501;
-                else
-                    return 4958;
+                switch (c) {
+                    case '.':
+                        _state_request_line = VERSION_HTTP_SLASH_MAJOR_DOT_MINOR;
+                        break;
+                    default:
+                        if (isdigit(c))
+                            return 501;
+                        return 4958;
+                }
                 break;
             case VERSION_HTTP_SLASH_MAJOR_DOT_MINOR:
-                if (c == '1')
-                    _state_request_line = AFTER_VERSION;
-                else if (isdigit(c))
-                    return 501;
-                else
-                    return 4959;
-                _version_end = _buf_pos + 1;
+                switch (c) {
+                    case '1':
+                        _state_request_line = AFTER_VERSION;
+                        break;
+                    default:
+                        if (isdigit(c))
+                            return 501;
+                        return 4959;
+                }
+                _version_end = _buf.pos + 1;
                 break;
             case AFTER_VERSION:
-                if (c == ' ')
-                    break;
-                else if (c == '\r')
-                    _state_request_line = ALMOST_DONE;
-                else if (c == '\n')
-                    _state_request_line = DONE;
-                else
-                    return 496;
+                switch (c) {
+                    case ' ':
+                        break;
+                    case '\r':
+                        _state_request_line = ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_request_line = DONE;
+                        break;
+                    default:
+                        if (isdigit(c))
+                            return 501;
+                        return 496;
+                }
                 break;
             case ALMOST_DONE:
                 if (c == '\n')
@@ -325,16 +474,16 @@ int Request::parse_request_line() {
                 break;
         }
         if (_state_request_line == DONE) {
-            _buf_pos++;
-            _request_end = _header_start = _buf_pos;
+            _buf.pos++;
+            _request_end = _header_start = _buf.pos;
             return 0;
         }
     }
     return 1;
 }
 
-void print_header_pair(const ByteBuffer& buf, size_t key_start, size_t key_end, size_t value_start,
-                       size_t value_end) {
+void print_header_pair(const core::ByteBuffer& buf, size_t key_start, size_t key_end,
+                       size_t value_start, size_t value_end) {
     std::cout << "Key: \'";
     for (; key_start != key_end; key_start++) {
         std::cout << buf[key_start];
@@ -348,61 +497,66 @@ void print_header_pair(const ByteBuffer& buf, size_t key_start, size_t key_end, 
 }
 
 int Request::_add_header() {
-    if (_header_value_start == _header_value_end)
-        return 0;
+    // std::cout << "_header_key_start: " << _header_key_start << "\n";
+    // std::cout << "_header_key_end: " << _header_key_end << "\n";
     std::string key(_buf.begin() + _header_key_start, _buf.begin() + _header_key_end);
-    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-    for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
-        if (key == headers[i].first) {
-            std::string value(_buf.begin() + _header_value_start, _buf.begin() + _header_value_end);
-            std::pair<std::map<std::string, std::string>::iterator, bool> ret;
-            ret = m_header.insert(std::make_pair(key, value));
-            if (ret.second == false) {
-                if (headers[i].second == false)
-                    return 489;
-                else {
-                    (*ret.first).second += ", ";
-                    (*ret.first).second += value;
-                }
-            }
-            break;
+    std::transform(key.begin(), key.end(), key.begin(),
+                   ::tolower);  // c tolower ???
+    // std::cout << "_header_value_start: " << _header_value_start << "\n";
+    // std::cout << "_header_value_end: " << _header_value_end << "\n";
+    std::string value(_buf.begin() + _header_value_start, _buf.begin() + _header_value_end);
+    std::pair<std::map<std::string, std::string>::iterator, bool> ret;
+    ret = _m_header.insert(std::make_pair(key, value));
+    if (ret.second == false) {
+        for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
+            if (key == headers[i].first)
+                return 489;
         }
+        (*ret.first).second = value;
     }
+    _header_key_start = _header_key_end = 0;
+    _header_value_start = _header_value_end = 0;
+    // print();
     return 0;
 }
 
 int Request::parse_header() {
     char c;
-    for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
+    int  error;
+    for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
         c = _buf[i];
         switch (_state_header) {
-            case H_START:
+            case H_KEY_START:
+                _header_key_start = _header_key_end = _buf.pos;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE_REQUEST;
+                        _state_header = H_ALMOST_DONE_HEADER;
                         break;
                     case '\n':
-                        _state_header = H_DONE_REQUEST;
-                        break;
+                        _buf.pos++;
+                        _header_end = _buf.pos;
+                        return 0;
                     default:
                         if (!IS_TOKEN_CHAR(c))
                             return 481;
                         _state_header = H_KEY;
-                        _header_key_start = _buf_pos;
                         break;
                 }
                 break;
             case H_KEY:
+                _header_key_end = _buf.pos;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE_LINE;
+                        _state_header = H_ALMOST_DONE_HEADER_LINE;
                         break;
                     case '\n':
-                        _state_header = H_DONE_LINE;
+                        _state_header = H_KEY_START;
+                        error = _add_header();
+                        if (error)
+                            return error;
                         break;
                     case ':':
-                        _state_header = H_AFTER_KEY;
-                        _header_key_end = _buf_pos;
+                        _state_header = H_VALUE_START;
                         break;
                     default:
                         if (!IS_TOKEN_CHAR(c))
@@ -410,13 +564,17 @@ int Request::parse_header() {
                         break;
                 }
                 break;
-            case H_AFTER_KEY:
+            case H_VALUE_START:
+                _header_value_start = _header_value_end = _buf.pos;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE_LINE;
+                        _state_header = H_ALMOST_DONE_HEADER_LINE;
                         break;
                     case '\n':
-                        _state_header = H_DONE_LINE;
+                        _state_header = H_KEY_START;
+                        error = _add_header();
+                        if (error)
+                            return error;
                         break;
                     case '\t':
                     case ' ':
@@ -425,19 +583,20 @@ int Request::parse_header() {
                         if (!IS_TEXT_CHAR(c))
                             return 483;
                         _state_header = H_VALUE;
-                        _header_value_start = _buf_pos;
                         break;
                 }
                 break;
             case H_VALUE:
+                _header_value_end = _buf.pos;
                 switch (c) {
                     case '\r':
-                        _state_header = H_ALMOST_DONE_LINE;
-                        _header_value_end = _buf_pos;
+                        _state_header = H_ALMOST_DONE_HEADER_LINE;
                         break;
                     case '\n':
-                        _state_header = H_DONE_LINE;
-                        _header_value_end = _buf_pos;
+                        _state_header = H_KEY_START;
+                        error = _add_header();
+                        if (error)
+                            return error;
                         break;
                     default:
                         if (!IS_TEXT_CHAR(c))
@@ -445,148 +604,24 @@ int Request::parse_header() {
                         break;
                 }
                 break;
-            case H_ALMOST_DONE_LINE:
+            case H_ALMOST_DONE_HEADER_LINE:
                 if (c != '\n')
                     return 485;
-                _state_header = H_DONE_LINE;
+                _state_header = H_KEY_START;
+                error = _add_header();
+                if (error)
+                    return error;
                 break;
-            case H_DONE_LINE:
-                _add_header();
-                switch (c) {
-                    case '\r':
-                        _state_header = H_ALMOST_DONE_REQUEST;
-                        break;
-                    case '\n':
-                        _state_header = H_DONE_REQUEST;
-                        break;
-                    default:
-                        if (!IS_TOKEN_CHAR(c))
-                            return 486;
-                        _state_header = H_KEY;
-                        _header_key_start = _buf_pos;
-                        break;
-                }
-                break;
-            case H_ALMOST_DONE_REQUEST:
+            case H_ALMOST_DONE_HEADER:
                 if (c != '\n')
                     return 487;
-                _state_header = H_DONE_REQUEST;
-                break;
-            case H_DONE_REQUEST:
-                break;
-        }
-        if (_state_header == H_DONE_REQUEST) {
-            _buf_pos++;
-            _header_end = _buf_pos;
-            return 0;
+                _buf.pos++;
+                _header_end = _buf.pos;
+                return 0;
         }
     }
     return 1;
 }
-
-// int Request::parse_header() {
-//     char c;
-//     for (std::size_t i = _buf_pos; i < _buf.size(); _buf_pos++, i++) {
-//         c = _buf[i];
-//         switch (_state_header) {
-//             case H_START:
-//                 switch (c) {
-//                     case '\r':
-//                         _state_header = H_ALMOST_DONE_REQUEST;
-//                         break;
-//                     case '\n':
-//                         _state_header = H_DONE_REQUEST;
-//                         break;
-//                     case ' ':
-//                     case ':':
-//                         return 481;
-//                     default:
-//                         if (!IS_TOKEN_CHAR(c))
-//                             return 481;
-//                         break;
-//                 }
-//                 _state_header = H_KEY;
-//                 _header_key_start = _buf_pos;
-//                 break;
-//             case H_KEY:
-//                 if (IS_TOKEN_CHAR(c))
-//                     break;
-//                 _header_key_end = _buf_pos;
-//                 switch (c) {
-//                     case '\r':
-//                         _state_header = H_ALMOST_DONE_LINE;
-//                         break;
-//                     case '\n':
-//                         // _add_header();
-//                         _state_header = H_START;
-//                         break;
-//                     case ' ':
-//                     case ':':
-//                         _state_header = H_AFTER_KEY;
-//                         break;
-//                     default:
-//                         return 482;
-//                 }
-//                 break;
-//             case H_AFTER_KEY:
-//                 if (c == ' ' || c == ':')
-//                     break;
-//                 _header_value_start = _buf_pos;
-//                 _state_header = H_VALUE;
-//                 // break;
-//             case H_VALUE:
-//                 if (IS_TEXT_CHAR(c))
-//                     break;
-//                 _header_value_end = _buf_pos;
-//                 switch (c) {
-//                     case '\r':
-//                         _state_header = H_ALMOST_DONE_LINE;
-//                         break;
-//                     case '\n':
-//                         _add_header();
-//                         _state_header = H_START;
-//                         // _state_header = H_DONE_LINE;
-//                         break;
-//                     default:
-//                         return 483;
-//                 }
-//                 break;
-//             case H_ALMOST_DONE_LINE:
-//                 if (c == '\n') {
-//                     // _state_header = H_DONE_LINE;
-//                     _add_header();
-//                     _state_header = H_START;
-//                 } else
-//                     return 480;
-//                 break;
-//             // case H_DONE_LINE:
-//             //     {
-//             //         _add_header();
-//             //     }
-//             //     _header_key_start = _header_key_end = _buf_pos;
-//             //     _header_value_start = _header_value_end = 0;
-//             //     if (c == '\n')
-//             //         _state_header = H_DONE_REQUEST;
-//             //     else
-//             //         _state_header = H_START;
-//             //     break;
-//             case H_ALMOST_DONE_REQUEST:
-//                 if (c == '\n')
-//                     _state_header = H_DONE_REQUEST;
-//                 else
-//                     return 480;
-//                 break;
-//             case H_DONE_REQUEST:
-//                 break;
-//         }
-//         if (_state_header == H_DONE_REQUEST) {
-//             _buf_pos++;
-//             _header_end = _buf_pos;
-//             return 0;
-//         }
-//     }
-//     return 1;
-// }
 
 void Request::print() {
     std::cout << "\nREQUEST LINE: \n";
@@ -595,21 +630,39 @@ void Request::print() {
         std::cout << _buf[i];
     }
     std::cout << log::COLOR_NO << "\' ";
+
+    // std::cerr << "Host: " << _uri_host_start << "   " << _uri_host_end << '\n';
+    std::cout << "\'" << log::COLOR_PL;
+    for (size_t i = _uri_host_start; i < _uri_host_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\' ";
+
+    // std::cerr << "Port: " << _uri_port_start << "   " << _uri_port_end << '\n';
+    std::cout << "\'" << log::COLOR_GR;
+    for (size_t i = _uri_port_start; i < _uri_port_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\' ";
+
     std::cout << "\'" << log::COLOR_CY;
     for (size_t i = _uri_path_start; i < _uri_path_end; i++) {
         std::cout << _buf[i];
     }
     std::cout << log::COLOR_NO << "\' ";
+
     std::cout << "\'" << log::COLOR_GR;
     for (size_t i = _uri_query_start; i < _uri_query_end; i++) {
         std::cout << _buf[i];
     }
     std::cout << log::COLOR_NO << "\' ";
+
     std::cout << "\'" << log::COLOR_YE;
     for (size_t i = _uri_fragment_start; i < _uri_fragment_end; i++) {
         std::cout << _buf[i];
     }
     std::cout << log::COLOR_NO << "\' ";
+
     std::cout << "\'" << log::COLOR_BL;
     for (size_t i = _version_start; i < _version_end; i++) {
         std::cout << _buf[i];
@@ -617,10 +670,10 @@ void Request::print() {
     std::cout << log::COLOR_NO << "\'";
     std::cout << "\n\n";
 
-    if (!m_header.empty()) {
-        std::cout << "HEADER [" << m_header.size() << "]:\n";
-        for (std::map<std::string, std::string>::iterator it = m_header.begin();
-             it != m_header.end(); it++) {
+    if (!_m_header.empty()) {
+        std::cout << "HEADER [" << _m_header.size() << "]:\n";
+        for (std::map<std::string, std::string>::iterator it = _m_header.begin();
+             it != _m_header.end(); it++) {
             std::cout << "\'" << log::COLOR_GR;
             std::cout << (*it).first;
             std::cout << log::COLOR_NO << "\'";
@@ -634,60 +687,6 @@ void Request::print() {
     std::cout << "\n";
 }
 
-// void Request::print() {
-//     std::cout << "REQUEST: \n\'";
-//     for (size_t i = 0; i < _request_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
+bool Request::done() { return _state == REQUEST_DONE; }
 
-//     std::cout << "REQUEST-LINE: \n\'";
-//     for (size_t i = _method_start; i < _version_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "METHOD: \n\'";
-//     for (size_t i = _method_start; i < _method_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "URI: \n\'";
-//     for (size_t i = _uri_start; i < _uri_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "PATH: \n\'";
-//     for (size_t i = _uri_path_start; i < _uri_path_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "QUERY: \n\'";
-//     for (size_t i = _uri_query_start; i < _uri_query_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "FRAGMENT: \n\'";
-//     for (size_t i = _uri_fragment_start; i < _uri_fragment_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "VERSION: \n\'";
-//     for (size_t i = _version_start; i < _version_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-
-//     std::cout << "HEADER: \n\'";
-//     for (size_t i = _header_start; i < _header_end; i++) {
-//         std::cout << _buf[i];
-//     }
-//     std::cout << "\'\n\n";
-// }
-
-}  // namespace core
+}  // namespace http

@@ -16,7 +16,8 @@ Connections::Connections(size_t max_connections) : _max_connections(max_connecti
     _v_socket_fd.resize(max_connections);
     _v_address.resize(max_connections);
     _v_address_len.resize(max_connections, sizeof(_v_address[0]));
-    _v_requests.resize(max_connections, NULL);
+    _v_request.resize(max_connections, NULL);
+    _v_request_buf.resize(max_connections, NULL);
 }
 
 Connections::~Connections() {
@@ -36,8 +37,9 @@ int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
         std::cerr << "refused connection, limit of max connections reached\n";
         return -1;
     }
-
+    ///////////////////////// accept same connection
     _v_fd[index] = accept(fd, (struct sockaddr*)&(_v_address[index]), &(_v_address_len[index]));
+    std::cerr << "index: " << index << " " << _v_fd[index] << '\n';
     if (_v_fd[index] == -1) {
         std::cerr << "accept: " << strerror(errno) << '\n';
         return -1;
@@ -53,7 +55,8 @@ int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
     eni.add_event(_v_fd[index], EVFILT_TIMER, CONNECTION_TIMEOUT);
 
     _v_socket_fd[index] = fd;
-    _v_requests[index] = new Request;
+    _v_request_buf[index] = new core::ByteBuffer;
+    _v_request[index] = new http::Request(*_v_request_buf[index]);
 
     std::cout << "Accepted new connection: " << get_connection_ip(_v_fd[index]) << ":"
               << get_connection_port(_v_fd[index]) << std::endl;
@@ -67,10 +70,13 @@ int Connections::close_connection(int fd, EventNotificationInterface& eni) {
         return -1;
     std::cerr << "Closed connection: " << get_connection_ip(fd) << ":" << get_connection_port(fd)
               << '\n';
-    _v_fd[index] = -1;
     eni.delete_event(fd, EVFILT_READ);
     eni.delete_event(fd, EVFILT_TIMER);
-    delete _v_requests[index];
+    delete _v_request_buf[index];
+    _v_request_buf[index] = NULL;
+    delete _v_request[index];
+    _v_request[index] = NULL;
+    _v_fd[index] = -1;
     return close(fd);
 }
 
@@ -94,7 +100,7 @@ int Connections::get_connection_port(int fd) const {
     return (int)ntohs(_v_address[index].sin_port);
 }
 
-int Connections::receive(int fd) {
+int Connections::receive(int fd, EventNotificationInterface& eni) {
     int index = get_index(fd);
     if (index == -1)
         return -1;
@@ -102,12 +108,26 @@ int Connections::receive(int fd) {
     int  bytes_read = recv(fd, buf, sizeof(buf), 0);
     if (bytes_read == -1)
         return -1;
-    if (_v_requests[index]->parse_input(buf, bytes_read)) {
-        write(fd, "Bad request\n", 12);
-        delete _v_requests[index];
-        _v_requests[index] = new Request;
-        // close_connection(fd, );
+    eni.add_event(fd, EVFILT_TIMER, CONNECTION_TIMEOUT);
+    _v_request_buf[index]->append(buf, bytes_read);
+
+    // REQUEST
+    int error = _v_request[index]->parse_input();
+    if (error) {
+        FILE* file_fd = fdopen(fd, "w");
+        fprintf(file_fd, "Bad request [%d]\n", error);
+        fclose(file_fd);
+        close_connection(_v_fd[index], eni);
         return -1;
+    } else if (_v_request[index]->done()) {
+        FILE* file_fd = fdopen(fd, "w");
+        fprintf(file_fd, "HELLO WEBSERV\n");
+        fclose(file_fd);
+        _v_request_buf[index]->erase(_v_request_buf[index]->begin(),
+                                     _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
+        _v_request_buf[index]->pos = 0;
+        delete _v_request[index];
+        _v_request[index] = new http::Request(*_v_request_buf[index]);
     }
     return 0;
 }

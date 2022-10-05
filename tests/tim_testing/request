@@ -1,5 +1,12 @@
 GET / HTTP/1.1
-Host: google.de
-Connection:
-Content-Length: 0
+Host: test
+Content-Length: 5
+
+
+GET /index.php HTTP/1.1
+Host: test
+
+
+GET /index.html HTTP/1.1
+Host: test
 
