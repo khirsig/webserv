@@ -20,7 +20,15 @@
 namespace http {
 
 enum method { NONE, GET, HEAD, POST, DELETE };
-enum state { REQUEST_LINE, REQUEST_HEADER, REQUEST_BODY, REQUEST_DONE, REQUEST_ERROR };
+
+enum state {
+    REQUEST_LINE,
+    REQUEST_HEADER,
+    REQUEST_BODY,
+    REQUEST_BODY_CHUNKED,
+    REQUEST_DONE,
+    REQUEST_ERROR
+};
 
 enum state_request_line {
     START,
@@ -63,6 +71,21 @@ enum state_header {
     H_ALMOST_DONE_HEADER
 };
 
+enum state_chunked_body {
+    CHUNKED_BODY_LENGTH_START,
+    CHUNKED_BODY_LENGTH,
+    CHUNKED_BODY_LENGTH_EXTENSION,
+    CHUNKED_BODY_LENGTH_ALMOST_DONE,
+    CHUNKED_BODY_DATA_SKIP,
+    // CHUNKED_BODY_AFTER_DATA,
+    CHUNKED_BODY_DATA_ALMOST_DONE,
+    CHUNKED_BODY_LENGTH_0,
+    CHUNKED_BODY_LENGTH_0_ALMOST_DONE,
+    CHUNKED_BODY_DATA_0,
+    CHUNKED_ALMOST_DONE,
+    CHUNKED_DONE
+};
+
 enum CONNECTION_STATE { CONNECTION_CLOSE, CONNECTION_KEEP_ALIVE };
 
 class Request {
@@ -97,7 +120,13 @@ class Request {
     std::size_t _header_value_start;
     std::size_t _header_value_end;
 
-    std::size_t _body_expected_size;
+    bool               _chunked_body;
+    core::ByteBuffer   _chunked_body_buf;
+    state_chunked_body _chunked_body_state;
+    std::size_t        _chunk_size;
+    std::size_t        _body_expected_size;
+    std::size_t        _body_start;
+    std::size_t        _body_end;
 
     CONNECTION_STATE connection_state;
 
@@ -112,7 +141,7 @@ class Request {
     int _analyze_request();
 
    public:
-    int status_code;
+    int error;
 
     Request(core::ByteBuffer& buf);
     ~Request();
@@ -120,6 +149,7 @@ class Request {
     int parse_input();
     int parse_request_line();
     int parse_header();
+    int parse_chunked_body();
 
     void print();
     bool done();

@@ -10,7 +10,7 @@
 #include "ByteBuffer.hpp"
 #include "EventNotificationInterface.hpp"
 
-#define CONNECTION_TIMEOUT 6000
+#define CONNECTION_TIMEOUT 60000
 
 namespace core {
 

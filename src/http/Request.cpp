@@ -28,8 +28,10 @@ namespace http {
 // #define IS_HEADER_KEY_CHAR(c) (IS_TOKEN_CHAR(c))
 // #define IS_HEADER_VALUE_CHAR(c) (IS_TEXT_CHAR(c))
 
+#define HEX_CHAR_TO_INT(c) (isdigit(c) ? c - '0' : tolower(c) - 87)
+
 static const std::pair<std::string, bool> headers[] = {
-    std::make_pair("host", false),
+    std::make_pair("host", false)
     //    std::make_pair("connection", true),
     //    std::make_pair("content-length", true)
 };
@@ -60,7 +62,11 @@ Request::Request(core::ByteBuffer& buf)
       _header_key_end(0),
       _header_value_start(0),
       _header_value_end(0),
+      _chunked_body(false),
+      _chunked_body_state(CHUNKED_BODY_LENGTH_START),
       _body_expected_size(0),
+      _body_start(0),
+      _body_end(0),
       connection_state(CONNECTION_KEEP_ALIVE),
       _state(REQUEST_LINE),
       _state_request_line(START),
@@ -71,35 +77,189 @@ Request::Request(core::ByteBuffer& buf)
 Request::~Request() {}
 
 int Request::parse_input() {
-    if (_state == REQUEST_LINE) {
-        status_code = parse_request_line();
-        if (status_code == 0) {
-            _state = REQUEST_HEADER;
-        } else if (status_code > 99) {
-            std::cerr << "Error: " << status_code << '\n';
-            _state = REQUEST_ERROR;
-            return status_code;
-        }
-    }
-    if (_state == REQUEST_HEADER) {
-        status_code = parse_header();
-        if (status_code == 0) {
-            status_code = _analyze_request();
-            if (status_code != 0)
-                return status_code;
-            _state = REQUEST_BODY;
-        } else if (status_code > 99) {
-            std::cerr << "Error: " << status_code << '\n';
-            _state = REQUEST_ERROR;
-            return status_code;
-        }
-    }
-    if (_state == REQUEST_BODY) {
-        print();
-        if (_body_expected_size <= _buf.size() - _buf.pos)
-            _state = REQUEST_DONE;
+    switch (_state) {
+        case REQUEST_LINE:
+            error = parse_request_line();
+            if (error == 0) {
+                _state = REQUEST_HEADER;
+            } else if (error > 99) {
+                std::cerr << "Error: " << error << '\n';
+                _state = REQUEST_ERROR;
+                return error;
+            }
+            break;
+        case REQUEST_HEADER:
+            error = parse_header();
+            if (error == 0) {
+                error = _analyze_request();
+                if (error != 0)
+                    return error;
+                if (_chunked_body)
+                    _state = REQUEST_BODY_CHUNKED;
+                else
+                    _state = REQUEST_BODY;
+            } else if (error > 99) {
+                std::cerr << "Error: " << error << '\n';
+                _state = REQUEST_ERROR;
+                return error;
+            }
+            break;
+        case REQUEST_BODY:
+            if (_body_expected_size <= _buf.size() - _buf.pos) {
+                print();
+                _state = REQUEST_DONE;
+                _body_start = _buf.pos;
+                _request_end = _body_end = _body_start + _body_expected_size;
+                // std::cout << "Body:\n\'";
+                // for (std::size_t i = _body_start; i < _body_end; _buf.pos++, i++) {
+                //     std::cout << _buf[i];
+                // }
+                // std::cout << "\'\n";
+            }
+            break;
+        case REQUEST_BODY_CHUNKED:
+            std::cerr << "parse chunked body\n";
+            error = parse_chunked_body();
+            if (error == 0) {
+                _state = REQUEST_DONE;
+                std::cout << "Body:\n\'";
+                for (std::size_t i = 0; i < _chunked_body_buf.size(); i++) {
+                    std::cout << _chunked_body_buf[i];
+                }
+                std::cout << "\'\n";
+            } else if (error > 99) {
+                std::cerr << "Error: " << error << '\n';
+                _state = REQUEST_DONE;
+                return error;
+            }
+            break;
+        case REQUEST_ERROR:
+            break;
+        case REQUEST_DONE:
+            break;
     }
     return 0;
+}
+
+inline int Request::parse_chunked_body() {
+    // if (_chunked_body_buf.size() > MAX_CLIENT_BODY)
+    // return -1;
+
+    char c;
+    for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
+        c = _buf[i];
+        switch (_chunked_body_state) {
+            case CHUNKED_BODY_LENGTH_START:
+                switch (c) {
+                    case '0':
+                        _chunked_body_state = CHUNKED_BODY_LENGTH_0;
+                        break;
+                    default:
+                        if (!isxdigit(c))
+                            return 400;
+                        _chunked_body_state = CHUNKED_BODY_LENGTH;
+                        _chunk_size = HEX_CHAR_TO_INT(c);
+                        break;
+                }
+                break;
+            case CHUNKED_BODY_LENGTH:
+                switch (c) {
+                    case '\r':
+                        _chunked_body_state = CHUNKED_BODY_LENGTH_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _chunked_body_state = CHUNKED_BODY_DATA_SKIP;
+                        break;
+                    case ';':
+                        _chunked_body_state = CHUNKED_BODY_LENGTH_EXTENSION;
+                        break;
+                    default:
+                        if (!isxdigit(c))
+                            return 400;
+                        _chunk_size = _chunk_size * 16 + HEX_CHAR_TO_INT(c);
+                        // if (_chunk_size > max_client_body)
+                        //     return 413;
+                        break;
+                }
+                break;
+            case CHUNKED_BODY_LENGTH_EXTENSION:
+                switch (c) {
+                    case '\r':
+                        _chunked_body_state = CHUNKED_BODY_LENGTH_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _chunked_body_state = CHUNKED_BODY_DATA_SKIP;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case CHUNKED_BODY_LENGTH_ALMOST_DONE:
+                if (c != '\n')
+                    return 400;
+                _chunked_body_state = CHUNKED_BODY_DATA_SKIP;
+                break;
+            case CHUNKED_BODY_DATA_SKIP:
+                if (_chunk_size > 0) {
+                    _chunked_body_buf.push_back(c);
+                    _chunk_size--;
+                    break;
+                }
+                switch (c) {
+                    case '\r':
+                        _chunked_body_state = CHUNKED_BODY_DATA_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _chunked_body_state = CHUNKED_BODY_LENGTH_START;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case CHUNKED_BODY_DATA_ALMOST_DONE:
+                if (c != '\n')
+                    return 400;
+                _chunked_body_state = CHUNKED_BODY_LENGTH_START;
+                break;
+            case CHUNKED_BODY_LENGTH_0:
+                switch (c) {
+                    case '\r':
+                        _chunked_body_state = CHUNKED_BODY_LENGTH_0_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _chunked_body_state = CHUNKED_BODY_DATA_0;
+                        break;
+                    default:
+                        return 400;
+                }
+                break;
+            case CHUNKED_BODY_LENGTH_0_ALMOST_DONE:
+                if (c != '\n')
+                    return 400;
+                _chunked_body_state = CHUNKED_BODY_DATA_0;
+                break;
+            case CHUNKED_BODY_DATA_0:
+                switch (c) {
+                    case '\r':
+                        _chunked_body_state = CHUNKED_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _chunked_body_state = CHUNKED_DONE;
+                        return 0;
+                    default:
+                        return 400;
+                }
+                break;
+            case CHUNKED_ALMOST_DONE:
+                if (c != '\n')
+                    return 400;
+                _chunked_body_state = CHUNKED_DONE;
+                return 0;
+            case CHUNKED_DONE:
+                return 0;
+        }
+    }
+    return 1;
 }
 
 inline int Request::_parse_method() {
@@ -149,14 +309,26 @@ inline int Request::_parse_method() {
 int Request::_analyze_request() {
     if (_m_header.find("host") == _m_header.end())
         return 400;
-    std::map<std::string, std::string>::iterator it = _m_header.find("content-length");
-    if (it != _m_header.end()) {
-        _body_expected_size = atoi(it->second.c_str());  // error handling?
+    std::map<std::string, std::string>::iterator it_content_len = _m_header.find("content-length");
+    if (it_content_len != _m_header.end()) {
+        _body_expected_size = atoi(it_content_len->second.c_str());  // error handling? / c style
+        // if (_body_expected_size > CLIENTMAXSIZE)
+        // return ERROR;
     }
-    it = _m_header.find("connection");
-    if (it != _m_header.end()) {
-        if (it->second == "close")
+    std::map<std::string, std::string>::iterator it_connection = _m_header.find("connection");
+    if (it_connection != _m_header.end()) {
+        if (it_connection->second == "close")
             connection_state = CONNECTION_CLOSE;
+    }
+    std::map<std::string, std::string>::iterator it_transfer_encoding =
+        _m_header.find("transfer-encoding");
+    if (it_content_len != _m_header.end() && it_transfer_encoding != _m_header.end()) {
+        return 400;
+    } else if (it_transfer_encoding != _m_header.end()) {
+        if (it_transfer_encoding->second == "chunked")
+            _chunked_body = true;
+        else
+            return 501;
     }
     return 0;
 }
@@ -497,13 +669,9 @@ void print_header_pair(const core::ByteBuffer& buf, size_t key_start, size_t key
 }
 
 int Request::_add_header() {
-    // std::cout << "_header_key_start: " << _header_key_start << "\n";
-    // std::cout << "_header_key_end: " << _header_key_end << "\n";
     std::string key(_buf.begin() + _header_key_start, _buf.begin() + _header_key_end);
     std::transform(key.begin(), key.end(), key.begin(),
                    ::tolower);  // c tolower ???
-    // std::cout << "_header_value_start: " << _header_value_start << "\n";
-    // std::cout << "_header_value_end: " << _header_value_end << "\n";
     std::string value(_buf.begin() + _header_value_start, _buf.begin() + _header_value_end);
     std::pair<std::map<std::string, std::string>::iterator, bool> ret;
     ret = _m_header.insert(std::make_pair(key, value));
@@ -516,7 +684,6 @@ int Request::_add_header() {
     }
     _header_key_start = _header_key_end = 0;
     _header_value_start = _header_value_end = 0;
-    // print();
     return 0;
 }
 
@@ -684,6 +851,8 @@ void Request::print() {
             std::cout << "\n";
         }
     }
+    if (_body_expected_size)
+        std::cout << "\nExpected body size: " << _body_expected_size << "\n";
     std::cout << "\n";
 }
 

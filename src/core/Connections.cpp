@@ -29,7 +29,25 @@ Connections::~Connections() {
 }
 
 int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
-    int index = get_index(-1);
+    struct ::sockaddr_in accept_addr;
+    socklen_t            accept_addr_len;
+
+    // Accept Connection from socket (fd)
+    int accept_fd = accept(fd, (struct sockaddr*)&accept_addr, &accept_addr_len);
+    if (accept_fd == -1) {
+        std::cerr << "accept: " << strerror(errno) << '\n';
+        return -1;
+    }
+
+    // Check if connection already established
+    int index = get_index(accept_fd);
+    if (index != -1) {
+        std::cerr << "already established connection detected\n";
+        return 0;
+    }
+
+    // Check if capacity for new connection is left
+    index = get_index(-1);
     if (index == -1) {
         struct sockaddr addr;
         socklen_t       addr_len;
@@ -37,23 +55,24 @@ int Connections::accept_connection(int fd, EventNotificationInterface& eni) {
         std::cerr << "refused connection, limit of max connections reached\n";
         return -1;
     }
-    ///////////////////////// accept same connection
-    _v_fd[index] = accept(fd, (struct sockaddr*)&(_v_address[index]), &(_v_address_len[index]));
-    std::cerr << "index: " << index << " " << _v_fd[index] << '\n';
-    if (_v_fd[index] == -1) {
-        std::cerr << "accept: " << strerror(errno) << '\n';
-        return -1;
-    }
 
+    // Store new connection
+    _v_fd[index] = accept_fd;
+    _v_address[index] = accept_addr;
+    _v_address_len[index] = accept_addr_len;
+
+    // Set new connection fd to non-blocking
     if (fcntl(_v_fd[index], F_SETFL, O_NONBLOCK) == -1) {
         std::cerr << "fcntl: " << strerror(errno) << '\n';
         close_connection(_v_fd[index], eni);
         return -1;
     }
 
+    // Add events for connection fd
     eni.add_event(_v_fd[index], EVFILT_READ, 0);
     eni.add_event(_v_fd[index], EVFILT_TIMER, CONNECTION_TIMEOUT);
 
+    // Store connection relevant informations
     _v_socket_fd[index] = fd;
     _v_request_buf[index] = new core::ByteBuffer;
     _v_request[index] = new http::Request(*_v_request_buf[index]);
@@ -112,22 +131,22 @@ int Connections::receive(int fd, EventNotificationInterface& eni) {
     _v_request_buf[index]->append(buf, bytes_read);
 
     // REQUEST
-    int error = _v_request[index]->parse_input();
-    if (error) {
-        FILE* file_fd = fdopen(fd, "w");
-        fprintf(file_fd, "Bad request [%d]\n", error);
-        fclose(file_fd);
-        close_connection(_v_fd[index], eni);
-        return -1;
-    } else if (_v_request[index]->done()) {
-        FILE* file_fd = fdopen(fd, "w");
-        fprintf(file_fd, "HELLO WEBSERV\n");
-        fclose(file_fd);
-        _v_request_buf[index]->erase(_v_request_buf[index]->begin(),
-                                     _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
-        _v_request_buf[index]->pos = 0;
-        delete _v_request[index];
-        _v_request[index] = new http::Request(*_v_request_buf[index]);
+    while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
+        int error = _v_request[index]->parse_input();
+        if (error) {
+            write(fd, "Request invalid\n", 16);
+            close_connection(_v_fd[index], eni);
+            return -1;
+        } else if (_v_request[index]->done()) {
+            write(fd, "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
+                  strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
+            _v_request_buf[index]->erase(
+                _v_request_buf[index]->begin(),
+                _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
+            _v_request_buf[index]->pos = 0;
+            delete _v_request[index];
+            _v_request[index] = new http::Request(*_v_request_buf[index]);
+        }
     }
     return 0;
 }
