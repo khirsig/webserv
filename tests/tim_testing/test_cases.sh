@@ -79,3 +79,6 @@ Connection: hallokeep-alivehalloclosehallokeep-alivehallo
 Content-Length: 0
 ```
 
+
+// get out of root dir with . % encoding
+

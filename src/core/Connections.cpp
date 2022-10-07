@@ -132,20 +132,22 @@ int Connections::receive(int fd, EventNotificationInterface& eni) {
 
     // REQUEST
     while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
-        int error = _v_request[index]->parse_input();
-        if (error) {
+        try {
+            _v_request[index]->parse_input();
+            if (_v_request[index]-> done()) {
+                write(fd, "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
+                      strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
+                _v_request_buf[index]->erase(
+                    _v_request_buf[index]->begin(),
+                    _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
+                _v_request_buf[index]->pos = 0;
+                delete _v_request[index];
+                _v_request[index] = new http::Request(*_v_request_buf[index]);
+            }
+        } catch (int error) {
             write(fd, "Request invalid\n", 16);
             close_connection(_v_fd[index], eni);
             return -1;
-        } else if (_v_request[index]->done()) {
-            write(fd, "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
-                  strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
-            _v_request_buf[index]->erase(
-                _v_request_buf[index]->begin(),
-                _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
-            _v_request_buf[index]->pos = 0;
-            delete _v_request[index];
-            _v_request[index] = new http::Request(*_v_request_buf[index]);
         }
     }
     return 0;

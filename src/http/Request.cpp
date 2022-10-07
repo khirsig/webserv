@@ -46,10 +46,13 @@ Request::Request(core::ByteBuffer& buf)
       _version_end(0),
       _uri_start(0),
       _uri_end(0),
+      //   _uri_host_encoded(false),
       _uri_host_start(0),
       _uri_host_end(0),
       _uri_port_start(0),
       _uri_port_end(0),
+      //   _uri_path_complex(false),
+      //   _uri_path_encoded(false),
       _uri_path_start(0),
       _uri_path_end(0),
       _uri_query_start(0),
@@ -76,69 +79,50 @@ Request::Request(core::ByteBuffer& buf)
 
 Request::~Request() {}
 
-int Request::parse_input() {
-    switch (_state) {
-        case REQUEST_LINE:
-            error = parse_request_line();
-            if (error == 0) {
-                _state = REQUEST_HEADER;
-            } else if (error > 99) {
-                std::cerr << "Error: " << error << '\n';
-                _state = REQUEST_ERROR;
-                return error;
-            }
-            break;
-        case REQUEST_HEADER:
-            error = parse_header();
-            if (error == 0) {
-                error = _analyze_request();
-                if (error != 0)
-                    return error;
-                if (_chunked_body)
-                    _state = REQUEST_BODY_CHUNKED;
-                else
-                    _state = REQUEST_BODY;
-            } else if (error > 99) {
-                std::cerr << "Error: " << error << '\n';
-                _state = REQUEST_ERROR;
-                return error;
-            }
-            break;
-        case REQUEST_BODY:
-            if (_body_expected_size <= _buf.size() - _buf.pos) {
-                print();
-                _state = REQUEST_DONE;
-                _body_start = _buf.pos;
-                _request_end = _body_end = _body_start + _body_expected_size;
-                // std::cout << "Body:\n\'";
-                // for (std::size_t i = _body_start; i < _body_end; _buf.pos++, i++) {
-                //     std::cout << _buf[i];
-                // }
-                // std::cout << "\'\n";
-            }
-            break;
-        case REQUEST_BODY_CHUNKED:
-            std::cerr << "parse chunked body\n";
-            error = parse_chunked_body();
-            if (error == 0) {
-                _state = REQUEST_DONE;
-                std::cout << "Body:\n\'";
-                for (std::size_t i = 0; i < _chunked_body_buf.size(); i++) {
-                    std::cout << _chunked_body_buf[i];
-                }
-                std::cout << "\'\n";
-            } else if (error > 99) {
-                std::cerr << "Error: " << error << '\n';
-                _state = REQUEST_DONE;
-                return error;
-            }
-            break;
-        case REQUEST_ERROR:
-            break;
-        case REQUEST_DONE:
-            break;
+void Request::parse_input() {
+    if (_state == REQUEST_LINE) {
+        error = parse_request_line();
+        if (error == 0) {
+            _state = REQUEST_HEADER;
+            _analyze_request_line();
+        } else if (error > 99) {
+            throw error;
+        }
     }
-    return 0;
+    if (_state == REQUEST_HEADER) {
+        error = parse_header();
+        if (error == 0) {
+            error = _analyze_header();
+            if (error != 0)
+                throw error;
+            if (_chunked_body)
+                _state = REQUEST_BODY_CHUNKED;
+            else
+                _state = REQUEST_BODY;
+        } else if (error > 99) {
+            throw error;
+        }
+    }
+    if (_state == REQUEST_BODY) {
+        if (_body_expected_size <= _buf.size() - _buf.pos) {
+            _state = REQUEST_DONE;
+            _body_start = _buf.pos;
+            _request_end = _body_end = _body_start + _body_expected_size;
+        }
+    }
+    if (_state == REQUEST_BODY_CHUNKED) {
+        std::cerr << "parse chunked body\n";
+        error = parse_chunked_body();
+        if (error == 0) {
+            _state = REQUEST_DONE;
+        } else if (error > 99) {
+            throw error;
+        }
+    }
+    if (_state == REQUEST_DONE) {
+        _finalize();
+        print();
+    }
 }
 
 inline int Request::parse_chunked_body() {
@@ -306,7 +290,76 @@ inline int Request::_parse_method() {
     return 0;
 }
 
-int Request::_analyze_request() {
+void Request::_uri_path_depth_check() {
+    char c;
+    int  depth = 0;
+    enum StatePathCheck { SLASH, SEGMENT, DOT_1, DOT_2 };
+    StatePathCheck state_path_check = SLASH;
+    for (std::size_t i = 0; i < _uri_path_decoded.size(); i++) {
+        c = _uri_path_decoded[i];
+        switch (state_path_check) {
+            case SLASH:
+                switch (c) {
+                    case '/':
+                        break;
+                    case '.':
+                        state_path_check = DOT_1;
+                        break;
+                    default:
+                        state_path_check = SEGMENT;
+                        break;
+                }
+                break;
+            case SEGMENT:
+                switch (c) {
+                    case '/':
+                        depth++;
+                        state_path_check = SLASH;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case DOT_1:
+                switch (c) {
+                    case '/':
+                        state_path_check = SLASH;
+                        break;
+                    case '.':
+                        state_path_check = DOT_2;
+                        break;
+                    default:
+                        state_path_check = SEGMENT;
+                        break;
+                }
+                break;
+            case DOT_2:
+                switch (c) {
+                    case '/':
+                        depth--;
+                        if (depth < 0)
+                            throw 400;
+                        state_path_check = SLASH;
+                        break;
+                    default:
+                        state_path_check = SEGMENT;
+                        break;
+                }
+                break;
+        }
+    }
+    if (state_path_check == DOT_2 && depth == 0) {
+        throw 400;
+    }
+}
+
+void Request::_analyze_request_line() {
+    _uri_decode(_buf, _uri_host_start, _uri_host_end, _uri_host_decoded);
+    _uri_decode(_buf, _uri_path_start, _uri_path_end, _uri_path_decoded);
+    _uri_path_depth_check();
+}
+
+int Request::_analyze_header() {
     if (_m_header.find("host") == _m_header.end())
         return 400;
     std::map<std::string, std::string>::iterator it_content_len = _m_header.find("content-length");
@@ -332,6 +385,40 @@ int Request::_analyze_request() {
     }
     return 0;
 }
+
+void Request::_uri_decode(const core::ByteBuffer& buf, std::size_t start, std::size_t end,
+                          std::string& res) {
+    res.reserve(end - start);
+    char c, c_decode;
+    enum StateUriDecode { CHAR, HEX_1, HEX_2 };
+    StateUriDecode state_uri_decode = CHAR;
+    for (; start < end; start++) {
+        c = buf[start];
+        switch (state_uri_decode) {
+            case CHAR:
+                switch (c) {
+                    case '%':
+                        state_uri_decode = HEX_1;
+                        break;
+                    default:
+                        res += c;
+                        break;
+                }
+                break;
+            case HEX_1:
+                state_uri_decode = HEX_2;
+                c_decode = HEX_CHAR_TO_INT(c);
+                break;
+            case HEX_2:
+                state_uri_decode = CHAR;
+                c_decode = c_decode * 16 + HEX_CHAR_TO_INT(c);
+                res += c_decode;
+                break;
+        }
+    }
+}
+
+void Request::_finalize() {}
 
 int Request::parse_request_line() {
     char c;
@@ -442,6 +529,7 @@ int Request::parse_request_line() {
                         _state_request_line = AFTER_URI;
                         break;
                     case '%':
+                        // _uri_host_encoded = true;
                         _state_request_line = URI_HOST_ENCODE_1;
                         break;
                     case '/':
@@ -493,6 +581,7 @@ int Request::parse_request_line() {
                         break;
                     case '%':
                         _state_request_line = URI_ENCODE_1;
+                        // _uri_path_encoded = true;
                         break;
                     case '?':
                         _uri_path_end = _buf.pos;
@@ -504,6 +593,9 @@ int Request::parse_request_line() {
                         _uri_fragment_start = _buf.pos + 1;
                         _state_request_line = URI_FRAGMENT;
                         break;
+                    // case '.':
+                    //     _uri_path_complex = true;
+                    //     break;
                     default:
                         if (!isprint(c))
                             return 494;
@@ -792,20 +884,21 @@ int Request::parse_header() {
 
 void Request::print() {
     std::cout << "\nREQUEST LINE: \n";
+    //
+    // ENCODED
+    //
     std::cout << "\'" << log::COLOR_RE;
     for (size_t i = _method_start; i < _method_end; i++) {
         std::cout << _buf[i];
     }
     std::cout << log::COLOR_NO << "\' ";
 
-    // std::cerr << "Host: " << _uri_host_start << "   " << _uri_host_end << '\n';
     std::cout << "\'" << log::COLOR_PL;
     for (size_t i = _uri_host_start; i < _uri_host_end; i++) {
         std::cout << _buf[i];
     }
     std::cout << log::COLOR_NO << "\' ";
 
-    // std::cerr << "Port: " << _uri_port_start << "   " << _uri_port_end << '\n';
     std::cout << "\'" << log::COLOR_GR;
     for (size_t i = _uri_port_start; i < _uri_port_end; i++) {
         std::cout << _buf[i];
@@ -837,6 +930,51 @@ void Request::print() {
     std::cout << log::COLOR_NO << "\'";
     std::cout << "\n\n";
 
+    //
+    // DECODED
+    //
+    std::cout << "\'" << log::COLOR_RE;
+    for (size_t i = _method_start; i < _method_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\' ";
+
+    std::cout << "\'" << log::COLOR_PL;
+    std::cout << _uri_host_decoded;
+    std::cout << log::COLOR_NO << "\' ";
+
+    std::cout << "\'" << log::COLOR_GR;
+    for (size_t i = _uri_port_start; i < _uri_port_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\' ";
+
+    std::cout << "\'" << log::COLOR_CY;
+    std::cout << _uri_path_decoded;
+    std::cout << log::COLOR_NO << "\' ";
+
+    std::cout << "\'" << log::COLOR_GR;
+    for (size_t i = _uri_query_start; i < _uri_query_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\' ";
+
+    std::cout << "\'" << log::COLOR_YE;
+    for (size_t i = _uri_fragment_start; i < _uri_fragment_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\' ";
+
+    std::cout << "\'" << log::COLOR_BL;
+    for (size_t i = _version_start; i < _version_end; i++) {
+        std::cout << _buf[i];
+    }
+    std::cout << log::COLOR_NO << "\'";
+    std::cout << "\n\n";
+
+    //
+    // HEADER
+    //
     if (!_m_header.empty()) {
         std::cout << "HEADER [" << _m_header.size() << "]:\n";
         for (std::map<std::string, std::string>::iterator it = _m_header.begin();
@@ -851,8 +989,25 @@ void Request::print() {
             std::cout << "\n";
         }
     }
-    if (_body_expected_size)
-        std::cout << "\nExpected body size: " << _body_expected_size << "\n";
+    std::cout << "\n";
+    //
+    // BODY
+    //
+    if (_body_expected_size) {
+        std::cout << "Content-Length: " << _body_expected_size << "\n";
+        std::cout << "Body:\n\'";
+        for (std::size_t i = _body_start; i < _body_end; i++) {
+            std::cout << _buf[i];
+        }
+        std::cout << "\'\n";
+    }
+    if (_chunked_body) {
+        std::cout << "Chunked Body:\n\'";
+        for (std::size_t i = 0; i < _chunked_body_buf.size(); i++) {
+            std::cout << _chunked_body_buf[i];
+        }
+        std::cout << "\'\n";
+    }
     std::cout << "\n";
 }
 

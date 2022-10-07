@@ -22,3 +22,4 @@ https://www.jmarshall.com/easy/http/
 
 ## URI
 https://www.talisman.org/%7Eerlkonig/misc/lunatech%5Ewhat-every-webdev-must-know-about-url-encoding/#Whichcharacterencoding%3F
+

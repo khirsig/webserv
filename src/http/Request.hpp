@@ -21,14 +21,7 @@ namespace http {
 
 enum method { NONE, GET, HEAD, POST, DELETE };
 
-enum state {
-    REQUEST_LINE,
-    REQUEST_HEADER,
-    REQUEST_BODY,
-    REQUEST_BODY_CHUNKED,
-    REQUEST_DONE,
-    REQUEST_ERROR
-};
+enum state { REQUEST_LINE, REQUEST_HEADER, REQUEST_BODY, REQUEST_BODY_CHUNKED, REQUEST_DONE };
 
 enum state_request_line {
     START,
@@ -101,10 +94,13 @@ class Request {
 
     std::size_t _uri_start;
     std::size_t _uri_end;
+    // bool        _uri_host_encoded;
     std::size_t _uri_host_start;
     std::size_t _uri_host_end;
     std::size_t _uri_port_start;
     std::size_t _uri_port_end;
+    // bool        _uri_path_complex;
+    // bool        _uri_path_encoded;
     std::size_t _uri_path_start;
     std::size_t _uri_path_end;
     std::size_t _uri_query_start;
@@ -134,11 +130,19 @@ class Request {
     state_request_line _state_request_line;
     state_header       _state_header;
 
+    std::string _uri_host_decoded;
+    std::string _uri_path_decoded;
+
     std::map<std::string, std::string> _m_header;
 
-    int _add_header();
-    int _parse_method();
-    int _analyze_request();
+    void _uri_decode(const core::ByteBuffer& buf, std::size_t start, std::size_t end,
+                     std::string& res);
+    int  _add_header();
+    int  _parse_method();
+    void _analyze_request_line();
+    int  _analyze_header();
+    void _uri_path_depth_check();
+    void _finalize();
 
    public:
     int error;
@@ -146,10 +150,10 @@ class Request {
     Request(core::ByteBuffer& buf);
     ~Request();
 
-    int parse_input();
-    int parse_request_line();
-    int parse_header();
-    int parse_chunked_body();
+    void parse_input();
+    int  parse_request_line();
+    int  parse_header();
+    int  parse_chunked_body();
 
     void print();
     bool done();
