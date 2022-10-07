@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/06 12:19:33 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/07 09:26:29 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <iostream>
 #include <vector>
 
+#include "cgi/Handler.hpp"
 #include "config/Parser.hpp"
 #include "core/Connections.hpp"
 #include "core/EventNotificationInterface.hpp"
@@ -40,6 +41,8 @@ int main(int argc, char* argv[]) {
         file_path = argv[1];
     else
         return 1;
+
+    cgi::Handler cgi;
 
     //     config::Parser              parser;
     //     std::vector<config::Server> v_server;
