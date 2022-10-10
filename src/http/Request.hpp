@@ -11,6 +11,9 @@
 #define IMPLEMENTED true
 #define NOT_IMPLEMENTED false
 
+#define WEBSERV_OK 0
+#define WEBSERV_AGAIN -1
+
 // static const std::pair<std::string, bool> valid_methods[] = {
 //     std::make_pair("OPTIONS", NOT_IMPLEMENTED), std::make_pair("GET", IMPLEMENTED),
 //     std::make_pair("HEAD", IMPLEMENTED),        std::make_pair("POST", IMPLEMENTED),

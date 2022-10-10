@@ -81,43 +81,31 @@ Request::~Request() {}
 
 void Request::parse_input() {
     if (_state == REQUEST_LINE) {
-        error = parse_request_line();
-        if (error == 0) {
-            _state = REQUEST_HEADER;
-            _analyze_request_line();
-        } else if (error > 99) {
-            throw error;
-        }
+        if (parse_request_line() == WEBSERV_AGAIN)
+            return;
+        _state = REQUEST_HEADER;
+        _analyze_request_line();
     }
     if (_state == REQUEST_HEADER) {
-        error = parse_header();
-        if (error == 0) {
-            error = _analyze_header();
-            if (error != 0)
-                throw error;
-            if (_chunked_body)
-                _state = REQUEST_BODY_CHUNKED;
-            else
-                _state = REQUEST_BODY;
-        } else if (error > 99) {
-            throw error;
-        }
+        if (parse_header() == WEBSERV_AGAIN)
+            return;
+        _analyze_header();
+        if (_chunked_body)
+            _state = REQUEST_BODY_CHUNKED;
+        else
+            _state = REQUEST_BODY;
     }
     if (_state == REQUEST_BODY) {
-        if (_body_expected_size <= _buf.size() - _buf.pos) {
-            _state = REQUEST_DONE;
-            _body_start = _buf.pos;
-            _request_end = _body_end = _body_start + _body_expected_size;
-        }
+        if (_body_expected_size > _buf.size() - _buf.pos)
+            return;
+        _state = REQUEST_DONE;
+        _body_start = _buf.pos;
+        _request_end = _body_end = _body_start + _body_expected_size;
     }
     if (_state == REQUEST_BODY_CHUNKED) {
-        std::cerr << "parse chunked body\n";
-        error = parse_chunked_body();
-        if (error == 0) {
-            _state = REQUEST_DONE;
-        } else if (error > 99) {
-            throw error;
-        }
+        if (parse_chunked_body() == WEBSERV_AGAIN)
+            return;
+        _state = REQUEST_DONE;
     }
     if (_state == REQUEST_DONE) {
         _finalize();
@@ -125,7 +113,7 @@ void Request::parse_input() {
     }
 }
 
-inline int Request::parse_chunked_body() {
+int Request::parse_chunked_body() {
     // if (_chunked_body_buf.size() > MAX_CLIENT_BODY)
     // return -1;
 
@@ -246,7 +234,7 @@ inline int Request::parse_chunked_body() {
     return 1;
 }
 
-inline int Request::_parse_method() {
+void Request::_parse_method() {
     switch (_method_end - _method_start) {
         case 3:
             if (_buf.equal(_buf.begin() + _method_start, "GET", 3)) {
@@ -359,7 +347,7 @@ void Request::_analyze_request_line() {
     _uri_path_depth_check();
 }
 
-int Request::_analyze_header() {
+void Request::_analyze_header() {
     if (_m_header.find("host") == _m_header.end())
         return 400;
     std::map<std::string, std::string>::iterator it_content_len = _m_header.find("content-length");
@@ -760,7 +748,7 @@ void print_header_pair(const core::ByteBuffer& buf, size_t key_start, size_t key
     std::cout << "\'\n\n";
 }
 
-int Request::_add_header() {
+void Request::_add_header() {
     std::string key(_buf.begin() + _header_key_start, _buf.begin() + _header_key_end);
     std::transform(key.begin(), key.end(), key.begin(),
                    ::tolower);  // c tolower ???
@@ -779,7 +767,7 @@ int Request::_add_header() {
     return 0;
 }
 
-int Request::parse_header() {
+void Request::parse_header() {
     char c;
     int  error;
     for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
