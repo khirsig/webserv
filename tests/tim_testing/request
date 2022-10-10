@@ -1,4 +1,18 @@
-GET http://test.de/ HTTP/1.1
-Connection: close
-Connection: keep-alive
+GET / HTTP/1.1
+Host: test
+Content-Length: 5
 
+
+GET /index.php HTTP/1.1
+Host: test
+
+
+GET /index.html HTTP/1.1
+Host: test
+
+
+
+POST /index.php HTTP/1.1
+Host: local
+Transfer-Encoding: chunked
+Content-Length: 0

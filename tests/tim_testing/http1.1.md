@@ -36,17 +36,45 @@ Header: value1,
 - nur whitespaces nicht erlaubt
 
 # Headers to handle
-Connection: close
-Cookie: $Version=1; Skin=new;
-Content-Length: 348
-Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==
 Host: en.wikipedia.org
+Connection: close
+Content-Length: 348
+Cookie: $Version=1; Skin=new;
+
+Transfer-Encoding: chunked
+Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==
 If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT
 
 
 
+# PARSING
 
-GET / HTTP/1.1
-Host: local
-Connection: close
-Content-Length: 0
+#define CR                  '\r'
+#define LF                  '\n'
+
+IS_HEADER_CHAR
+IS_URL_CHAR
+IS_HOST_CHAR
+
+
+###### TO DO
+
+# Request
+* reset after body is fully read to get new request
+
+# Request line
+* path with http://
+
+# HEADER
+* header line start with space/tab
+
+# Error Handling
+
+# Debug printer
+
+# Analyse Request
+* Check for 1 host
+* Content-Length
+* Set Connection bool
+
+* Check Path for ../
