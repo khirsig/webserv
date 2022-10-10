@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/19 10:36:37 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/10 10:51:49 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <sstream>
 #include <vector>
 
+#include "../core/utils.hpp"
 #include "Server.hpp"
 #include "Token.hpp"
 
@@ -51,8 +52,6 @@ class Interpreter {
                               std::vector<Token>::const_iterator &it,
                               std::vector<LocationPath>          &v_path);
     void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
-
-    std::string _timestamp() const;
 
     void _invalid_directive(std::vector<Token>::const_iterator &it) const;
     void _unexpected_file_ending(std::vector<Token>::const_iterator &it) const;

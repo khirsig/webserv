@@ -14,8 +14,9 @@ LDFLAGS     :=
 LDLIBS      :=
 
 VPATH       :=	src/							\
-				src/config/						\
-				src/core/						\
+				src/config/						    \
+				src/core/						      \
+				src/file/                 \
 				src/http/
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
