@@ -5,7 +5,7 @@
 NAME        :=	webserv
 
 CXX         :=	c++
-CXXFLAGS    :=	-Wall -Wextra -Werror -std=c++98
+CXXFLAGS    :=	-Wall -Wextra -std=c++98 -g -fsanitize=address -fsanitize=undefined #-Werror
 
 CPPFLAGS    :=
 DEPFLAGS     =	-MT $@ -MMD -MP -MF $(DDIR)/$*.d
@@ -15,7 +15,8 @@ LDLIBS      :=
 
 VPATH       :=	src/							\
 				src/config/						\
-				src/core/
+				src/core/						\
+				src/http/
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
 

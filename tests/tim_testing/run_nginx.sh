@@ -22,11 +22,22 @@ fi
 docker stop $CONTAINER_NAME >/dev/null 2>&1
 docker rm -f $CONTAINER_NAME >/dev/null 2>&1
 
+docker stop "php" >/dev/null 2>&1
+docker rm -f "php" >/dev/null 2>&1
+
+docker run \
+    --name "php" \
+    -p 9000:9000 \
+    -v $(pwd)/data:/var/www/html \
+    -d \
+    php:7-fpm
+
 docker run \
     --name $CONTAINER_NAME \
     -v $(pwd)/conf/nginx.conf:/etc/nginx/nginx.conf \
     -v $(pwd)/data:/var/www/html \
     -v $(pwd)/$LOG_FOLDER:/var/log/nginx \
     -p $PORT:80 \
+    --link php:php \
     -d \
     nginx:1.22-alpine nginx-debug -g 'daemon off;'

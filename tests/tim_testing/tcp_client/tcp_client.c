@@ -43,51 +43,14 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
-    // sleep(4);
-
-    // // send request
-    // send_bytes = strlen(argv[4]);
-    // if (send(socket_fd, argv[4], send_bytes, 0) != send_bytes) {
-    //     perror("send");
-    //     return 1;
-    // }
-
     // fcntl(socket_fd, F_SETFL, O_NONBLOCK);
+
     char    read_line[BUFFER_SIZE + 1];
     ssize_t read_bytes;
     while ((read_bytes = read(socket_fd, read_line, BUFFER_SIZE)) > 0) {
         read_line[read_bytes] = '\0';
         printf("%s", read_line);
     }
-
-    // struct pollfd fds[1];
-    // fds[0].fd = socket_fd;
-    // fds[0].events = POLLIN | POLLHUP;
-
-    // while (1)
-    // {
-    //     if (poll(fds, 1, -1) > 0)
-    //     {
-    //         if (fds[0].revents & POLLIN)
-    //         {
-    //             char read_line[BUFFER_SIZE + 1];
-    //             ssize_t read_bytes = recv(socket_fd, read_line, BUFFER_SIZE, 0);
-    //             if (read_bytes <= 0)
-    //                 break;
-    //             read_line[read_bytes] = '\0';
-    //             printf("%s", read_line);
-    //         }
-    //         else if (fds[0].revents & POLLHUP)
-    //         {
-    //             fprintf(stderr, "fds[0].revents & POLLHUP\n");
-    //         }
-    //     }
-    //     else
-    //     {
-    //         perror("poll");
-    //         exit(1);
-    //     }
-    // }
 
     close(socket_fd);
     return 0;

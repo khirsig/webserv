@@ -1,14 +1,19 @@
 #!/bin/bash
 
-REQUEST=$'GET / HTTP/1.1\nHost: localhost\nConnection: close\n\n'
-REQUEST2=$'GET / HTTP/1.1\nHost: localhost\nConnection: keep-alive\n\n'
+# REQUEST=$'GET / HTTP/1.1\nHost: localhost\nConnection: close\n\n'
+# REQUEST2=$'GET / HTTP/1.1\nHost: localhost\nConnection: keep-alive\n\n'
 
-cc tcp_client/tcp_client.c -o tcp_client/tcp_client
+# cc tcp_client/tcp_client.c -o tcp_client/tcp_client
+
+# echo -ne 'GET / HTTP/1.1\nHost: local\n' | nc localhost 900
 
 x=1
-while [ $x -le 4 ]
+while [ $x -le 20000 ]
 do
-    ./tcp_client/tcp_client 127.0.0.1 9001 "$REQUEST2" >/dev/null &
+    printf "A" | nc localhost 900
+
+    echo -ne "GET http:// HTTP/1.1\nHost: locla\n\n" | nc localhost 9001
+    # ./tcp_client/tcp_client 127.0.0.1 9001 "$REQUEST2" >/dev/null &
     # ./tcp_client/tcp_client 127.0.0.1 9001 "$REQUEST" >/dev/null
     # echo $?
     # nc 127.0.0.1 9001 <<< "$REQUEST" >/dev/null #> out_nc
@@ -28,5 +33,7 @@ do
     printf "$x\n"
     x=$(( $x + 1 ))
 done
+
+# echo -ne '\n\n' | nc localhost 900
 
 exit 1
