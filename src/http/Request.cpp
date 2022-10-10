@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "../log/Log.hpp"
+#include "httpStatusCodes.hpp"
 
 namespace http {
 
@@ -46,13 +47,10 @@ Request::Request(core::ByteBuffer& buf)
       _version_end(0),
       _uri_start(0),
       _uri_end(0),
-      //   _uri_host_encoded(false),
       _uri_host_start(0),
       _uri_host_end(0),
       _uri_port_start(0),
       _uri_port_end(0),
-      //   _uri_path_complex(false),
-      //   _uri_path_encoded(false),
       _uri_path_start(0),
       _uri_path_end(0),
       _uri_query_start(0),
@@ -108,7 +106,6 @@ void Request::parse_input() {
         _state = REQUEST_DONE;
     }
     if (_state == REQUEST_DONE) {
-        _finalize();
         print();
     }
 }
@@ -128,7 +125,7 @@ int Request::parse_chunked_body() {
                         break;
                     default:
                         if (!isxdigit(c))
-                            return 400;
+                            throw HTTP_BAD_REQUEST;
                         _chunked_body_state = CHUNKED_BODY_LENGTH;
                         _chunk_size = HEX_CHAR_TO_INT(c);
                         break;
@@ -147,10 +144,10 @@ int Request::parse_chunked_body() {
                         break;
                     default:
                         if (!isxdigit(c))
-                            return 400;
+                            throw HTTP_BAD_REQUEST;
                         _chunk_size = _chunk_size * 16 + HEX_CHAR_TO_INT(c);
                         // if (_chunk_size > max_client_body)
-                        //     return 413;
+                        //     throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
@@ -168,7 +165,7 @@ int Request::parse_chunked_body() {
                 break;
             case CHUNKED_BODY_LENGTH_ALMOST_DONE:
                 if (c != '\n')
-                    return 400;
+                    throw HTTP_BAD_REQUEST;
                 _chunked_body_state = CHUNKED_BODY_DATA_SKIP;
                 break;
             case CHUNKED_BODY_DATA_SKIP:
@@ -185,12 +182,12 @@ int Request::parse_chunked_body() {
                         _chunked_body_state = CHUNKED_BODY_LENGTH_START;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case CHUNKED_BODY_DATA_ALMOST_DONE:
                 if (c != '\n')
-                    return 400;
+                    throw HTTP_BAD_REQUEST;
                 _chunked_body_state = CHUNKED_BODY_LENGTH_START;
                 break;
             case CHUNKED_BODY_LENGTH_0:
@@ -202,12 +199,12 @@ int Request::parse_chunked_body() {
                         _chunked_body_state = CHUNKED_BODY_DATA_0;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case CHUNKED_BODY_LENGTH_0_ALMOST_DONE:
                 if (c != '\n')
-                    return 400;
+                    throw HTTP_BAD_REQUEST;
                 _chunked_body_state = CHUNKED_BODY_DATA_0;
                 break;
             case CHUNKED_BODY_DATA_0:
@@ -217,21 +214,21 @@ int Request::parse_chunked_body() {
                         break;
                     case '\n':
                         _chunked_body_state = CHUNKED_DONE;
-                        return 0;
+                        return WEBSERV_OK;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case CHUNKED_ALMOST_DONE:
                 if (c != '\n')
-                    return 400;
+                    throw HTTP_BAD_REQUEST;
                 _chunked_body_state = CHUNKED_DONE;
-                return 0;
+                return WEBSERV_OK;
             case CHUNKED_DONE:
-                return 0;
+                return WEBSERV_OK;
         }
     }
-    return 1;
+    return WEBSERV_AGAIN;
 }
 
 void Request::_parse_method() {
@@ -242,9 +239,9 @@ void Request::_parse_method() {
                 break;
             }
             if (_buf.equal(_buf.begin() + _method_start, "PUT", 3)) {
-                return 501;
+                throw HTTP_NOT_IMPLEMENTED;
             }
-            return 401;
+            throw HTTP_BAD_REQUEST;
         case 4:
             if (_buf.equal(_buf.begin() + _method_start, "HEAD", 4)) {
                 _method = HEAD;
@@ -254,28 +251,27 @@ void Request::_parse_method() {
                 _method = POST;
                 break;
             }
-            return 402;
+            throw HTTP_BAD_REQUEST;
         case 5:
             if (_buf.equal(_buf.begin() + _method_start, "TRACE", 5)) {
-                return 501;
+                throw HTTP_NOT_IMPLEMENTED;
             }
-            return 403;
+            throw HTTP_BAD_REQUEST;
         case 6:
             if (_buf.equal(_buf.begin() + _method_start, "DELETE", 6)) {
                 _method = DELETE;
                 break;
             }
-            return 404;
+            throw HTTP_BAD_REQUEST;
         case 7:
             if (_buf.equal(_buf.begin() + _method_start, "CONNECT", 7)) {
-                return 501;
+                throw HTTP_NOT_IMPLEMENTED;
             }
             if (_buf.equal(_buf.begin() + _method_start, "OPTIONS", 7)) {
-                return 501;
+                throw HTTP_NOT_IMPLEMENTED;
             }
-            return 405;
+            throw HTTP_BAD_REQUEST;
     }
-    return 0;
 }
 
 void Request::_uri_path_depth_check() {
@@ -349,7 +345,7 @@ void Request::_analyze_request_line() {
 
 void Request::_analyze_header() {
     if (_m_header.find("host") == _m_header.end())
-        return 400;
+        throw HTTP_BAD_REQUEST;
     std::map<std::string, std::string>::iterator it_content_len = _m_header.find("content-length");
     if (it_content_len != _m_header.end()) {
         _body_expected_size = atoi(it_content_len->second.c_str());  // error handling? / c style
@@ -364,14 +360,13 @@ void Request::_analyze_header() {
     std::map<std::string, std::string>::iterator it_transfer_encoding =
         _m_header.find("transfer-encoding");
     if (it_content_len != _m_header.end() && it_transfer_encoding != _m_header.end()) {
-        return 400;
+        throw HTTP_BAD_REQUEST;
     } else if (it_transfer_encoding != _m_header.end()) {
         if (it_transfer_encoding->second == "chunked")
             _chunked_body = true;
         else
-            return 501;
+            throw HTTP_NOT_IMPLEMENTED;
     }
-    return 0;
 }
 
 void Request::_uri_decode(const core::ByteBuffer& buf, std::size_t start, std::size_t end,
@@ -406,11 +401,8 @@ void Request::_uri_decode(const core::ByteBuffer& buf, std::size_t start, std::s
     }
 }
 
-void Request::_finalize() {}
-
 int Request::parse_request_line() {
     char c;
-    int  error;
     for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
         c = _buf[i];
         switch (_state_request_line) {
@@ -422,7 +414,7 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (!IS_METHOD_CHAR(c))
-                            return 490;
+                            throw HTTP_BAD_REQUEST;
                         _method_start = _buf.pos;
                         _state_request_line = METHOD;
                         break;
@@ -432,12 +424,10 @@ int Request::parse_request_line() {
                 if (IS_METHOD_CHAR(c))
                     break;
                 if (c != ' ')
-                    return 490;
+                    throw HTTP_BAD_REQUEST;
                 _method_end = _buf.pos;
                 _state_request_line = AFTER_METHOD;
-                error = _parse_method();
-                if (error > 0)
-                    return error;
+                _parse_method();
                 break;
             case AFTER_METHOD:
                 switch (c) {
@@ -452,7 +442,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_HT;
                         break;
                     default:
-                        return 493;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HT:
@@ -461,7 +451,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_HTT;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HTT:
@@ -470,7 +460,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_HTTP;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HTTP:
@@ -479,7 +469,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_HTTP_COLON;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HTTP_COLON:
@@ -488,7 +478,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_HTTP_COLON_SLASH;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HTTP_COLON_SLASH:
@@ -497,7 +487,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_HTTP_COLON_SLASH_SLASH;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HTTP_COLON_SLASH_SLASH:
@@ -507,7 +497,7 @@ int Request::parse_request_line() {
                         _uri_host_start = _uri_host_end = _buf.pos + 1;
                         break;
                     default:
-                        return 400;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case URI_HTTP_COLON_SLASH_SLASH_HOST:
@@ -517,7 +507,6 @@ int Request::parse_request_line() {
                         _state_request_line = AFTER_URI;
                         break;
                     case '%':
-                        // _uri_host_encoded = true;
                         _state_request_line = URI_HOST_ENCODE_1;
                         break;
                     case '/':
@@ -530,18 +519,18 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (!IS_HOST_CHAR(c))
-                            return 400;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
             case URI_HOST_ENCODE_1:
                 if (!isxdigit(c))
-                    return 400;
+                    throw HTTP_BAD_REQUEST;
                 _state_request_line = URI_HOST_ENCODE_2;
                 break;
             case URI_HOST_ENCODE_2:
                 if (!isxdigit(c))
-                    return 400;
+                    throw HTTP_BAD_REQUEST;
                 _state_request_line = URI_HTTP_COLON_SLASH_SLASH_HOST;
                 break;
             case URI_HOST_PORT:
@@ -556,7 +545,7 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (!isdigit(c))
-                            return 400;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
@@ -569,7 +558,6 @@ int Request::parse_request_line() {
                         break;
                     case '%':
                         _state_request_line = URI_ENCODE_1;
-                        // _uri_path_encoded = true;
                         break;
                     case '?':
                         _uri_path_end = _buf.pos;
@@ -581,23 +569,20 @@ int Request::parse_request_line() {
                         _uri_fragment_start = _buf.pos + 1;
                         _state_request_line = URI_FRAGMENT;
                         break;
-                    // case '.':
-                    //     _uri_path_complex = true;
-                    //     break;
                     default:
                         if (!isprint(c))
-                            return 494;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
             case URI_ENCODE_1:
                 if (!isxdigit(c))
-                    return 495;
+                    throw HTTP_BAD_REQUEST;
                 _state_request_line = URI_ENCODE_2;
                 break;
             case URI_ENCODE_2:
                 if (!isxdigit(c))
-                    return 496;
+                    throw HTTP_BAD_REQUEST;
                 _state_request_line = URI_SLASH;
                 break;
             case URI_QUERY:
@@ -613,7 +598,7 @@ int Request::parse_request_line() {
                         _state_request_line = URI_FRAGMENT;
                     default:
                         if (!isprint(c))
-                            return 497;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
@@ -626,7 +611,7 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (!isprint(c))
-                            return 498;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
@@ -639,32 +624,32 @@ int Request::parse_request_line() {
                         _version_start = _buf.pos;
                         break;
                     default:
-                        return 499;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case VERSION_HT:
                 if (c == 'T')
                     _state_request_line = VERSION_HTT;
                 else
-                    return 4952;
+                    throw HTTP_BAD_REQUEST;
                 break;
             case VERSION_HTT:
                 if (c == 'T')
                     _state_request_line = VERSION_HTTP;
                 else
-                    return 4953;
+                    throw HTTP_BAD_REQUEST;
                 break;
             case VERSION_HTTP:
                 if (c == 'P')
                     _state_request_line = VERSION_HTTP_SLASH;
                 else
-                    return 4954;
+                    throw HTTP_BAD_REQUEST;
                 break;
             case VERSION_HTTP_SLASH:
                 if (c == '/')
                     _state_request_line = VERSION_HTTP_SLASH_MAJOR;
                 else
-                    return 4955;
+                    throw HTTP_BAD_REQUEST;
                 break;
             case VERSION_HTTP_SLASH_MAJOR:
                 switch (c) {
@@ -673,8 +658,8 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (isdigit(c))
-                            return 501;
-                        return 4957;
+                            throw HTTP_NOT_IMPLEMENTED;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case VERSION_HTTP_SLASH_MAJOR_DOT:
@@ -684,8 +669,8 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (isdigit(c))
-                            return 501;
-                        return 4958;
+                            throw HTTP_NOT_IMPLEMENTED;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case VERSION_HTTP_SLASH_MAJOR_DOT_MINOR:
@@ -695,8 +680,8 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (isdigit(c))
-                            return 501;
-                        return 4959;
+                            throw HTTP_NOT_IMPLEMENTED;
+                        throw HTTP_BAD_REQUEST;
                 }
                 _version_end = _buf.pos + 1;
                 break;
@@ -712,15 +697,15 @@ int Request::parse_request_line() {
                         break;
                     default:
                         if (isdigit(c))
-                            return 501;
-                        return 496;
+                            throw HTTP_NOT_IMPLEMENTED;
+                        throw HTTP_BAD_REQUEST;
                 }
                 break;
             case ALMOST_DONE:
                 if (c == '\n')
                     _state_request_line = DONE;
                 else
-                    return 497;
+                    throw HTTP_BAD_REQUEST;
                 break;
             case DONE:
                 break;
@@ -728,10 +713,10 @@ int Request::parse_request_line() {
         if (_state_request_line == DONE) {
             _buf.pos++;
             _request_end = _header_start = _buf.pos;
-            return 0;
+            return WEBSERV_OK;
         }
     }
-    return 1;
+    return WEBSERV_AGAIN;
 }
 
 void print_header_pair(const core::ByteBuffer& buf, size_t key_start, size_t key_end,
@@ -758,18 +743,16 @@ void Request::_add_header() {
     if (ret.second == false) {
         for (size_t i = 0; i < sizeof(headers) / sizeof(headers[0]); i++) {
             if (key == headers[i].first)
-                return 489;
+                throw HTTP_BAD_REQUEST;
         }
         (*ret.first).second = value;
     }
     _header_key_start = _header_key_end = 0;
     _header_value_start = _header_value_end = 0;
-    return 0;
 }
 
-void Request::parse_header() {
+int Request::parse_header() {
     char c;
-    int  error;
     for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
         c = _buf[i];
         switch (_state_header) {
@@ -785,7 +768,7 @@ void Request::parse_header() {
                         return 0;
                     default:
                         if (!IS_TOKEN_CHAR(c))
-                            return 481;
+                            throw HTTP_BAD_REQUEST;
                         _state_header = H_KEY;
                         break;
                 }
@@ -798,16 +781,14 @@ void Request::parse_header() {
                         break;
                     case '\n':
                         _state_header = H_KEY_START;
-                        error = _add_header();
-                        if (error)
-                            return error;
+                        _add_header();
                         break;
                     case ':':
                         _state_header = H_VALUE_START;
                         break;
                     default:
                         if (!IS_TOKEN_CHAR(c))
-                            return 482;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
@@ -819,16 +800,14 @@ void Request::parse_header() {
                         break;
                     case '\n':
                         _state_header = H_KEY_START;
-                        error = _add_header();
-                        if (error)
-                            return error;
+                        _add_header();
                         break;
                     case '\t':
                     case ' ':
                         break;
                     default:
                         if (!IS_TEXT_CHAR(c))
-                            return 483;
+                            throw HTTP_BAD_REQUEST;
                         _state_header = H_VALUE;
                         break;
                 }
@@ -841,33 +820,29 @@ void Request::parse_header() {
                         break;
                     case '\n':
                         _state_header = H_KEY_START;
-                        error = _add_header();
-                        if (error)
-                            return error;
+                        _add_header();
                         break;
                     default:
                         if (!IS_TEXT_CHAR(c))
-                            return 484;
+                            throw HTTP_BAD_REQUEST;
                         break;
                 }
                 break;
             case H_ALMOST_DONE_HEADER_LINE:
                 if (c != '\n')
-                    return 485;
+                    throw HTTP_BAD_REQUEST;
                 _state_header = H_KEY_START;
-                error = _add_header();
-                if (error)
-                    return error;
+                _add_header();
                 break;
             case H_ALMOST_DONE_HEADER:
                 if (c != '\n')
-                    return 487;
+                    throw HTTP_BAD_REQUEST;
                 _buf.pos++;
                 _header_end = _buf.pos;
-                return 0;
+                return WEBSERV_OK;
         }
     }
-    return 1;
+    return WEBSERV_AGAIN;
 }
 
 void Request::print() {

@@ -140,12 +140,11 @@ class Request {
 
     void _uri_decode(const core::ByteBuffer& buf, std::size_t start, std::size_t end,
                      std::string& res);
-    int  _add_header();
-    int  _parse_method();
+    void _add_header();
+    void _parse_method();
     void _analyze_request_line();
-    int  _analyze_header();
+    void _analyze_header();
     void _uri_path_depth_check();
-    void _finalize();
 
    public:
     int error;

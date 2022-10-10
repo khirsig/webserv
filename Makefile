@@ -13,10 +13,10 @@ DEPFLAGS     =	-MT $@ -MMD -MP -MF $(DDIR)/$*.d
 LDFLAGS     :=
 LDLIBS      :=
 
-VPATH       :=	src/							\
-				src/config/						    \
-				src/core/						      \
-				src/file/                 \
+VPATH       :=	src/		\
+				src/config/	\
+				src/core/	\
+				src/file/	\
 				src/http/
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
