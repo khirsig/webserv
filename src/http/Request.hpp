@@ -162,19 +162,3 @@ class Request {
 };
 
 }  // namespace http
-
-// REQUEST LINE Parsing
-// -
-
-// HEADER Parsing
-// - durch den buffer Line by line
-// - check if line is too long
-// - check if line starts with space, append value to last header
-// - check if line contains ':'
-// - extract key / value and store it in map
-
-// BODY Parsing
-// - check if body size is correct
-// - append read calls to buffer
-
-// key: value\r\n

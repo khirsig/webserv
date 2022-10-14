@@ -64,6 +64,7 @@ Request::Request(core::ByteBuffer& buf)
       _header_value_start(0),
       _header_value_end(0),
       _chunked_body(false),
+      _chunked_body_buf(1024),
       _chunked_body_state(CHUNKED_BODY_LENGTH_START),
       _body_expected_size(0),
       _body_start(0),
@@ -72,7 +73,7 @@ Request::Request(core::ByteBuffer& buf)
       _state(REQUEST_LINE),
       _state_request_line(START),
       _state_header(H_KEY_START) {
-    _buf.reserve(8192);
+    // _buf.reserve(8192);
 }
 
 Request::~Request() {}
@@ -81,8 +82,8 @@ void Request::parse_input() {
     if (_state == REQUEST_LINE) {
         if (parse_request_line() == WEBSERV_AGAIN)
             return;
-        _state = REQUEST_HEADER;
         _analyze_request_line();
+        _state = REQUEST_HEADER;
     }
     if (_state == REQUEST_HEADER) {
         if (parse_header() == WEBSERV_AGAIN)
@@ -98,7 +99,8 @@ void Request::parse_input() {
             return;
         _state = REQUEST_DONE;
         _body_start = _buf.pos;
-        _request_end = _body_end = _body_start + _body_expected_size;
+        _buf.pos += _body_expected_size;
+        _request_end = _body_end = _buf.pos;
     }
     if (_state == REQUEST_BODY_CHUNKED) {
         if (parse_chunked_body() == WEBSERV_AGAIN)

@@ -5,8 +5,6 @@
 #include <vector>
 
 #include "../http/Request.hpp"
-#include "../http/RequestHandler.hpp"
-#include "../http/Response.hpp"
 #include "ByteBuffer.hpp"
 #include "EventNotificationInterface.hpp"
 
@@ -19,12 +17,12 @@ class Connections {
     Connections(size_t max_connections);
     ~Connections();
 
-    int         accept_connection(int fd, EventNotificationInterface& eni);
-    int         close_connection(int fd, EventNotificationInterface& eni);
-    int         timeout_connection(int fd, EventNotificationInterface& eni);
+    void        accept_connection(int fd, EventNotificationInterface& eni);
+    void        receive(int fd, EventNotificationInterface& eni);
+    void        close_connection(int fd, EventNotificationInterface& eni);
+    void        timeout_connection(int fd, EventNotificationInterface& eni);
     std::string get_connection_ip(int fd) const;
     int         get_connection_port(int fd) const;
-    int         receive(int fd, EventNotificationInterface& eni);
 
    private:
     std::size_t                       _max_connections;

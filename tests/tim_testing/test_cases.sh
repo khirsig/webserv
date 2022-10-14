@@ -80,5 +80,10 @@ Content-Length: 0
 ```
 
 
-// get out of root dir with . % encoding
+// get out of root dir with .. % encoding
+
+
+
+echo -ne 'GET / HTTP/1.1\nHost: local\n\nPOST / HTTP/1.1\nHost: local\nContent-Length: 4\n\n1234GET / HTTP/1.1\nHost: local\n\n' | nc localhost 900
+
 
