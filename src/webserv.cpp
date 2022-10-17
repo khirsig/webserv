@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/14 17:00:12 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/17 12:08:44 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,11 @@
 #include "core/Connections.hpp"
 #include "core/EventNotificationInterface.hpp"
 #include "core/Socket.hpp"
+#include "http/StatusCode.hpp"
+#include "http/httpStatusCodes.hpp"
 #include "log/Log.hpp"
 
+http::StatusCode status_code;
 // #define DEBUG_CONFIG_PARSER
 
 int main(int argc, char* argv[]) {
@@ -59,6 +62,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        status_code.init();
         core::Connections connections(1024);
         while (42) {
             try {

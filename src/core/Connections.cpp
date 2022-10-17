@@ -9,6 +9,9 @@
 #include <iostream>
 #include <string>
 
+#include "../http/StatusCode.hpp"
+#include "../http/httpStatusCodes.hpp"
+
 namespace core {
 
 Connections::Connections(size_t max_connections) : _max_connections(max_connections) {
@@ -153,13 +156,19 @@ void Connections::receive(int fd, EventNotificationInterface& eni) {
                 _v_request[index] = new http::Request(*_v_request_buf[index]);
             }
         } catch (int error) {
-            std::string msg = std::to_string(error) + " Bad Request\n";
-            write(fd, msg.c_str(), msg.length());
+            std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
+            if (it != status_code.codes.end())
+                write(fd, &(it->second[0]), it->second.size());
+            else
+                write(fd, &(status_code.codes[501]), status_code.codes[501].size());
             close_connection(_v_fd[index], eni);
             break;
         } catch (const std::exception& e) {
-            std::string msg = "501 Internal Server error\n";
-            write(fd, msg.c_str(), msg.length());
+            write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+            close_connection(_v_fd[index], eni);
+            break;
+        } catch (...) {
+            write(fd, &(status_code.codes[501]), status_code.codes[501].size());
             close_connection(_v_fd[index], eni);
             break;
         }
