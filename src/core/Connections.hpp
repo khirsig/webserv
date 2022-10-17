@@ -18,7 +18,8 @@ class Connections {
     ~Connections();
 
     void        accept_connection(int fd, EventNotificationInterface& eni);
-    void        receive(int fd, EventNotificationInterface& eni);
+    int         receive(int fd, EventNotificationInterface& eni);
+    int         parse(int index, EventNotificationInterface& eni);
     void        close_connection(int fd, EventNotificationInterface& eni);
     void        timeout_connection(int fd, EventNotificationInterface& eni);
     std::string get_connection_ip(int fd) const;

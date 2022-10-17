@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/17 12:08:44 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/17 13:53:20 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,13 +77,16 @@ int main(int argc, char* argv[]) {
                     } else if (eni.events[i].filter == EVFILT_TIMER) {
                         connections.timeout_connection(eni.events[i].ident, eni);
                     } else if (eni.events[i].flags & EV_EOF) {
-                        if (eni.events[i].filter == EVFILT_READ)
-                            connections.receive(eni.events[i].ident, eni);
+                        if (eni.events[i].filter == EVFILT_READ) {
+                            int index = connections.receive(eni.events[i].ident, eni);
+                            connections.parse(index, eni);
+                        }
                         connections.close_connection(eni.events[i].ident, eni);
                     } else if (eni.events[i].filter == EVFILT_WRITE) {
                         // write(eni.events[i].ident, "RESPONSE WRITE\n", 15);
                     } else if (eni.events[i].filter == EVFILT_READ) {
-                        connections.receive(eni.events[i].ident, eni);
+                        int index = connections.receive(eni.events[i].ident, eni);
+                        connections.parse(index, eni);
                     }
                 }
             } catch (const std::exception& e) {

@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:51:44 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/17 12:40:03 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/17 14:06:52 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ class ByteBuffer : public std::vector<std::uint8_t> {
     ~ByteBuffer();
 
     void append(const char *str, std::size_t n);
+    void append(const char *str);
     bool equal(ByteBuffer::iterator pos, const char *str, std::size_t n);
 
     ByteBuffer &operator+=(const ByteBuffer &buf);

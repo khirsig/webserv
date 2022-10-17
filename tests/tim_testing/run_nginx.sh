@@ -38,6 +38,8 @@ docker run \
     -v $(pwd)/data:/var/www/html \
     -v $(pwd)/$LOG_FOLDER:/var/log/nginx \
     -p $PORT:80 \
+    -p 4141:4141 \
+    -p 4242:4242 \
     --link php:php \
     -d \
     nginx:1.22-alpine nginx-debug -g 'daemon off;'

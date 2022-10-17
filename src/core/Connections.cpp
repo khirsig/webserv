@@ -120,11 +120,11 @@ int Connections::get_connection_port(int fd) const {
     return (int)ntohs(_v_address[index].sin_port);
 }
 
-void Connections::receive(int fd, EventNotificationInterface& eni) {
+int Connections::receive(int fd, EventNotificationInterface& eni) {
     // search for connection index
     int index = get_index(fd);
-    if (index == -1)
-        return;
+    // if (index == -1)
+    //     return -1;
 
     // recv bytes from connection
     char buf[1024];
@@ -141,12 +141,48 @@ void Connections::receive(int fd, EventNotificationInterface& eni) {
     // append received bytes to connection buffer
     _v_request_buf[index]->append(buf, bytes_read);
 
+    return index;
+
     // parse connection buffer
+    // while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
+    //     try {
+    //         _v_request[index]->parse_input();
+    //         if (_v_request[index]->done()) {
+    //             write(fd, "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
+    //                   strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
+    //             _v_request_buf[index]->erase(
+    //                 _v_request_buf[index]->begin(),
+    //                 _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
+    //             _v_request_buf[index]->pos = 0;
+    //             delete _v_request[index];
+    //             _v_request[index] = new http::Request(*_v_request_buf[index]);
+    //         }
+    //     } catch (int error) {
+    //         std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
+    //         if (it != status_code.codes.end())
+    //             write(fd, &(it->second[0]), it->second.size());
+    //         else
+    //             write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+    //         close_connection(_v_fd[index], eni);
+    //         break;
+    //     } catch (const std::exception& e) {
+    //         write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+    //         close_connection(_v_fd[index], eni);
+    //         break;
+    //     } catch (...) {
+    //         write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+    //         close_connection(_v_fd[index], eni);
+    //         break;
+    //     }
+    // }
+}
+
+int Connections::parse(int index, EventNotificationInterface& eni) {
     while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
         try {
             _v_request[index]->parse_input();
             if (_v_request[index]->done()) {
-                write(fd, "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
+                write(_v_fd[index], "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
                       strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
                 _v_request_buf[index]->erase(
                     _v_request_buf[index]->begin(),
@@ -158,17 +194,17 @@ void Connections::receive(int fd, EventNotificationInterface& eni) {
         } catch (int error) {
             std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
             if (it != status_code.codes.end())
-                write(fd, &(it->second[0]), it->second.size());
+                write(_v_fd[index], &(it->second[0]), it->second.size());
             else
-                write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+                write(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size());
             close_connection(_v_fd[index], eni);
             break;
         } catch (const std::exception& e) {
-            write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+            write(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size());
             close_connection(_v_fd[index], eni);
             break;
         } catch (...) {
-            write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+            write(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size());
             close_connection(_v_fd[index], eni);
             break;
         }

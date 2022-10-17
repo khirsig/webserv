@@ -1,5 +1,7 @@
 #include "StatusCode.hpp"
 
+#include <string>
+
 #include "httpStatusCodes.hpp"
 
 namespace http {
@@ -25,18 +27,23 @@ void StatusCode::init() {
         core::ByteBuffer header(0);
         core::ByteBuffer body(0);
 
-        // HEADER
-        header.append("HTTP/1.1 ", 9);
-        header.append("\nServer: webserv\n", 17);
-        header.append("Content-Type: text/html\n", 24);
+        // BODY
+        body.append("<html>\r\n<head><title>");
+        body.append(static_status_codes[i].msg);
+        body.append("</title></head>\r\n<body>\r\n<center><h1>");
+        body.append(static_status_codes[i].msg);
+        body.append("</h1></center>\r\n<hr><center>webserv</center>\r\n</body>\r\n</html>\r\n");
 
         // HEADER
-        body.append("<html>\n<head><title>", 20);
-        body.append(static_status_codes[i].msg, strlen(static_status_codes[i].msg));
-        body.append("</title></head>\n<body>\n<center><h1>", 35);
-        body.append(static_status_codes[i].msg, strlen(static_status_codes[i].msg));
-        body.append("</h1></center>\n<hr><center>webserv</center>\n</body>\n</html>\n", 60);
-        codes.insert(std::make_pair(static_status_codes[i].code, body));
+        header.append("HTTP/1.1 ");
+        header.append(static_status_codes[i].msg);
+        header.append("\r\nServer: webserv\r\n");
+        header.append("Content-Type: text/html\r\n");
+        header.append("Content-Length: ");
+        header.append(std::to_string(body.size()).c_str());
+        header.append("\r\nConnection: close\r\n\r\n");
+
+        codes.insert(std::make_pair(static_status_codes[i].code, header + body));
     }
 }
 
