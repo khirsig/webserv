@@ -22,13 +22,21 @@ static const struct s_status_codes static_status_codes[] = {
 
 void StatusCode::init() {
     for (size_t i = 0; i < sizeof(static_status_codes) / sizeof(static_status_codes[0]); i++) {
-        core::ByteBuffer buf(0);
-        buf.append("<html>\n<head><title>", 20);
-        buf.append(static_status_codes[i].msg, strlen(static_status_codes[i].msg));
-        buf.append("</title></head>\n<body>\n<center><h1>", 35);
-        buf.append(static_status_codes[i].msg, strlen(static_status_codes[i].msg));
-        buf.append("</h1></center>\n<hr><center>webserv</center>\n</body>\n</html>\n", 60);
-        codes.insert(std::make_pair(static_status_codes[i].code, buf));
+        core::ByteBuffer header(0);
+        core::ByteBuffer body(0);
+
+        // HEADER
+        header.append("HTTP/1.1 ", 9);
+        header.append("\nServer: webserv\n", 17);
+        header.append("Content-Type: text/html\n", 24);
+
+        // HEADER
+        body.append("<html>\n<head><title>", 20);
+        body.append(static_status_codes[i].msg, strlen(static_status_codes[i].msg));
+        body.append("</title></head>\n<body>\n<center><h1>", 35);
+        body.append(static_status_codes[i].msg, strlen(static_status_codes[i].msg));
+        body.append("</h1></center>\n<hr><center>webserv</center>\n</body>\n</html>\n", 60);
+        codes.insert(std::make_pair(static_status_codes[i].code, body));
     }
 }
 
