@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/17 13:53:20 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/18 13:21:32 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,8 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
+        status_code.init();
+
         config::Parser              parser;
         std::vector<config::Server> v_server;
 
@@ -62,8 +64,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        status_code.init();
-        core::Connections connections(1024);
+        core::Connections connections(1024, v_server);
         while (42) {
             try {
                 int num_events = eni.poll_events();
@@ -78,15 +79,15 @@ int main(int argc, char* argv[]) {
                         connections.timeout_connection(eni.events[i].ident, eni);
                     } else if (eni.events[i].flags & EV_EOF) {
                         if (eni.events[i].filter == EVFILT_READ) {
-                            int index = connections.receive(eni.events[i].ident, eni);
-                            connections.parse(index, eni);
+                            int index = connections.recv_request(eni.events[i].ident, eni);
+                            connections.parse_request(index, eni);
                         }
                         connections.close_connection(eni.events[i].ident, eni);
                     } else if (eni.events[i].filter == EVFILT_WRITE) {
-                        // write(eni.events[i].ident, "RESPONSE WRITE\n", 15);
+                        connections.send_response(eni.events[i].ident, eni, eni.events[i].data);
                     } else if (eni.events[i].filter == EVFILT_READ) {
-                        int index = connections.receive(eni.events[i].ident, eni);
-                        connections.parse(index, eni);
+                        int index = connections.recv_request(eni.events[i].ident, eni);
+                        connections.parse_request(index, eni);
                     }
                 }
             } catch (const std::exception& e) {

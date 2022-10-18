@@ -108,6 +108,7 @@ void Request::parse_input() {
         _state = REQUEST_DONE;
     }
     if (_state == REQUEST_DONE) {
+
         print();
     }
 }

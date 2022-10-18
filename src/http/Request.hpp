@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "../config/Location.hpp"
+#include "../config/Server.hpp"
 #include "../core/ByteBuffer.hpp"
 
 #define IMPLEMENTED true
@@ -137,6 +139,9 @@ class Request {
     std::string _uri_path_decoded;
 
     std::map<std::string, std::string> _m_header;
+
+    // config::Server&   _server;
+    // config::Location& _location;
 
     void _uri_decode(const core::ByteBuffer& buf, std::size_t start, std::size_t end,
                      std::string& res);

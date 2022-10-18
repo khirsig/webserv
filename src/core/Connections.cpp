@@ -11,16 +11,20 @@
 
 #include "../http/StatusCode.hpp"
 #include "../http/httpStatusCodes.hpp"
+#include "utils.hpp"
 
 namespace core {
 
-Connections::Connections(size_t max_connections) : _max_connections(max_connections) {
+Connections::Connections(size_t max_connections, std::vector<config::Server>& v_server)
+    : _max_connections(max_connections), _v_server(v_server) {
     _v_fd.resize(max_connections, -1);
     _v_socket_fd.resize(max_connections);
     _v_address.resize(max_connections);
     _v_address_len.resize(max_connections, sizeof(_v_address[0]));
     _v_request.resize(max_connections, NULL);
     _v_request_buf.resize(max_connections, NULL);
+    _v_response.resize(max_connections, NULL);
+    _v_response_buf.resize(max_connections, NULL);
 }
 
 Connections::~Connections() {
@@ -96,8 +100,12 @@ void Connections::close_connection(int fd, EventNotificationInterface& eni) {
     _v_request_buf[index] = NULL;
     delete _v_request[index];
     _v_request[index] = NULL;
+    delete _v_response_buf[index];
+    _v_response_buf[index] = NULL;
+    delete _v_response[index];
+    _v_response[index] = NULL;
+    close(_v_fd[index]);
     _v_fd[index] = -1;
-    close(fd);
 }
 
 void Connections::timeout_connection(int fd, EventNotificationInterface& eni) {
@@ -120,7 +128,7 @@ int Connections::get_connection_port(int fd) const {
     return (int)ntohs(_v_address[index].sin_port);
 }
 
-int Connections::receive(int fd, EventNotificationInterface& eni) {
+int Connections::recv_request(int fd, EventNotificationInterface& eni) {
     // search for connection index
     int index = get_index(fd);
     // if (index == -1)
@@ -177,37 +185,65 @@ int Connections::receive(int fd, EventNotificationInterface& eni) {
     // }
 }
 
-int Connections::parse(int index, EventNotificationInterface& eni) {
-    while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
-        try {
-            _v_request[index]->parse_input();
-            if (_v_request[index]->done()) {
-                write(_v_fd[index], "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
-                      strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
-                _v_request_buf[index]->erase(
-                    _v_request_buf[index]->begin(),
-                    _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
-                _v_request_buf[index]->pos = 0;
-                delete _v_request[index];
-                _v_request[index] = new http::Request(*_v_request_buf[index]);
-            }
-        } catch (int error) {
-            std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
-            if (it != status_code.codes.end())
-                write(_v_fd[index], &(it->second[0]), it->second.size());
-            else
-                write(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size());
-            close_connection(_v_fd[index], eni);
-            break;
-        } catch (const std::exception& e) {
-            write(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size());
-            close_connection(_v_fd[index], eni);
-            break;
-        } catch (...) {
-            write(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size());
-            close_connection(_v_fd[index], eni);
-            break;
+void Connections::parse_request(int index, EventNotificationInterface& eni) {
+    // while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
+    try {
+        _v_request[index]->parse_input();
+        if (_v_request[index]->done()) {
+            build_response(index);
+            _v_request_buf[index]->erase(
+                _v_request_buf[index]->begin(),
+                _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
+            _v_request_buf[index]->pos = 0;
+            delete _v_request[index];
+            _v_request[index] = new http::Request(*_v_request_buf[index]);
+            eni.delete_event(_v_fd[index], EVFILT_READ);
+            eni.add_event(_v_fd[index], EVFILT_WRITE, 0);
         }
+    } catch (int error) {
+        std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
+        if (it != status_code.codes.end())
+            send(_v_fd[index], &(it->second[0]), it->second.size(), 0);
+        else
+            send(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size(), 0);
+        close_connection(_v_fd[index], eni);
+    } catch (const std::exception& e) {
+        send(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size(), 0);
+        close_connection(_v_fd[index], eni);
+    } catch (...) {
+        send(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size(), 0);
+        close_connection(_v_fd[index], eni);
+    }
+}
+
+void Connections::build_response(int index) {
+    _v_response_buf[index] = new core::ByteBuffer(4096);
+    _v_response[index] = new http::Response(*_v_response_buf[index]);
+    _v_response_buf[index]->append("RESPONSE\n");
+}
+
+void Connections::send_response(int fd, EventNotificationInterface& eni, size_t max_bytes) {
+    int index = get_index(fd);
+    try {
+        size_t left_bytes = _v_response_buf[index]->size() - _v_response_buf[index]->pos;
+        size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
+        write(2, &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos, send_bytes);
+        if (send(_v_fd[index], &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos,
+                 send_bytes, 0) < 0)
+            throw std::runtime_error("send() failed");
+        _v_response_buf[index]->pos += send_bytes;
+        if (_v_response_buf[index]->pos >= _v_response_buf[index]->size()) {
+            delete _v_response_buf[index];
+            _v_response_buf[index] = NULL;
+            delete _v_response[index];
+            _v_response[index] = NULL;
+            eni.delete_event(_v_fd[index], EVFILT_WRITE);
+            eni.add_event(_v_fd[index], EVFILT_READ, 0);
+            parse_request(index, eni);
+        }
+    } catch (const std::exception& e) {
+        close_connection(_v_fd[index], eni);
+        std::cerr << core::timestamp() << e.what() << "\n";
     }
 }
 
