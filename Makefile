@@ -21,13 +21,13 @@ VPATH       :=	src/		\
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
 
-BUILDDIR    := build
+BUILDDIR    :=	build
 
-ODIR        := $(BUILDDIR)/obj
-OBJS        := $(SRCS:%.cpp=$(ODIR)/%.o)
+ODIR        :=	$(BUILDDIR)/obj
+OBJS        :=	$(SRCS:%.cpp=$(ODIR)/%.o)
 
-DDIR        := $(BUILDDIR)/deps
-DEPS        := $(SRCS:%.cpp=$(DDIR)/%.d)
+DDIR        :=	$(BUILDDIR)/deps
+DEPS        :=	$(SRCS:%.cpp=$(DDIR)/%.d)
 
 # **************************************************************************** #
 #	SYSTEM SPECIFIC SETTINGS							   					   #

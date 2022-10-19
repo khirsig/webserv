@@ -10,6 +10,7 @@
 #include <string>
 
 #include "../http/ErrorPages.hpp"
+#include "../http/Request.hpp"
 #include "../http/StatusCodes.hpp"
 #include "../http/httpStatusCodes.hpp"
 #include "utils.hpp"
@@ -223,12 +224,24 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
 void Connections::build_response(int index) {
     _v_response_buf[index] = new core::ByteBuffer(4096);
     _v_response[index] = new http::Response(*_v_response_buf[index]);
-    // find server
-    // find location
-    config::Server& server = _find_server(index, *_v_request[index]);
-    server.print();
-    // config::Location& location;
-    // _v_response[index]->init(*_v_request[index], server, location);
+
+    // Find Sever
+    config::Server* server = _find_server(index, *_v_request[index]);
+    if (!server)
+        throw HTTP_INTERNAL_SERVER_ERROR;
+
+    // Find Location
+    config::Location* location = _find_location(*_v_request[index], server);
+    if (!location)
+        throw HTTP_NOT_FOUND;
+
+    // check method allowed....
+    if (location->v_accepted_method.size() > 0) {
+        if (std::find(location->v_accepted_method.begin(), location->v_accepted_method.end(),
+                      _v_request[index]->_method) == location->v_accepted_method.end())
+            throw HTTP_METHOD_NOT_ALLOWED;
+    }
+    _v_response[index]->init(*_v_request[index], *server, *location);
 }
 
 void Connections::send_response(int fd, EventNotificationInterface& eni, size_t max_bytes) {
@@ -242,15 +255,20 @@ void Connections::send_response(int fd, EventNotificationInterface& eni, size_t 
             throw std::runtime_error("send() failed");
         _v_response_buf[index]->pos += send_bytes;
         if (_v_response_buf[index]->pos >= _v_response_buf[index]->size()) {
+            eni.delete_event(_v_fd[index], EVFILT_WRITE);
+            if (_v_response[index]->connection_state == http::CONNECTION_CLOSE) {
+                close_connection(_v_fd[index], eni);
+                return;
+            }
             delete _v_response_buf[index];
             _v_response_buf[index] = NULL;
             delete _v_response[index];
             _v_response[index] = NULL;
-            eni.delete_event(_v_fd[index], EVFILT_WRITE);
             eni.add_event(_v_fd[index], EVFILT_READ, 0);
             parse_request(index, eni);
         }
     } catch (const std::exception& e) {
+        eni.delete_event(_v_fd[index], EVFILT_WRITE);
         close_connection(_v_fd[index], eni);
         std::cerr << core::timestamp() << e.what() << "\n";
     }
@@ -265,7 +283,7 @@ int Connections::get_index(int fd) const {
     return -1;
 }
 
-config::Server& Connections::_find_server(int index, const http::Request& request) {
+config::Server* Connections::_find_server(int index, const http::Request& request) {
     config::Server*    server = NULL;
     struct sockaddr_in connection_addr;
     memset(&connection_addr, 0, sizeof(connection_addr));
@@ -289,14 +307,20 @@ config::Server& Connections::_find_server(int index, const http::Request& reques
             }
         }
     }
-    return *server;
+    return server;
 }
 
-config::Location& Connections::_find_location(const http::Request&  request,
-                                              const config::Server& server) {
+config::Location* Connections::_find_location(const http::Request& request,
+                                              config::Server*      server) {
     config::Location* location = NULL;
-
-    return *location;
+    for (size_t i = 0; i < server->v_location.size(); i++) {
+        if (request._uri_path_decoded.find(server->v_location[i].v_path[0].str) == 0) {
+            if (location == NULL ||
+                server->v_location[i].v_path[0].str.length() > location->v_path[0].str.length())
+                location = &(server->v_location[i]);
+        }
+    }
+    return location;
 }
 
 }  // namespace core

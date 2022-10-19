@@ -44,8 +44,8 @@ class Connections {
     // std::vector<http::Response*>      _v_response;
 
     int               get_index(int fd) const;
-    config::Server&   _find_server(int index, const http::Request& request);
-    config::Location& _find_location(const http::Request& request, const config::Server& server);
+    config::Server*   _find_server(int index, const http::Request& request);
+    config::Location* _find_location(const http::Request& request, config::Server* server);
 };
 
 }  // namespace core

@@ -42,7 +42,7 @@ Request::Request(core::ByteBuffer& buf)
       _request_end(0),
       _method_start(0),
       _method_end(0),
-      _method(NONE),
+      _method(),
       _version_start(0),
       _version_end(0),
       _uri_start(0),
@@ -237,7 +237,7 @@ void Request::_parse_method() {
     switch (_method_end - _method_start) {
         case 3:
             if (_buf.equal(_buf.begin() + _method_start, "GET", 3)) {
-                _method = GET;
+                _method = "GET";
                 break;
             }
             if (_buf.equal(_buf.begin() + _method_start, "PUT", 3)) {
@@ -246,11 +246,11 @@ void Request::_parse_method() {
             throw HTTP_BAD_REQUEST;
         case 4:
             if (_buf.equal(_buf.begin() + _method_start, "HEAD", 4)) {
-                _method = HEAD;
+                _method = "HEAD";
                 break;
             }
             if (_buf.equal(_buf.begin() + _method_start, "POST", 4)) {
-                _method = POST;
+                _method = "POST";
                 break;
             }
             throw HTTP_BAD_REQUEST;
@@ -261,7 +261,7 @@ void Request::_parse_method() {
             throw HTTP_BAD_REQUEST;
         case 6:
             if (_buf.equal(_buf.begin() + _method_start, "DELETE", 6)) {
-                _method = DELETE;
+                _method = "DELETE";
                 break;
             }
             throw HTTP_BAD_REQUEST;
@@ -347,7 +347,7 @@ void Request::_analyze_request_line() {
 
 void Request::_analyze_header() {
     std::map<std::string, std::string>::iterator it_host = _m_header.find("host");
-    if (it_host == _m_header.end())
+    if (it_host == _m_header.end() || it_host->second.length() == 0)
         throw HTTP_BAD_REQUEST;
     if (_uri_host_decoded.empty())
         _uri_host_decoded = it_host->second;

@@ -24,7 +24,7 @@
 
 namespace http {
 
-enum method { NONE, GET, HEAD, POST, DELETE };
+// enum method { NONE, GET, HEAD, POST, DELETE };
 
 enum state { REQUEST_LINE, REQUEST_HEADER, REQUEST_BODY, REQUEST_BODY_CHUNKED, REQUEST_DONE };
 
@@ -93,7 +93,7 @@ class Request {
     std::size_t _request_end;
     std::size_t _method_start;
     std::size_t _method_end;
-    method      _method;
+    std::string _method;
     std::size_t _version_start;
     std::size_t _version_end;
 
