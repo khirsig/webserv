@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/19 10:47:31 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/19 11:45:07 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -210,8 +210,8 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
         if (it->text.find_first_not_of("0123456789") == std::string::npos) {
             std::uint32_t new_code;
             std::stringstream(it->text) >> new_code;
-            if (status_code.codes.find(new_code) == status_code.codes.end()) {
-                std::cerr << "invalid status_code \"" << new_code << "\""
+            if (http::g_error_pages.pages.find(new_code) == http::g_error_pages.pages.end()) {
+                std::cerr << "invalid error_code \"" << new_code << "\""
                           << " for directive \"" << *_last_directive << "\" in " << _path << ":"
                           << it->line_number << "\n";
                 exit(EXIT_FAILURE);
@@ -241,8 +241,8 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
     file_stream << file.rdbuf();
     std::string content(file_stream.str());
     for (std::size_t i = 0; i < v_code.size(); ++i) {
-        status_code.codes[v_code[i]].clear();
-        status_code.codes[v_code[i]].append(content.c_str(), content.size());
+        http::g_error_pages.pages[v_code[i]].clear();
+        http::g_error_pages.pages[v_code[i]].append(content.c_str(), content.size());
     }
 
     ++it;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "StatusCode.hpp"
+#include "StatusCodes.hpp"
 
 //
 // STATUS CODES
@@ -169,9 +169,3 @@
 // Other
 
 #define HTTP_I_AM_A_TEAPOT_MSG "418 I'm A Teapot"
-
-//
-// GLOBAL
-//
-
-extern http::StatusCode status_code;

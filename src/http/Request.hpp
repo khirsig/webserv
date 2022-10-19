@@ -99,13 +99,10 @@ class Request {
 
     std::size_t _uri_start;
     std::size_t _uri_end;
-    // bool        _uri_host_encoded;
     std::size_t _uri_host_start;
     std::size_t _uri_host_end;
     std::size_t _uri_port_start;
     std::size_t _uri_port_end;
-    // bool        _uri_path_complex;
-    // bool        _uri_path_encoded;
     std::size_t _uri_path_start;
     std::size_t _uri_path_end;
     std::size_t _uri_query_start;

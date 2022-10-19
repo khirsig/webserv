@@ -6,7 +6,7 @@
 
 namespace http {
 
-class StatusCode {
+class StatusCodes {
    private:
    public:
     std::map<int, core::ByteBuffer> codes;
@@ -20,5 +20,11 @@ class StatusCode {
     // iterator       end();
     // const_iterator end() const;
 };
+
+//
+// GLOBAL
+//
+
+extern StatusCodes g_status_codes;
 
 }  // namespace http

@@ -9,7 +9,8 @@
 #include <iostream>
 #include <string>
 
-#include "../http/StatusCode.hpp"
+#include "../http/ErrorPages.hpp"
+#include "../http/StatusCodes.hpp"
 #include "../http/httpStatusCodes.hpp"
 #include "utils.hpp"
 
@@ -201,17 +202,20 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
             eni.add_event(_v_fd[index], EVFILT_WRITE, 0);
         }
     } catch (int error) {
-        std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
-        if (it != status_code.codes.end())
+        std::map<int, core::ByteBuffer>::iterator it = http::g_error_pages.pages.find(error);
+        if (it != http::g_error_pages.pages.end())
             send(_v_fd[index], &(it->second[0]), it->second.size(), 0);
         else
-            send(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size(), 0);
+            send(_v_fd[index], &(http::g_error_pages.pages[501]),
+                 http::g_error_pages.pages[501].size(), 0);
         close_connection(_v_fd[index], eni);
     } catch (const std::exception& e) {
-        send(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size(), 0);
+        send(_v_fd[index], &(http::g_error_pages.pages[501]), http::g_error_pages.pages[501].size(),
+             0);
         close_connection(_v_fd[index], eni);
     } catch (...) {
-        send(_v_fd[index], &(status_code.codes[501]), status_code.codes[501].size(), 0);
+        send(_v_fd[index], &(http::g_error_pages.pages[501]), http::g_error_pages.pages[501].size(),
+             0);
         close_connection(_v_fd[index], eni);
     }
 }
@@ -219,7 +223,12 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
 void Connections::build_response(int index) {
     _v_response_buf[index] = new core::ByteBuffer(4096);
     _v_response[index] = new http::Response(*_v_response_buf[index]);
-    _v_response_buf[index]->append("RESPONSE\n");
+    // find server
+    // find location
+    config::Server& server = _find_server(index, *_v_request[index]);
+    server.print();
+    // config::Location& location;
+    // _v_response[index]->init(*_v_request[index], server, location);
 }
 
 void Connections::send_response(int fd, EventNotificationInterface& eni, size_t max_bytes) {
@@ -254,6 +263,40 @@ int Connections::get_index(int fd) const {
         }
     }
     return -1;
+}
+
+config::Server& Connections::_find_server(int index, const http::Request& request) {
+    config::Server*    server = NULL;
+    struct sockaddr_in connection_addr;
+    memset(&connection_addr, 0, sizeof(connection_addr));
+    socklen_t connection_addr_len = sizeof(connection_addr);
+    if (getsockname(_v_socket_fd[index], (struct sockaddr*)&connection_addr, &connection_addr_len) <
+        0)
+        throw HTTP_INTERNAL_SERVER_ERROR;
+    for (size_t i = 0; i < _v_server.size(); i++) {
+        for (size_t j = 0; j < _v_server[i].v_listen.size(); j++) {
+            if (_v_server[i].v_listen[j].addr == connection_addr.sin_addr.s_addr &&
+                _v_server[i].v_listen[j].port == connection_addr.sin_port) {
+                if (!server) {
+                    server = &_v_server[i];
+                } else {
+                    for (size_t k = 0; k < _v_server[i].v_server_name.size(); k++) {
+                        if (_v_server[i].v_server_name[k] == request._uri_host_decoded) {
+                            server = &_v_server[i];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return *server;
+}
+
+config::Location& Connections::_find_location(const http::Request&  request,
+                                              const config::Server& server) {
+    config::Location* location = NULL;
+
+    return *location;
 }
 
 }  // namespace core

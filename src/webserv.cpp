@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/18 13:21:32 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/19 11:56:53 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,11 +21,13 @@
 #include "core/Connections.hpp"
 #include "core/EventNotificationInterface.hpp"
 #include "core/Socket.hpp"
-#include "http/StatusCode.hpp"
+#include "http/ErrorPages.hpp"
+#include "http/StatusCodes.hpp"
 #include "http/httpStatusCodes.hpp"
 #include "log/Log.hpp"
 
-http::StatusCode status_code;
+http::StatusCodes http::g_status_codes;
+http::ErrorPages  http::g_error_pages;
 // #define DEBUG_CONFIG_PARSER
 
 int main(int argc, char* argv[]) {
@@ -40,7 +42,8 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
-        status_code.init();
+        http::g_status_codes.init();
+        http::g_error_pages.init();
 
         config::Parser              parser;
         std::vector<config::Server> v_server;
@@ -51,16 +54,24 @@ int main(int argc, char* argv[]) {
         std::map<int, core::Socket>      m_socket;
         // std::vector<core::Socket>        v_socket;
 
-        // Create Socket for each listen in config file
-        // Add read event for each socket fd
-        for (std::vector<config::Server>::iterator it_server = v_server.begin();
-             it_server != v_server.end(); ++it_server) {
-            for (std::vector<config::Listen>::iterator it_listen = it_server->v_listen.begin();
-                 it_listen != it_server->v_listen.end(); ++it_listen) {
-                core::Socket socket(it_listen->addr, it_listen->port);
-                // v_socket.push_back(socket);
-                m_socket.insert(std::make_pair(socket.getFD(), socket));
-                eni.add_event(socket.getFD(), EVFILT_READ, 0);
+        {
+            // Create Socket for each listen in config file
+            // Add read event for each socket fd
+            std::vector<config::Listen> used_listens;
+            for (std::vector<config::Server>::iterator it_server = v_server.begin();
+                 it_server != v_server.end(); ++it_server) {
+                for (std::vector<config::Listen>::iterator it_listen = it_server->v_listen.begin();
+                     it_listen != it_server->v_listen.end(); ++it_listen) {
+                    std::vector<config::Listen>::iterator it_listens =
+                        std::find(used_listens.begin(), used_listens.end(), *it_listen);
+                    if (it_listens == used_listens.end()) {
+                        used_listens.push_back(*it_listen);
+                        core::Socket socket(it_listen->addr, it_listen->port);
+                        // v_socket.push_back(socket);
+                        m_socket.insert(std::make_pair(socket.getFD(), socket));
+                        eni.add_event(socket.getFD(), EVFILT_READ, 0);
+                    }
+                }
             }
         }
 

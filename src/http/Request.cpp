@@ -108,7 +108,6 @@ void Request::parse_input() {
         _state = REQUEST_DONE;
     }
     if (_state == REQUEST_DONE) {
-
         print();
     }
 }
@@ -347,8 +346,11 @@ void Request::_analyze_request_line() {
 }
 
 void Request::_analyze_header() {
-    if (_m_header.find("host") == _m_header.end())
+    std::map<std::string, std::string>::iterator it_host = _m_header.find("host");
+    if (it_host == _m_header.end())
         throw HTTP_BAD_REQUEST;
+    if (_uri_host_decoded.empty())
+        _uri_host_decoded = it_host->second;
     std::map<std::string, std::string>::iterator it_content_len = _m_header.find("content-length");
     if (it_content_len != _m_header.end()) {
         _body_expected_size = atoi(it_content_len->second.c_str());  // error handling? / c style
