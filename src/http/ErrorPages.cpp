@@ -13,7 +13,6 @@ static const int static_error_codes[] = {
 
 void ErrorPages::init() {
     for (size_t i = 0; i < sizeof(static_error_codes) / sizeof(static_error_codes[0]); i++) {
-        core::ByteBuffer header(0);
         core::ByteBuffer body(0);
 
         // BODY
@@ -23,17 +22,26 @@ void ErrorPages::init() {
         body += g_status_codes.codes[static_error_codes[i]];
         body.append("</h1></center>\r\n<hr><center>webserv</center>\r\n</body>\r\n</html>\r\n");
 
-        // HEADER
-        header.append("HTTP/1.1 ");
-        header += g_status_codes.codes[static_error_codes[i]];
-        header.append("\r\nServer: webserv\r\n");
-        header.append("Content-Type: text/html\r\n");
-        header.append("Content-Length: ");
-        header.append(std::to_string(body.size()).c_str());
-        header.append("\r\nConnection: close\r\n\r\n");
-
-        pages.insert(std::make_pair(static_error_codes[i], header + body));
+        insert_page(static_error_codes[i], body, "text/html");
     }
+}
+
+void ErrorPages::insert_page(int error_code, const core::ByteBuffer& body,
+                             const std::string& content_type) {
+    core::ByteBuffer header(0);
+
+    // HEADER
+    header.append("HTTP/1.1 ");
+    header += g_status_codes.codes[error_code];
+    header.append("\r\nServer: webserv");
+    header.append("\r\nContent-Type: ");
+    header.insert(header.end(), content_type.begin(), content_type.end());
+    header.append("\r\nContent-Length: ");
+    header.append(std::to_string(body.size()).c_str());
+    header.append("\r\nConnection: close");
+    header.append("\r\n\r\n");
+
+    pages[error_code] = header + body;
 }
 
 }  // namespace http
