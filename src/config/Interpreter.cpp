@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/10 10:52:10 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/19 10:47:31 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,9 +42,7 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             } else if (*_last_directive == "server_name") {
                 _parse_string(v_token, it, new_server.v_server_name);
             } else if (*_last_directive == "error_page") {
-                ErrorPage new_error_page;
-                _parse_error_page(v_token, it, new_error_page);
-                new_server.v_error_page.push_back(new_error_page);
+                _parse_error_page(v_token, it);
             } else if (*_last_directive == "client_max_body_size") {
                 _parse_bytes(it, new_server.client_max_body_size);
             } else if (*_last_directive == "location") {
@@ -204,25 +202,49 @@ void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std:
 }
 
 void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
-                                    std::vector<Token>::const_iterator &it, ErrorPage &identifier) {
+                                    std::vector<Token>::const_iterator &it) {
     ++it;
+    std::vector<std::uint32_t> v_code;
+
     for (; it != v_token.end() && it->text != ";"; ++it) {
         if (it->text.find_first_not_of("0123456789") == std::string::npos) {
             std::uint32_t new_code;
             std::stringstream(it->text) >> new_code;
-            identifier.v_code.push_back(new_code);
+            if (status_code.codes.find(new_code) == status_code.codes.end()) {
+                std::cerr << "invalid status_code \"" << new_code << "\""
+                          << " for directive \"" << *_last_directive << "\" in " << _path << ":"
+                          << it->line_number << "\n";
+                exit(EXIT_FAILURE);
+            }
+            std::stringstream(it->text) >> new_code;
+            v_code.push_back(new_code);
         } else {
             break;
         }
     }
-    if (it == v_token.end() || it->text == ";" || identifier.v_code.size() <= 0) {
+    if (it == v_token.end() || it->text == ";" || v_code.size() <= 0) {
         if (it == v_token.end())
             _unexpected_file_ending(it);
         else
             _invalid_directive_argument_amount(it);
     }
 
-    identifier.path = it->text;
+    std::ifstream file;
+    file.open(it->text);
+    if (!file.is_open()) {
+        std::cerr << "file at \"" << it->text << "\""
+                  << " for directive \"" << *_last_directive << "\" could not be opened in "
+                  << _path << ":" << it->line_number << "\n";
+        exit(EXIT_FAILURE);
+    }
+    std::stringstream file_stream;
+    file_stream << file.rdbuf();
+    std::string content(file_stream.str());
+    for (std::size_t i = 0; i < v_code.size(); ++i) {
+        status_code.codes[v_code[i]].clear();
+        status_code.codes[v_code[i]].append(content.c_str(), content.size());
+    }
+
     ++it;
     if (it == v_token.end())
         _unexpected_file_ending(it);

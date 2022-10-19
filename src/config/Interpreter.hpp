@@ -6,18 +6,20 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/10 10:51:49 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/19 10:46:59 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include <ctime>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
 #include "../core/utils.hpp"
+#include "../http/httpStatusCodes.hpp"
 #include "Server.hpp"
 #include "Token.hpp"
 
@@ -44,7 +46,7 @@ class Interpreter {
     void _parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
                      in_port_t &port);
     void _parse_error_page(const std::vector<Token>           &v_token,
-                           std::vector<Token>::const_iterator &it, ErrorPage &identifier);
+                           std::vector<Token>::const_iterator &it);
     void _parse_redirect(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                          Redirect &identifier);
     void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
