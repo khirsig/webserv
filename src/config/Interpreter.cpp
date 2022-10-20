@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 10:37:49 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 10:45:42 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -370,7 +370,6 @@ void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint
 void Interpreter::_parse_location_path(const std::vector<Token>           &v_token,
                                        std::vector<Token>::const_iterator &it,
                                        std::string                        &location_path) {
-    ++it;
     if (it->type == OPERATOR) {
         _unexpected_operator(it);
     }
