@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 16:01:57 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/16 10:04:05 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 10:39:56 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,7 @@
 namespace config {
 
 void Location::print(std::string prefix) const {
-    for (std::vector<LocationPath>::const_iterator it = v_path.begin(); it != v_path.end(); ++it) {
-        std::cout << prefix << "path: " << it->str << " is a " << wildcard_string[it->wildcard]
-                  << " wildcard\n";
-    }
+    std::cout << prefix << "path: " << path << "\n";
     for (std::vector<std::string>::const_iterator it = v_accepted_method.begin();
          it != v_accepted_method.end(); ++it) {
         std::cout << prefix << "accepted_methods: " << *it << "\n";

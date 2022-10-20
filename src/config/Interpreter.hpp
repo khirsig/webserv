@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 09:56:53 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 10:38:23 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,8 +55,7 @@ class Interpreter {
                          Redirect &identifier);
     void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
     void _parse_location_path(const std::vector<Token>           &v_token,
-                              std::vector<Token>::const_iterator &it,
-                              std::vector<LocationPath>          &v_path);
+                              std::vector<Token>::const_iterator &it, std::string &location_path);
     void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
 
     void _invalid_directive(std::vector<Token>::const_iterator &it) const;
