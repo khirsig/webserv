@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 08:36:31 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 09:56:53 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,12 @@
 
 #include "../core/utils.hpp"
 #include "../http/ErrorPages.hpp"
+#include "../http/httpStatusCodes.hpp"
 #include "Server.hpp"
 #include "Token.hpp"
+
+static const uint32_t allowed_redir[] = {HTTP_MOVED_PERMANENTLY, HTTP_FOUND,
+                                         HTTP_TEMPORARY_REDIRECT, HTTP_PERMANENT_REDIRECT};
 
 namespace config {
 

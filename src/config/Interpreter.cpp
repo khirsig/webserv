@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 09:44:03 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 10:08:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -298,6 +298,13 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
 
     if (it->text.find_first_not_of("0123456789") == std::string::npos) {
         std::stringstream(it->text) >> identifier.status_code;
+        const uint32_t *end_ptr = allowed_redir + sizeof(allowed_redir) / sizeof(uint32_t);
+        if (std::find(allowed_redir, end_ptr, identifier.status_code) == end_ptr) {
+            core::timestamp();
+            std::cerr << "invalid status code \"" << identifier.status_code << "\" for \""
+                      << *_last_directive << "\" in " << _path << ":" << it->line_number << "\n";
+            exit(EXIT_FAILURE);
+        }
     } else {
         core::timestamp();
         std::cerr << "invalid status code for \"" << *_last_directive << "\" in " << _path << ":"
