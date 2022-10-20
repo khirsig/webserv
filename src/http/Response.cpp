@@ -14,9 +14,9 @@ void Response::init(const Request& request, config::Server& server, config::Loca
     bool folder = (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
     config::Redirect* redir;
     if (folder)
-        redir = _find_redir(&location, ".");
+        redir = _find_redir_folder(&location);
     else
-        redir = _find_redir(&location, request._uri_path_decoded);
+        redir = _find_redir_file(&location, request._uri_path_decoded);
     if (redir) {
         _respond_redir(*redir);
         return;
@@ -46,7 +46,17 @@ void Response::init(const Request& request, config::Server& server, config::Loca
     // Construct response headers with chunked oder content-len based on file_size
 }
 
-config::Redirect* Response::_find_redir(config::Location* location, const std::string& file_path) {
+config::Redirect* Response::_find_redir_folder(config::Location* location) {
+    for (size_t i = 0; i < location->v_redirect.size(); i++) {
+        if (location->v_redirect[i].origin == ".") {
+            return &location->v_redirect[i];
+        }
+    }
+    return NULL;
+}
+
+config::Redirect* Response::_find_redir_file(config::Location*  location,
+                                             const std::string& file_path) {
     std::string origin(file_path.begin() + location->path.length(), file_path.end());
     for (size_t i = 0; i < location->v_redirect.size(); i++) {
         if (location->v_redirect[i].origin == origin) {

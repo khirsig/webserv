@@ -249,7 +249,6 @@ void Connections::send_response(int fd, EventNotificationInterface& eni, size_t 
     try {
         size_t left_bytes = _v_response_buf[index]->size() - _v_response_buf[index]->pos;
         size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
-        write(2, &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos, send_bytes);
         if (send(_v_fd[index], &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos,
                  send_bytes, 0) < 0)
             throw std::runtime_error("send() failed");
