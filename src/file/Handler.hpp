@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:49 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 16:29:59 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/20 19:50:17 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,14 +22,17 @@ namespace file {
 
 class Handler {
    public:
-    Handler(const std::string &path);
+    Handler();
     ~Handler();
 
-    void read(char *buf, const std::size_t buffer_size);
+    void   init(const std::string &path);
+    size_t read(char *buf, const std::size_t buffer_size);
 
     std::size_t max_size() const;
     std::size_t read_size() const;
     std::size_t left_size() const;
+
+    const std::string& get_path() const;
 
    private:
     std::string  _path;

@@ -38,7 +38,6 @@ class Connections {
     std::vector<http::Request*>       _v_request;
     std::vector<core::ByteBuffer*>    _v_request_buf;
     std::vector<http::Response*>      _v_response;
-    std::vector<core::ByteBuffer*>    _v_response_buf;
     std::vector<config::Server>&      _v_server;
     // http::RequestHandler              _r_handler;
     // std::vector<http::Response*>      _v_response;

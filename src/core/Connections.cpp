@@ -26,7 +26,6 @@ Connections::Connections(size_t max_connections, std::vector<config::Server>& v_
     _v_request.resize(max_connections, NULL);
     _v_request_buf.resize(max_connections, NULL);
     _v_response.resize(max_connections, NULL);
-    _v_response_buf.resize(max_connections, NULL);
 }
 
 Connections::~Connections() {
@@ -102,8 +101,6 @@ void Connections::close_connection(int fd, EventNotificationInterface& eni) {
     _v_request_buf[index] = NULL;
     delete _v_request[index];
     _v_request[index] = NULL;
-    delete _v_response_buf[index];
-    _v_response_buf[index] = NULL;
     delete _v_response[index];
     _v_response[index] = NULL;
     close(_v_fd[index]);
@@ -222,8 +219,7 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
 }
 
 void Connections::build_response(int index) {
-    _v_response_buf[index] = new core::ByteBuffer(4096);
-    _v_response[index] = new http::Response(*_v_response_buf[index]);
+    _v_response[index] = new http::Response();
 
     // Find Sever
     config::Server* server = _find_server(index, *_v_request[index]);
@@ -244,23 +240,54 @@ void Connections::build_response(int index) {
     _v_response[index]->init(*_v_request[index], *server, *location);
 }
 
+void send_response_body_file(http::Response& response, int fd, size_t max_bytes) {
+    char*  buf = new char[max_bytes];
+    size_t send_bytes = response.file.read(buf, max_bytes);
+    if (send(fd, buf, send_bytes, 0) < 0)
+        throw std::runtime_error("send() failed");
+    delete[] buf;
+}
+
 void Connections::send_response(int fd, EventNotificationInterface& eni, size_t max_bytes) {
     int index = get_index(fd);
     try {
-        size_t left_bytes = _v_response_buf[index]->size() - _v_response_buf[index]->pos;
-        size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
-        if (send(_v_fd[index], &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos,
-                 send_bytes, 0) < 0)
-            throw std::runtime_error("send() failed");
-        _v_response_buf[index]->pos += send_bytes;
-        if (_v_response_buf[index]->pos >= _v_response_buf[index]->size()) {
+        switch (_v_response[index]->state) {
+            case http::RESPONSE_HEADER: {
+                size_t left_bytes = _v_response[index]->buf.size() - _v_response[index]->buf.pos;
+                size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
+                if (send(_v_fd[index], &(_v_response[index]->buf[0]) + _v_response[index]->buf.pos,
+                         send_bytes, 0) < 0)
+                    throw std::runtime_error("send() failed");
+                _v_response[index]->buf.pos += send_bytes;
+                if (_v_response[index]->buf.pos == _v_response[index]->buf.size()) {
+                    if (_v_response[index]->content == http::RESPONSE_CONTENT_NONE)
+                        _v_response[index]->state = http::RESPONSE_DONE;
+                    else
+                        _v_response[index]->state = http::RESPONSE_BODY;
+                }
+            } break;
+            case http::RESPONSE_BODY:
+                switch (_v_response[index]->content) {
+                    case http::RESPONSE_CONTENT_NONE:
+                        break;
+                    case http::RESPONSE_CONTENT_FILE:
+                        send_response_body_file(*_v_response[index], _v_fd[index], max_bytes);
+                        if (_v_response[index]->file.left_size() != 0)
+                            break;
+                        _v_response[index]->state = http::RESPONSE_DONE;
+                        break;
+                    case http::RESPONSE_CONTENT_CGI:
+                        break;
+                }
+            case http::RESPONSE_DONE:
+                break;
+        }
+        if (_v_response[index]->state == http::RESPONSE_DONE) {
             eni.delete_event(_v_fd[index], EVFILT_WRITE);
             if (_v_response[index]->connection_state == http::CONNECTION_CLOSE) {
                 close_connection(_v_fd[index], eni);
                 return;
             }
-            delete _v_response_buf[index];
-            _v_response_buf[index] = NULL;
             delete _v_response[index];
             _v_response[index] = NULL;
             eni.add_event(_v_fd[index], EVFILT_READ, 0);
