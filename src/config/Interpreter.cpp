@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/19 11:45:07 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/20 09:44:03 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ void Interpreter::parse(const std::vector<Token> &v_token, std::vector<Server> &
 Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
                                   std::vector<Token>::const_iterator &it) {
     ++it;
+    bool   client_max_size_set = false;
     Server new_server;
     if (it->text == "{" && it->type == OPERATOR) {
         ++it;
@@ -44,7 +45,13 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             } else if (*_last_directive == "error_page") {
                 _parse_error_page(v_token, it);
             } else if (*_last_directive == "client_max_body_size") {
-                _parse_bytes(it, new_server.client_max_body_size);
+                if (client_max_size_set) {
+                    _directive_already_set(it);
+
+                } else {
+                    _parse_bytes(it, new_server.client_max_body_size);
+                    client_max_size_set = true;
+                }
             } else if (*_last_directive == "location") {
                 Location new_location;
                 new_location = _parse_location(v_token, it);
@@ -73,18 +80,29 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
         exit(EXIT_FAILURE);
     }
 
+    bool dir_listing_set = false;
+    bool acc_methods_set = false;
+
     if (it->text == "{" && it->type == OPERATOR) {
         ++it;
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "accepted_methods") {
-                _parse_string(v_token, it, new_location.v_accepted_method);
+                if (acc_methods_set) {
+                    _directive_already_set(it);
+                } else {
+                    _parse_string(v_token, it, new_location.v_accepted_method);
+                    acc_methods_set = true;
+                }
             } else if (*_last_directive == "redirect") {
                 Redirect new_redirect;
                 _parse_redirect(v_token, it, new_redirect);
                 new_location.v_redirect.push_back(new_redirect);
             } else if (*_last_directive == "root") {
-                _parse_string(it, new_location.root);
+                if (new_location.root.size() != 0)
+                    _directive_already_set(it);
+                else
+                    _parse_string(it, new_location.root);
             } else if (*_last_directive == "index") {
                 _parse_string(v_token, it, new_location.v_index);
             } else if (*_last_directive == "location") {
@@ -94,7 +112,12 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
             } else if (*_last_directive == "cgi_pass") {
                 _parse_string(v_token, it, new_location.v_cgi_pass);
             } else if (*_last_directive == "directory_listing") {
-                _parse_bool(it, new_location.directory_listing);
+                if (dir_listing_set) {
+                    _directive_already_set(it);
+                } else {
+                    _parse_bool(it, new_location.directory_listing);
+                    dir_listing_set = true;
+                }
             } else {
                 _invalid_directive(it);
             }
@@ -239,10 +262,18 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
     }
     std::stringstream file_stream;
     file_stream << file.rdbuf();
-    std::string content(file_stream.str());
+    std::string      content(file_stream.str());
+    core::ByteBuffer buf;
+    buf.append(content.c_str(), content.size());
+
+    std::string content_type;
+    if (it->text.find(".html", it->text.size() - 5) != std::string::npos)
+        content_type = "text/html";
+    else
+        content_type = "text/plain";
+
     for (std::size_t i = 0; i < v_code.size(); ++i) {
-        http::g_error_pages.pages[v_code[i]].clear();
-        http::g_error_pages.pages[v_code[i]].append(content.c_str(), content.size());
+        http::g_error_pages.insert_page(v_code[i], buf, content_type);
     }
 
     ++it;
@@ -445,6 +476,13 @@ void Interpreter::_parse_bool(std::vector<Token>::const_iterator &it, bool &iden
 void Interpreter::_invalid_directive(std::vector<Token>::const_iterator &it) const {
     core::timestamp();
     std::cerr << "\"" << *_last_directive << "\" directive is not allowed here in " << _path << ":"
+              << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_directive_already_set(std::vector<Token>::const_iterator &it) const {
+    core::timestamp();
+    std::cerr << "duplicate entry for directive \"" << *_last_directive << "\" in " << _path << ":"
               << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }

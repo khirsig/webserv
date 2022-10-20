@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/19 11:43:16 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/20 08:36:31 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@ class Interpreter {
     void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
 
     void _invalid_directive(std::vector<Token>::const_iterator &it) const;
+    void _directive_already_set(std::vector<Token>::const_iterator &it) const;
     void _unexpected_file_ending(std::vector<Token>::const_iterator &it) const;
     void _unexpected_operator(std::vector<Token>::const_iterator &it) const;
     void _none_terminated_directive(std::vector<Token>::const_iterator &it) const;
