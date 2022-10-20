@@ -30,6 +30,10 @@ void Response::init(const Request& request, config::Server& server, config::Loca
         for (size_t i = 0; i < location.v_index.size(); i++) {
             try {
                 file.init(location.root + request._uri_path_decoded + location.v_index[i]);
+                // check for cgi
+                //if (request.method != "GET")
+                //    throw HTTP_FORBIDDEN;
+                // goto file part
                 if (file.max_size() == 0)
                     content = RESPONSE_CONTENT_NONE;
                 else
@@ -58,6 +62,8 @@ void Response::init(const Request& request, config::Server& server, config::Loca
                 }
             }
         }
+        //if (request.method != "GET")
+        //    throw HTTP_FORBIDDEN;
         file.init(location.root + request._uri_path_decoded);
         if (file.max_size() == 0)
             content = RESPONSE_CONTENT_NONE;
@@ -118,8 +124,7 @@ config::Redirect* Response::_find_redir_file(config::Location*  location,
 }
 
 void Response::_respond_redir(const config::Redirect& redir) {
-    core::ByteBuffer body(512);
-    core::ByteBuffer header(512);
+    core::ByteBuffer body(256);
 
     // BODY
     body.append("<html>\r\n<head><title>");
