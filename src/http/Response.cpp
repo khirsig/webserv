@@ -1,6 +1,8 @@
 #include "Response.hpp"
 
+#include "../file/Handler.hpp"
 #include "StatusCodes.hpp"
+#include "httpStatusCodes.hpp"
 
 namespace http {
 
@@ -22,14 +24,34 @@ void Response::init(const Request& request, config::Server& server, config::Loca
         return;
     }
 
-    // _buf.append("HTTP/1.1 200 OK\nContent-Length: 9\nContent-Type: text/plain\n\nRESPONSE\n");
-    _buf.append(
-        "HTTP/1.1 200 OK\r\nServer: nginx\r\nDate: Thu, 20 Oct 2022 10:13:17 GMT\r\nContent-Type: "
-        "text/html\r\nContent-Length: 152\r\nLast-Modified: Fri, 23 Sep 2022 11:13:48 "
-        "GMT\r\nConnection: close\r\nETag: \"632d94ec-9c\"\r\nAccept-Ranges: "
-        "bytes\r\n\r\n<!doctype html>\n<html>\n\n<head>\n    <meta charset=utf-8>\n    "
-        "<title>hello webserv</title>\n</head>\n\n<body>\n    <h1>hello webserv "
-        "tim</h1>\n</body>\n\n</html>");
+    if (folder) {
+        for (size_t i = 0; i < location.v_index.size(); i++) {
+            try {
+                file::Handler file(location.root + location.v_index[i]);
+                _buf.append("index file found\n");
+                return;
+            } catch (...) {
+            }
+        }
+        if (location.directory_listing) {
+            _buf.append("cgi dir listing\n");
+            return;
+        }
+        throw HTTP_NOT_FOUND;
+    } else {
+        file::Handler file(request._uri_path_decoded);
+        _buf.append("file found...file_content\n");
+        return;
+    }
+
+    // // _buf.append("HTTP/1.1 200 OK\nContent-Length: 9\nContent-Type: text/plain\n\nRESPONSE\n");
+    // _buf.append(
+    //     "HTTP/1.1 200 OK\r\nServer: nginx\r\nDate: Thu, 20 Oct 2022 10:13:17 GMT\r\nContent-Type:
+    //     " "text/html\r\nContent-Length: 152\r\nLast-Modified: Fri, 23 Sep 2022 11:13:48 "
+    //     "GMT\r\nConnection: close\r\nETag: \"632d94ec-9c\"\r\nAccept-Ranges: "
+    //     "bytes\r\n\r\n<!doctype html>\n<html>\n\n<head>\n    <meta charset=utf-8>\n    "
+    //     "<title>hello webserv</title>\n</head>\n\n<body>\n    <h1>hello webserv "
+    //     "tim</h1>\n</body>\n\n</html>");
 
     // if path ends with / dann dir sonst file
     //      - check for index files

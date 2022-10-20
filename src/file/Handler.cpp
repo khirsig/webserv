@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Handler.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:31 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 14:56:23 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 16:30:02 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,16 +35,11 @@ Handler::~Handler() {
     }
 }
 
-void Handler::read(const std::size_t buffer_size) {
+void Handler::read(char *buf, const std::size_t buffer_size) {
     if (_file) {
-        char *buffer = new char[buffer_size];
-
-        _file.read(buffer, buffer_size);
+        _file.read(buf, buffer_size);
         _read_size += _file.gcount();
-
-        delete[] buffer;
     } else {
-        _max_size = 0;
         _file.close();
     }
 }
