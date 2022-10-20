@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 10:38:23 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 13:23:56 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@
 
 static const uint32_t allowed_redir[] = {HTTP_MOVED_PERMANENTLY, HTTP_FOUND,
                                          HTTP_TEMPORARY_REDIRECT, HTTP_PERMANENT_REDIRECT};
+
+enum state_location_path { START, SLASH, FIRST_DOT, SECOND_DOT, SEGMENT };
 
 namespace config {
 

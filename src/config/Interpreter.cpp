@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 10:45:42 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 14:53:13 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -373,7 +373,72 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
     if (it->type == OPERATOR) {
         _unexpected_operator(it);
     }
-    location_path = it->text;
+
+    state_location_path state = START;
+    char                c;
+    for (std::size_t i = 0; i < it->text.size(); ++i) {
+        c = it->text[i];
+        switch (state) {
+            case START:
+                if (c == '/') {
+                    location_path += c;
+                    state = SLASH;
+                    break;
+                } else {
+                    core::timestamp();
+                    std::cerr << "invalid path \"" << it->text << "\" for directive \""
+                              << *_last_directive << "\" in " << _path << ":" << it->line_number
+                              << "\n";
+                    exit(EXIT_FAILURE);
+                }
+            case SLASH:
+                if (c == '/')
+                    break;
+                else if (c == '.') {
+                    state = FIRST_DOT;
+                    break;
+                } else {
+                    location_path += c;
+                    state = SEGMENT;
+                    break;
+                }
+            case FIRST_DOT:
+                if (c == '/') {
+                    state = SLASH;
+                    break;
+                } else if (c == '.') {
+                    state = SECOND_DOT;
+                    break;
+                } else {
+                    location_path += '.';
+                    location_path += c;
+                    state = SEGMENT;
+                    break;
+                }
+            case SEGMENT:
+                location_path += c;
+                if (c == '/')
+                    state = SLASH;
+                break;
+            case SECOND_DOT:
+                if (c == '/') {
+                    core::timestamp();
+                    std::cerr << "invalid path \"" << it->text << "\" for directive \""
+                              << *_last_directive << "\" in " << _path << ":" << it->line_number
+                              << "\n";
+                    exit(EXIT_FAILURE);
+                } else {
+                    location_path += "..";
+                    location_path += c;
+                    state = SEGMENT;
+                }
+                break;
+        }
+    }
+    if (location_path[location_path.size() - 1] != '/')
+        location_path += '/';
+    std::cout << location_path << "\n";
+
     ++it;
     if (it->text != "{") {
         _missing_opening(it, '{');
