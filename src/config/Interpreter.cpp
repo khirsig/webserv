@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 14:53:13 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 16:23:47 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -437,7 +437,6 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
     }
     if (location_path[location_path.size() - 1] != '/')
         location_path += '/';
-    std::cout << location_path << "\n";
 
     ++it;
     if (it->text != "{") {
