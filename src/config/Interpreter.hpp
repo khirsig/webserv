@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 13:23:56 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 17:00:28 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,8 @@ class Interpreter {
     void _parse_string(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                        std::vector<std::string> &v_identifier);
     void _parse_string(std::vector<Token>::const_iterator &it, std::string &identifier);
+    void _parse_cgi_pass(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                         CgiPass &identifier);
     bool _parse_listen(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                        Listen &identifier);
     void _parse_port(std::vector<Token>::const_iterator &it, const std::string &str,

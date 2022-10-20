@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 16:23:47 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 17:02:41 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,7 +106,9 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
             } else if (*_last_directive == "index") {
                 _parse_string(v_token, it, new_location.v_index);
             } else if (*_last_directive == "cgi_pass") {
-                _parse_string(v_token, it, new_location.v_cgi_pass);
+                CgiPass new_pass;
+                _parse_cgi_pass(v_token, it, new_pass);
+                new_location.v_cgi_pass.push_back(new_pass);
             } else if (*_last_directive == "directory_listing") {
                 if (dir_listing_set) {
                     _directive_already_set(it);
@@ -164,6 +166,21 @@ void Interpreter::_parse_string(std::vector<Token>::const_iterator &it, std::str
     }
 }
 
+void Interpreter::_parse_cgi_pass(const std::vector<Token>           &v_token,
+                                  std::vector<Token>::const_iterator &it, CgiPass &identifier) {
+    ++it;
+    if (it->type == OPERATOR)
+        _unexpected_operator(it);
+    identifier.type = it->text;
+    ++it;
+    if (it->type == OPERATOR)
+        _unexpected_operator(it);
+    identifier.path = it->text;
+    ++it;
+    if (it->text != ";") {
+        _none_terminated_directive(it);
+    }
+}
 bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it, Listen &identifier) {
     ++it;

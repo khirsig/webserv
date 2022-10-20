@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 14:10:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 10:38:02 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 16:57:54 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,12 @@ class Redirect {
     std::string   origin;
 };
 
+class CgiPass {
+   public:
+    std::string path;
+    std::string type;
+};
+
 class Location {
    public:
     void print(std::string prefix) const;
@@ -36,7 +42,7 @@ class Location {
     bool                     directory_listing;
     std::vector<std::string> v_index;
     std::vector<Location>    v_location;
-    std::vector<std::string> v_cgi_pass;
+    std::vector<CgiPass>     v_cgi_pass;
 };
 
 }  // namespace config

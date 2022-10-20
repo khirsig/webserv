@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 16:01:57 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 10:39:56 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 17:03:45 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,9 +33,9 @@ void Location::print(std::string prefix) const {
     for (std::vector<std::string>::const_iterator it = v_index.begin(); it != v_index.end(); ++it) {
         std::cout << prefix << "index: " << *it << "\n";
     }
-    for (std::vector<std::string>::const_iterator it = v_cgi_pass.begin(); it != v_cgi_pass.end();
+    for (std::vector<CgiPass>::const_iterator it = v_cgi_pass.begin(); it != v_cgi_pass.end();
          ++it) {
-        std::cout << prefix << "cgi_pass: " << *it << "\n";
+        std::cout << prefix << "cgi_pass: " << it->path << " " << it->type << "\n";
     }
     for (std::vector<Location>::const_iterator it = v_location.begin(); it != v_location.end();
          ++it) {
