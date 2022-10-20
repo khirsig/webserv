@@ -408,7 +408,7 @@ void Request::_uri_decode(const core::ByteBuffer& buf, std::size_t start, std::s
 
 int Request::parse_request_line() {
     char c;
-    for (std::size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
+    for (size_t i = _buf.pos; i < _buf.size(); _buf.pos++, i++) {
         c = _buf[i];
         switch (_state_request_line) {
             case START:

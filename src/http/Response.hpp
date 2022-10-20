@@ -11,7 +11,8 @@ class Response {
    private:
     core::ByteBuffer& _buf;
 
-    config::Redirect* _find_redir(config::Location* location, const std::string& file);
+    config::Redirect* _find_redir_file(config::Location* location, const std::string& file_path);
+    config::Redirect* _find_redir_folder(config::Location* location);
     void              _respond_redir(const config::Redirect& redir);
 
    public:

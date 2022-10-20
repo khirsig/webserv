@@ -94,7 +94,7 @@ void Connections::close_connection(int fd, EventNotificationInterface& eni) {
     int index = get_index(fd);
     if (index == -1)
         return;
-    std::cerr << "Closed connection: " << get_connection_ip(fd) << ":" << get_connection_port(fd)
+    std::cout << "Closed connection: " << get_connection_ip(fd) << ":" << get_connection_port(fd)
               << '\n';
     eni.delete_event(fd, EVFILT_READ);
     eni.delete_event(fd, EVFILT_TIMER);
@@ -193,10 +193,10 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
         _v_request[index]->parse_input();
         if (_v_request[index]->done()) {
             build_response(index);
-            _v_request_buf[index]->erase(
-                _v_request_buf[index]->begin(),
-                _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
-            _v_request_buf[index]->pos = 0;
+            // _v_request_buf[index]->erase(
+            //     _v_request_buf[index]->begin(),
+            //     _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
+            // _v_request_buf[index]->pos = 0;
             delete _v_request[index];
             _v_request[index] = new http::Request(*_v_request_buf[index]);
             eni.delete_event(_v_fd[index], EVFILT_READ);
@@ -249,7 +249,6 @@ void Connections::send_response(int fd, EventNotificationInterface& eni, size_t 
     try {
         size_t left_bytes = _v_response_buf[index]->size() - _v_response_buf[index]->pos;
         size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
-        write(2, &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos, send_bytes);
         if (send(_v_fd[index], &((*_v_response_buf[index])[0]) + _v_response_buf[index]->pos,
                  send_bytes, 0) < 0)
             throw std::runtime_error("send() failed");

@@ -14,15 +14,22 @@ void Response::init(const Request& request, config::Server& server, config::Loca
     bool folder = (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
     config::Redirect* redir;
     if (folder)
-        redir = _find_redir(&location, ".");
+        redir = _find_redir_folder(&location);
     else
-        redir = _find_redir(&location, request._uri_path_decoded);
+        redir = _find_redir_file(&location, request._uri_path_decoded);
     if (redir) {
         _respond_redir(*redir);
         return;
     }
 
-    _buf.append("HTTP/1.1 200 OK\nContent-Length: 9\nContent-Type: text/plain\n\nRESPONSE\n");
+    // _buf.append("HTTP/1.1 200 OK\nContent-Length: 9\nContent-Type: text/plain\n\nRESPONSE\n");
+    _buf.append(
+        "HTTP/1.1 200 OK\r\nServer: nginx\r\nDate: Thu, 20 Oct 2022 10:13:17 GMT\r\nContent-Type: "
+        "text/html\r\nContent-Length: 152\r\nLast-Modified: Fri, 23 Sep 2022 11:13:48 "
+        "GMT\r\nConnection: close\r\nETag: \"632d94ec-9c\"\r\nAccept-Ranges: "
+        "bytes\r\n\r\n<!doctype html>\n<html>\n\n<head>\n    <meta charset=utf-8>\n    "
+        "<title>hello webserv</title>\n</head>\n\n<body>\n    <h1>hello webserv "
+        "tim</h1>\n</body>\n\n</html>");
 
     // if path ends with / dann dir sonst file
     //      - check for index files
@@ -46,7 +53,17 @@ void Response::init(const Request& request, config::Server& server, config::Loca
     // Construct response headers with chunked oder content-len based on file_size
 }
 
-config::Redirect* Response::_find_redir(config::Location* location, const std::string& file_path) {
+config::Redirect* Response::_find_redir_folder(config::Location* location) {
+    for (size_t i = 0; i < location->v_redirect.size(); i++) {
+        if (location->v_redirect[i].origin == ".") {
+            return &location->v_redirect[i];
+        }
+    }
+    return NULL;
+}
+
+config::Redirect* Response::_find_redir_file(config::Location*  location,
+                                             const std::string& file_path) {
     std::string origin(file_path.begin() + location->path.length(), file_path.end());
     for (size_t i = 0; i < location->v_redirect.size(); i++) {
         if (location->v_redirect[i].origin == origin) {
