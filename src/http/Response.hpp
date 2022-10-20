@@ -11,14 +11,16 @@ class Response {
    private:
     core::ByteBuffer& _buf;
 
+    config::Redirect* _find_redir(config::Location* location, const std::string& file);
+    void              _respond_redir(const config::Redirect& redir);
+
    public:
     CONNECTION_STATE connection_state;
 
     Response(core::ByteBuffer& buf);
     ~Response();
 
-    void init(const Request& request, const config::Server& server,
-              const config::Location& location);
+    void init(const Request& request, config::Server& server, config::Location& location);
 };
 
 }  // namespace http

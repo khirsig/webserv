@@ -314,9 +314,8 @@ config::Location* Connections::_find_location(const http::Request& request,
                                               config::Server*      server) {
     config::Location* location = NULL;
     for (size_t i = 0; i < server->v_location.size(); i++) {
-        if (request._uri_path_decoded.find(server->v_location[i].v_path[0].str) == 0) {
-            if (location == NULL ||
-                server->v_location[i].v_path[0].str.length() > location->v_path[0].str.length())
+        if (request._uri_path_decoded.find(server->v_location[i].path) == 0) {
+            if (location == NULL || server->v_location[i].path.length() > location->path.length())
                 location = &(server->v_location[i]);
         }
     }
