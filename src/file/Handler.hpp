@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Handler.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:49 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 14:54:20 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/20 16:29:59 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ class Handler {
     Handler(const std::string &path);
     ~Handler();
 
-    void read(const std::size_t buffer_size);
+    void read(char *buf, const std::size_t buffer_size);
 
     std::size_t max_size() const;
     std::size_t read_size() const;
