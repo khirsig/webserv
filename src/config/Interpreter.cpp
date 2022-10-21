@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 17:02:41 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/21 08:50:53 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,7 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
     ++it;
     Location new_location;
     if (it->type == IDENTIFIER || it->text == "(") {
-        _parse_location_path(v_token, it, new_location.path);
+        _parse_location_path(it, new_location.path);
     } else {
         std::cout << "No identifier for location in " << _path << ":" << it->line_number << "\n";
         exit(EXIT_FAILURE);
@@ -107,7 +107,7 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
                 _parse_string(v_token, it, new_location.v_index);
             } else if (*_last_directive == "cgi_pass") {
                 CgiPass new_pass;
-                _parse_cgi_pass(v_token, it, new_pass);
+                _parse_cgi_pass(it, new_pass);
                 new_location.v_cgi_pass.push_back(new_pass);
             } else if (*_last_directive == "directory_listing") {
                 if (dir_listing_set) {
@@ -160,14 +160,15 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
 void Interpreter::_parse_string(std::vector<Token>::const_iterator &it, std::string &identifier) {
     ++it;
     identifier = it->text;
+    if (*_last_directive == "root" && identifier.back() != '/')
+        identifier += '/';
     ++it;
     if (it->text != ";") {
         _none_terminated_directive(it);
     }
 }
 
-void Interpreter::_parse_cgi_pass(const std::vector<Token>           &v_token,
-                                  std::vector<Token>::const_iterator &it, CgiPass &identifier) {
+void Interpreter::_parse_cgi_pass(std::vector<Token>::const_iterator &it, CgiPass &identifier) {
     ++it;
     if (it->type == OPERATOR)
         _unexpected_operator(it);
@@ -384,8 +385,7 @@ void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint
     }
 }
 
-void Interpreter::_parse_location_path(const std::vector<Token>           &v_token,
-                                       std::vector<Token>::const_iterator &it,
+void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                                        std::string                        &location_path) {
     if (it->type == OPERATOR) {
         _unexpected_operator(it);
