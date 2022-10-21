@@ -1,5 +1,6 @@
 #include "ErrorPages.hpp"
 
+#include "../core/utils.hpp"
 #include "StatusCodes.hpp"
 #include "httpStatusCodes.hpp"
 
@@ -41,7 +42,7 @@ void ErrorPages::insert_page(int error_code, const core::ByteBuffer& body,
     header.append("\r\nContent-Type: ");
     header.insert(header.end(), content_type.begin(), content_type.end());
     header.append("\r\nContent-Length: ");
-    header.append(std::to_string(body.size()).c_str());
+    header.append(SSTR(body.size()).c_str());
     header.append("\r\nConnection: close");
     header.append("\r\n\r\n");
 
