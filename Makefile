@@ -17,7 +17,8 @@ VPATH       :=	src/		\
 				src/config/	\
 				src/core/	\
 				src/file/	\
-				src/http/
+				src/http/	\
+				src/cgi/
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
 

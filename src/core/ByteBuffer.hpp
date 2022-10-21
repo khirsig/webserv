@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ByteBuffer.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:51:44 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/17 14:06:52 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/21 15:21:50 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ class ByteBuffer : public std::vector<std::uint8_t> {
 
     void append(const char *str, std::size_t n);
     void append(const char *str);
+    void append(ByteBuffer *str);
     bool equal(ByteBuffer::iterator pos, const char *str, std::size_t n);
 
     ByteBuffer &operator+=(const ByteBuffer &buf);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../cgi/Executor.hpp"
 #include "../config/Location.hpp"
 #include "../config/Server.hpp"
 #include "../core/ByteBuffer.hpp"
@@ -19,6 +20,7 @@ class Response {
     config::Redirect* _find_redir_folder(config::Location* location);
     void              _respond_redir(const config::Redirect& redir);
     void              _construct_header();
+    void              _construct_header_cgi(std::size_t buf_size);
 
    public:
     CONNECTION_STATE connection_state;
@@ -30,7 +32,7 @@ class Response {
     Response();
     ~Response();
 
-    void init(const Request& request, config::Server& server, config::Location& location);
+    void init(Request& request, config::Server& server, config::Location& location);
 };
 
 }  // namespace http

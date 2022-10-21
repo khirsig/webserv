@@ -12,7 +12,7 @@ Response::Response() : state(RESPONSE_HEADER), content(RESPONSE_CONTENT_NONE) {}
 
 Response::~Response() {}
 
-void Response::init(const Request& request, config::Server& server, config::Location& location) {
+void Response::init(Request& request, config::Server& server, config::Location& location) {
     connection_state = request.connection_state;
 
     bool folder = (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
@@ -31,7 +31,7 @@ void Response::init(const Request& request, config::Server& server, config::Loca
             try {
                 file.init(location.root + request._uri_path_decoded + location.v_index[i]);
                 // check for cgi
-                //if (request.method != "GET")
+                // if (request.method != "GET")
                 //    throw HTTP_FORBIDDEN;
                 // goto file part
                 if (file.max_size() == 0)
@@ -56,14 +56,30 @@ void Response::init(const Request& request, config::Server& server, config::Loca
                 if (request._uri_path_decoded.compare(type_pos + 1,
                                                       request._uri_path_decoded.length() - type_pos,
                                                       location.v_cgi_pass[i].type) == 0) {
-                    buf.append("cgi file ending\n");
+                    cgi::Executor* exec = new cgi::Executor();
+                    exec->execute(location.root, location.v_cgi_pass[i].path,
+                                  request._uri_path_decoded, request._m_header);
+                    int         read_fd = exec->get_fd();
+                    std::string temp_buf;
+                    char*       __buf = new char[20];
+                    int         rd = 0;
+                    int         buf_count = 0;
+                    while ((rd = read(read_fd, __buf, 19)) > 0) {
+                        buf_count += rd;
+                        __buf[rd] = '\0';
+                        temp_buf += __buf;
+                    }
+                    delete __buf;
+                    delete exec;
+                    _construct_header_cgi(buf_count);
+                    buf.append(temp_buf.c_str());
                     // content = RESPONSE_CONTENT_CGI;
                     return;
                 }
             }
         }
-        //if (request.method != "GET")
-        //    throw HTTP_FORBIDDEN;
+        // if (request.method != "GET")
+        //     throw HTTP_FORBIDDEN;
         file.init(location.root + request._uri_path_decoded);
         if (file.max_size() == 0)
             content = RESPONSE_CONTENT_NONE;
@@ -164,6 +180,21 @@ void Response::_construct_header() {
     buf.append(mime_type(file.get_path()));
     buf.append("\r\nContent-Length: ");
     buf.append(SSTR(file.max_size()).c_str());
+    buf.append("\r\n\r\n");
+}
+
+void Response::_construct_header_cgi(std::size_t buf_size) {
+    buf.append("HTTP/1.1 200 OK");
+    buf.append("\r\nServer: webserv");
+    buf.append("\r\nConnection: ");
+    if (connection_state == CONNECTION_CLOSE)
+        buf.append("close");
+    else
+        buf.append("keep-alive");
+    buf.append("\r\nContent-Type: ");
+    buf.append("text/html");
+    buf.append("\r\nContent-Length: ");
+    buf.append(SSTR(buf_size).c_str());
     buf.append("\r\n\r\n");
 }
 
