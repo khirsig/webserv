@@ -57,8 +57,7 @@ void Response::init(Request& request, config::Server& server, config::Location& 
                                                       request._uri_path_decoded.length() - type_pos,
                                                       location.v_cgi_pass[i].type) == 0) {
                     cgi::Executor* exec = new cgi::Executor();
-                    exec->execute(location.root, location.v_cgi_pass[i].path,
-                                  request._uri_path_decoded, request._m_header);
+                    exec->execute(request, location.root, location.v_cgi_pass[i].path);
                     int         read_fd = exec->get_fd();
                     std::string temp_buf;
                     char*       __buf = new char[20];
@@ -192,7 +191,7 @@ void Response::_construct_header_cgi(std::size_t buf_size) {
     else
         buf.append("keep-alive");
     buf.append("\r\nContent-Type: ");
-    buf.append("text/html");
+    buf.append("text/html; charset=UTF-8");
     buf.append("\r\nContent-Length: ");
     buf.append(SSTR(buf_size).c_str());
     buf.append("\r\n\r\n");

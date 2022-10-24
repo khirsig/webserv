@@ -159,6 +159,8 @@ class Request {
     int  parse_header();
     int  parse_chunked_body();
 
+    std::string to_string(const std::size_t& begin, const std::size_t& end);
+
     void print();
     bool done();
 };
