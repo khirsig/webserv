@@ -20,7 +20,7 @@ class Response {
     config::Redirect* _find_redir_folder(config::Location* location);
     void              _respond_redir(const config::Redirect& redir);
     void              _construct_header();
-    void              _construct_header_cgi(std::size_t buf_size);
+    void              _construct_header_cgi();
 
    public:
     CONNECTION_STATE connection_state;

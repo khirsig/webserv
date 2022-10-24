@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/19 11:56:53 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/24 11:25:51 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,7 +86,18 @@ int main(int argc, char* argv[]) {
                         throw std::runtime_error("kevent: " + std::string(strerror(errno)));
                     } else if (m_socket.find(eni.events[i].ident) != m_socket.end()) {
                         connections.accept_connection(eni.events[i].ident, eni);
-                    } else if (eni.events[i].filter == EVFILT_TIMER) {
+                    }
+                    // else if ((it = m_cgi.find(eni.events[i].ident)) != m_cgi.end()) {
+                    // if (eni.events[i].filter == EVFILT_READ) {
+                    // cgi.read(eni.events[i].flags & EV_EOF);
+                    // append to response buffer
+                    // eni.delete_event();
+                    // } else if (eni.events[i].filter == EVFILT_WRITE) {
+                    // cgi.write(size_t max_bytes); write request.body
+                    // if request.body finished dann close(write_fd);
+                    // eni.delete_event();
+                    // }
+                    else if (eni.events[i].filter == EVFILT_TIMER) {
                         connections.timeout_connection(eni.events[i].ident, eni);
                     } else if (eni.events[i].flags & EV_EOF) {
                         if (eni.events[i].filter == EVFILT_READ) {

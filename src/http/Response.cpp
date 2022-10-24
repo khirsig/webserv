@@ -56,22 +56,23 @@ void Response::init(Request& request, config::Server& server, config::Location& 
                 if (request._uri_path_decoded.compare(type_pos + 1,
                                                       request._uri_path_decoded.length() - type_pos,
                                                       location.v_cgi_pass[i].type) == 0) {
-                    cgi::Executor* exec = new cgi::Executor();
-                    exec->execute(request, location.root, location.v_cgi_pass[i].path);
-                    int         read_fd = exec->get_fd();
-                    std::string temp_buf;
-                    char*       __buf = new char[20];
-                    int         rd = 0;
-                    int         buf_count = 0;
-                    while ((rd = read(read_fd, __buf, 19)) > 0) {
-                        buf_count += rd;
-                        __buf[rd] = '\0';
-                        temp_buf += __buf;
-                    }
-                    delete[] __buf;
-                    delete exec;
-                    _construct_header_cgi(buf_count);
-                    buf.append(temp_buf.c_str());
+                    _construct_header_cgi();
+                    // cgi::Executor* exec = new cgi::Executor(request, *this);
+
+                    // exec->execute(request, location.root, location.v_cgi_pass[i].path);
+                    // int         read_fd = exec->get_fd();
+                    // std::string temp_buf;
+                    // char*       __buf = new char[20];
+                    // int         rd = 0;
+                    // int         buf_count = 0;
+                    // while ((rd = read(read_fd, __buf, 19)) > 0) {
+                    //     buf_count += rd;
+                    //     __buf[rd] = '\0';
+                    //     temp_buf += __buf;
+                    // }
+                    // delete[] __buf;
+                    // delete exec;
+                    // buf.append(temp_buf.c_str());
                     content = RESPONSE_CONTENT_CGI;
                     return;
                 }
@@ -182,18 +183,16 @@ void Response::_construct_header() {
     buf.append("\r\n\r\n");
 }
 
-void Response::_construct_header_cgi(std::size_t buf_size) {
+void Response::_construct_header_cgi() {
     buf.append("HTTP/1.1 200 OK");
     buf.append("\r\nServer: webserv");
+    buf.append("\r\nContent-Type: text/html; charset=UTF-8");
+    buf.append("\r\nTransfer-Encoding: chunked");
     buf.append("\r\nConnection: ");
     if (connection_state == CONNECTION_CLOSE)
         buf.append("close");
     else
         buf.append("keep-alive");
-    buf.append("\r\nContent-Type: ");
-    buf.append("text/html; charset=UTF-8");
-    buf.append("\r\nContent-Length: ");
-    buf.append(SSTR(buf_size).c_str());
     buf.append("\r\n\r\n");
 }
 

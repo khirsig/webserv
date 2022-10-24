@@ -1,13 +1,10 @@
 # webserv
 
 
-
-
-
 ## TO-DO
 
-
-
+- error messages ueber poll schreiben
+- cgi in keque() einbauen
 
 ## Questionable
 
