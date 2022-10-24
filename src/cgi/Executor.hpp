@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:20:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 10:09:26 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/24 13:41:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,11 @@
 #include <vector>
 
 #include "../core/ByteBuffer.hpp"
+#include "../core/EventNotificationInterface.hpp"
 #include "../http/Request.hpp"
+#include "../http/Response.hpp"
+
+#define CGI_READ_BUFFER_SIZE 1024
 
 static const int         env_arr_length = 19;
 static const std::string env_string[env_arr_length] = {
@@ -33,19 +37,31 @@ namespace cgi {
 
 class Executor {
    public:
-    Executor();
+    Executor(http::Request &request, http::Response &response,
+             core::EventNotificationInterface &eni);
     ~Executor();
 
-    void    execute(http::Request &request, std::string &root, std::string &path);
-    int32_t get_fd() const;
+    void execute(std::string &root, std::string &path);
+    void read(bool eof);
+    void write(std::size_t max_size);
+
+    int get_read_fd() const;
+    int get_write_fd() const;
 
    private:
-    int32_t _read_fd;
-    pid_t   _id;
+    int   _read_fd;
+    int   _write_fd;
+    pid_t _id;
 
-    void   _run_program(http::Request &request, std::string &root, std::string &path, int fd[2]);
-    char **_get_env(http::Request &request, std::map<std::string, std::string> &env);
-    void   _update_env(http::Request &request, std::map<std::string, std::string> &env);
+    std::size_t _request_index;
+
+    http::Request                    &_request;
+    http::Response                   &_response;
+    core::EventNotificationInterface &_eni;
+
+    void   _run_program(std::string &root, std::string &path);
+    char **_get_env(std::map<std::string, std::string> &env);
+    void   _update_env(std::map<std::string, std::string> &env);
     char **_get_argv(const std::string &path, const std::string &body);
 };
 
