@@ -233,6 +233,16 @@ int Request::parse_chunked_body() {
     return WEBSERV_AGAIN;
 }
 
+std::string Request::to_string(const std::size_t& begin, const std::size_t& end) {
+    std::string ret;
+
+    for (std::size_t i = begin; i < end; ++i) {
+        ret += _buf[i];
+    }
+
+    return ret;
+}
+
 void Request::_parse_method() {
     switch (_method_end - _method_start) {
         case 3:

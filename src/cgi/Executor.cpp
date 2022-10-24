@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:53:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/21 13:15:09 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/24 10:26:15 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,10 @@ Executor::Executor() {}
 
 Executor::~Executor() { close(_read_fd); }
 
-void Executor::execute(std::string &root, std::string &path, std::string &body,
-                       std::map<std::string, std::string> &env) {
+void Executor::execute(http::Request &request, std::string &root, std::string &path) {
     int fd[2];
-
+    // env == request._m_header
+    // body == request._uri_path_decoded
     if (pipe(fd) == -1)
         throw 500;
 
@@ -34,7 +34,7 @@ void Executor::execute(std::string &root, std::string &path, std::string &body,
     }
 
     if (_id == 0) {
-        _run_program(root, path, body, env, fd);
+        _run_program(request, root, path, fd);
     } else {
         _read_fd = fd[0];
 
@@ -44,27 +44,23 @@ void Executor::execute(std::string &root, std::string &path, std::string &body,
 
 int32_t Executor::get_fd() const { return _read_fd; }
 
-void Executor::_run_program(std::string &root, std::string &path, std::string &body,
-                            std::map<std::string, std::string> &env, int fd[2]) {
-    // std::cout << "path: " << path << "   root: " << root << "    body: " << body << "\n";
+void Executor::_run_program(http::Request &request, std::string &root, std::string &path,
+                            int fd[2]) {
     // write(STDIN_FILENO, &body, body.size());
-    // close(fd[0]);
+    close(fd[0]);
     dup2(fd[1], STDOUT_FILENO);
     close(fd[1]);
-    // change directory before execve to right path
-    // execve
-    // after execve parse error log
+
     chdir(root.c_str());
-    body.insert(0, ".");
-    char **env_str = _get_env(env);
-    char **argv = _get_argv(path, body);
-    // std::cout << argv[0] << "  " << argv[1] << "\n";
+    request._uri_path_decoded.insert(0, ".");
+    char **env_str = _get_env(request, request._m_header);
+    char **argv = _get_argv(path, request._uri_path_decoded);
     if (execve(path.c_str(), argv, env_str) == -1)
         perror("execve");
     exit(EXIT_FAILURE);
 }
 
-char **Executor::_get_env(std::map<std::string, std::string> &env) {
+char **Executor::_get_env(http::Request &request, std::map<std::string, std::string> &env) {
     for (uint32_t i = 0; i < env_arr_length; ++i) {
         if (env.find(env_string[i]) == env.end()) {
             std::string key = env_string[i];
@@ -72,6 +68,8 @@ char **Executor::_get_env(std::map<std::string, std::string> &env) {
             env.insert(std::make_pair<std::string, std::string>(key, val));
         }
     }
+
+    _update_env(request, env);
 
     char   **ret = new char *[env.size() + 1];
     uint32_t i = 0;
@@ -92,6 +90,12 @@ char **Executor::_get_env(std::map<std::string, std::string> &env) {
     ret[env.size()] = NULL;
 
     return ret;
+}
+
+void Executor::_update_env(http::Request &request, std::map<std::string, std::string> &env) {
+    std::map<std::string, std::string>::iterator it = env.find("QUERY_STRING");
+    if (it != env.end())
+        it->second = request.to_string(request._uri_query_start, request._uri_query_end);
 }
 
 char **Executor::_get_argv(const std::string &path, const std::string &body) {
