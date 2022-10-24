@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Executor.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:53:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 15:28:17 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/24 15:47:41 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,6 +171,9 @@ void Executor::_update_env(std::map<std::string, std::string> &env) {
     std::map<std::string, std::string>::iterator it = env.find("QUERY_STRING");
     if (it != env.end())
         it->second = _request.to_string(_request._uri_query_start, _request._uri_query_end);
+    it = env.find("REQUEST_METHOD");
+    if (it != env.end())
+        it->second = _request._method;
 }
 
 char **Executor::_get_argv(const std::string &path, const std::string &body) {
