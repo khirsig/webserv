@@ -346,24 +346,24 @@ void Request::_analyze_request_line() {
 }
 
 void Request::_analyze_header() {
-    std::map<std::string, std::string>::iterator it_host = _m_header.find("host");
+    std::map<std::string, std::string>::iterator it_host = _m_header.find("HOST");
     if (it_host == _m_header.end() || it_host->second.length() == 0)
         throw HTTP_BAD_REQUEST;
     if (_uri_host_decoded.empty())
         _uri_host_decoded = it_host->second;
-    std::map<std::string, std::string>::iterator it_content_len = _m_header.find("content-length");
+    std::map<std::string, std::string>::iterator it_content_len = _m_header.find("CONTENT-LENGTH");
     if (it_content_len != _m_header.end()) {
         _body_expected_size = atoi(it_content_len->second.c_str());  // error handling? / c style
         // if (_body_expected_size > CLIENTMAXSIZE)
         // return ERROR;
     }
-    std::map<std::string, std::string>::iterator it_connection = _m_header.find("connection");
+    std::map<std::string, std::string>::iterator it_connection = _m_header.find("CONNECTION");
     if (it_connection != _m_header.end()) {
         if (it_connection->second == "close")
             connection_state = CONNECTION_CLOSE;
     }
     std::map<std::string, std::string>::iterator it_transfer_encoding =
-        _m_header.find("transfer-encoding");
+        _m_header.find("TRANSFER-ENCODING");
     if (it_content_len != _m_header.end() && it_transfer_encoding != _m_header.end()) {
         throw HTTP_BAD_REQUEST;
     } else if (it_transfer_encoding != _m_header.end()) {
@@ -741,7 +741,7 @@ void print_header_pair(const core::ByteBuffer& buf, size_t key_start, size_t key
 void Request::_add_header() {
     std::string key(_buf.begin() + _header_key_start, _buf.begin() + _header_key_end);
     std::transform(key.begin(), key.end(), key.begin(),
-                   ::tolower);  // c tolower ???
+                   ::toupper);  // c tolower ???
     std::string value(_buf.begin() + _header_value_start, _buf.begin() + _header_value_end);
     std::pair<std::map<std::string, std::string>::iterator, bool> ret;
     ret = _m_header.insert(std::make_pair(key, value));
