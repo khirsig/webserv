@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Executor.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:20:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 15:30:08 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/24 15:41:24 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,10 @@
 
 static const int         env_arr_length = 19;
 static const std::string env_string[env_arr_length] = {
-    "AUTH_TYPE",       "CONTENT_LENGTH", "CONTENT_TYPE",    "GATEWAY_INTERFACE", "HTTP_ACCEPT",
-    "HTTP_USER_AGENT", "PATH_INFO",      "PATH_TRANSLATED", "QUERY_STRING",      "REMOTE_ADDR",
-    "REMOTE_HOST",     "REMOTE_IDENT",   "REMOTE_USER",     "REQUEST_METHOD",    "SCRIPT_NAME",
-    "SERVER_NAME",     "SERVER_PORT",    "SERVER_PROTOCOL", "SERVER_SOFTWARE"};
+    "AUTH_TYPE",   "CONTENT_LENGTH",  "CONTENT_TYPE",    "GATEWAY_INTERFACE",
+    "HTTP_ACCEPT", "HTTP_USER_AGENT", "PATH_INFO",       "REMOTE_ADDR",
+    "REMOTE_HOST", "REMOTE_IDENT",    "REMOTE_USER",     "SCRIPT_NAME",
+    "SERVER_NAME", "SERVER_PORT",     "SERVER_PROTOCOL", "SERVER_SOFTWARE"};
 
 namespace http {
 class Response;
