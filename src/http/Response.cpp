@@ -68,11 +68,11 @@ void Response::init(Request& request, config::Server& server, config::Location& 
                         __buf[rd] = '\0';
                         temp_buf += __buf;
                     }
-                    delete __buf;
+                    delete[] __buf;
                     delete exec;
                     _construct_header_cgi(buf_count);
                     buf.append(temp_buf.c_str());
-                    // content = RESPONSE_CONTENT_CGI;
+                    content = RESPONSE_CONTENT_CGI;
                     return;
                 }
             }
