@@ -255,10 +255,13 @@ void send_response_cgi(http::Response& response, int fd, size_t max_bytes,
     max_bytes -= 22;  // chunk size
     max_bytes -= 2;   // ending /r/n for content
 
+    std::cerr << response.buf.size() << std::endl;
+    std::cerr << response.buf << std::endl;
+
     size_t left_bytes = response.buf.size() - response.buf.pos;
     size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
     if (send_bytes > 0) {
-        const std::string chunked_info(SSTR(send_bytes) + "\r\n");
+        const std::string chunked_info(SSTR_HEX(send_bytes) + "\r\n");
         if (send(fd, chunked_info.c_str(), chunked_info.length(), 0) < 0)
             throw std::runtime_error("send() failed");
         if (send(fd, &response.buf[0], send_bytes, 0) < 0)

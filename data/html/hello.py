@@ -22,3 +22,5 @@ print("</body>")
 print("</html>")
 
 cgi.print_environ()
+
+# print("42")

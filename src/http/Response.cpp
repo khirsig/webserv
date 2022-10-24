@@ -139,7 +139,7 @@ void Response::_respond_redir(const config::Redirect& redir) {
     header.append("\r\nServer: webserv");
     header.append("\r\nContent-Type: text/html");
     header.append("\r\nContent-Length: ");
-    header.append(SSTR(body.size()).c_str());
+    header.append(SSTR_DEC(body.size()).c_str());
     header.append("\r\nConnection: ");
     if (connection_state == http::CONNECTION_CLOSE)
         header.append("close");
@@ -161,7 +161,7 @@ void Response::_construct_header() {
     header.append("\r\nContent-Type: ");
     header.append(mime_type(file.get_path()));
     header.append("\r\nContent-Length: ");
-    header.append(SSTR(file.max_size()).c_str());
+    header.append(SSTR_DEC(file.max_size()).c_str());
     header.append("\r\n\r\n");
 }
 
