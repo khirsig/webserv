@@ -83,7 +83,7 @@ void Connections::accept_connection(int fd, EventNotificationInterface& eni) {
     // Store connection relevant informations
     _v_socket_fd[index] = fd;
     _v_request_buf[index] = new core::ByteBuffer(4096);
-    _v_request[index] = new http::Request(*_v_request_buf[index]);
+    _v_request[index] = new http::Request(*_v_request_buf[index], _v_fd[index]);
 
     std::cout << "Accepted new connection: " << get_connection_ip(_v_fd[index]) << ":"
               << get_connection_port(_v_fd[index]) << std::endl;
@@ -189,13 +189,11 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
     try {
         _v_request[index]->parse_input();
         if (_v_request[index]->done()) {
-            build_response(index);
+            build_response(index, eni);
             // _v_request_buf[index]->erase(
             //     _v_request_buf[index]->begin(),
             //     _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
             // _v_request_buf[index]->pos = 0;
-            delete _v_request[index];
-            _v_request[index] = new http::Request(*_v_request_buf[index]);
             eni.delete_event(_v_fd[index], EVFILT_READ);
             eni.add_event(_v_fd[index], EVFILT_WRITE, 0);
         }
@@ -218,7 +216,7 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
     }
 }
 
-void Connections::build_response(int index) {
+void Connections::build_response(int index, EventNotificationInterface& eni) {
     _v_response[index] = new http::Response();
 
     // Find Sever
@@ -237,7 +235,7 @@ void Connections::build_response(int index) {
                       _v_request[index]->_method) == location->v_accepted_method.end())
             throw HTTP_METHOD_NOT_ALLOWED;
     }
-    _v_response[index]->init(*_v_request[index], *server, *location);
+    _v_response[index]->init(*_v_request[index], *location, eni);
 }
 
 void send_response_body_file(http::Response& response, int fd, size_t max_bytes) {
@@ -248,27 +246,61 @@ void send_response_body_file(http::Response& response, int fd, size_t max_bytes)
     delete[] buf;
 }
 
+// 18446744073709551615
+
+void send_response_cgi(http::Response& response, int fd, size_t max_bytes,
+                       EventNotificationInterface& eni) {
+    if (max_bytes < 25)
+        return;
+    max_bytes -= 22;  // chunk size
+    max_bytes -= 2;   // ending /r/n for content
+
+    size_t left_bytes = response.buf.size() - response.buf.pos;
+    size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
+    if (send_bytes > 0) {
+        const std::string chunked_info(SSTR(send_bytes) + "\r\n");
+        if (send(fd, chunked_info.c_str(), chunked_info.length(), 0) < 0)
+            throw std::runtime_error("send() failed");
+        if (send(fd, &response.buf[0], send_bytes, 0) < 0)
+            throw std::runtime_error("send() failed");
+        if (send(fd, "\r\n", 2, 0) < 0)
+            throw std::runtime_error("send() failed");
+        response.buf.pos += send_bytes;
+    }
+    if (response.buf.pos >= response.buf.size()) {
+        if (response.cgi_done) {
+            if (max_bytes - send_bytes >= 5) {
+                if (send(fd, "0\r\n\r\n", 5, 0) < 0)
+                    throw std::runtime_error("send() failed");
+                response.state = http::RESPONSE_DONE;
+            }
+        } else {
+            eni.delete_event(fd, EVFILT_WRITE);
+        }
+    }
+}
+
 void Connections::send_response(int fd, EventNotificationInterface& eni, size_t max_bytes) {
     int index = get_index(fd);
     try {
         switch (_v_response[index]->state) {
             case http::RESPONSE_HEADER: {
-                size_t left_bytes = _v_response[index]->buf.size() - _v_response[index]->buf.pos;
+                size_t left_bytes =
+                    _v_response[index]->header.size() - _v_response[index]->header.pos;
                 size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
-                if (send(_v_fd[index], &(_v_response[index]->buf[0]) + _v_response[index]->buf.pos,
-                         send_bytes, 0) < 0)
+                if (send(_v_fd[index],
+                         &(_v_response[index]->header[_v_response[index]->header.pos]), send_bytes,
+                         0) < 0)
                     throw std::runtime_error("send() failed");
-                _v_response[index]->buf.pos += send_bytes;
-                if (_v_response[index]->buf.pos == _v_response[index]->buf.size()) {
-                    if (_v_response[index]->content == http::RESPONSE_CONTENT_NONE)
-                        _v_response[index]->state = http::RESPONSE_DONE;
-                    else
-                        _v_response[index]->state = http::RESPONSE_BODY;
-                }
+                _v_response[index]->header.pos += send_bytes;
+                if (_v_response[index]->header.pos < _v_response[index]->header.size())
+                    break;
+                _v_response[index]->state = http::RESPONSE_BODY;
             } break;
             case http::RESPONSE_BODY:
                 switch (_v_response[index]->content) {
                     case http::RESPONSE_CONTENT_NONE:
+                        _v_response[index]->state = http::RESPONSE_DONE;
                         break;
                     case http::RESPONSE_CONTENT_FILE:
                         send_response_body_file(*_v_response[index], _v_fd[index], max_bytes);
@@ -277,7 +309,9 @@ void Connections::send_response(int fd, EventNotificationInterface& eni, size_t 
                         _v_response[index]->state = http::RESPONSE_DONE;
                         break;
                     case http::RESPONSE_CONTENT_CGI:
+                        send_response_cgi(*_v_response[index], _v_fd[index], max_bytes, eni);
                         break;
+                        // case http::CONTENT_ERRR;
                 }
             case http::RESPONSE_DONE:
                 break;
@@ -291,6 +325,8 @@ void Connections::send_response(int fd, EventNotificationInterface& eni, size_t 
             delete _v_response[index];
             _v_response[index] = NULL;
             eni.add_event(_v_fd[index], EVFILT_READ, 0);
+            delete _v_request[index];
+            _v_request[index] = new http::Request(*_v_request_buf[index], _v_fd[index]);
             parse_request(index, eni);
         }
     } catch (const std::exception& e) {

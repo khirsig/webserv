@@ -22,7 +22,7 @@ class Connections {
     void        accept_connection(int fd, EventNotificationInterface& eni);
     int         recv_request(int fd, EventNotificationInterface& eni);
     void        parse_request(int index, EventNotificationInterface& eni);
-    void        build_response(int index);
+    void        build_response(int index, EventNotificationInterface& eni);
     void        send_response(int fd, EventNotificationInterface& eni, size_t max_bytes);
     void        close_connection(int fd, EventNotificationInterface& eni);
     void        timeout_connection(int fd, EventNotificationInterface& eni);

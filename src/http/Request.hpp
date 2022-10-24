@@ -88,6 +88,7 @@ enum CONNECTION_STATE { CONNECTION_CLOSE, CONNECTION_KEEP_ALIVE };
 
 class Request {
    public:
+    int               connection_fd;
     core::ByteBuffer& _buf;
 
     std::size_t _request_end;
@@ -151,7 +152,7 @@ class Request {
    public:
     int error;
 
-    Request(core::ByteBuffer& buf);
+    Request(core::ByteBuffer& buf, int connection_fd);
     ~Request();
 
     void parse_input();

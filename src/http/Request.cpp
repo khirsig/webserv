@@ -37,8 +37,9 @@ static const std::pair<std::string, bool> headers[] = {
     //    std::make_pair("content-length", true)
 };
 
-Request::Request(core::ByteBuffer& buf)
-    : _buf(buf),
+Request::Request(core::ByteBuffer& buf, int connection_fd)
+    : connection_fd(connection_fd),
+      _buf(buf),
       _request_end(0),
       _method_start(0),
       _method_end(0),

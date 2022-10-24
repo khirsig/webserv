@@ -4,8 +4,13 @@
 #include "../config/Location.hpp"
 #include "../config/Server.hpp"
 #include "../core/ByteBuffer.hpp"
+#include "../core/EventNotificationInterface.hpp"
 #include "../file/Handler.hpp"
 #include "Request.hpp"
+
+namespace cgi {
+class Executor;
+}
 
 namespace http {
 
@@ -27,12 +32,15 @@ class Response {
     file::Handler    file;
     ResponseSate     state;
     ResponseContent  content;
+    bool             cgi_done;
+    core::ByteBuffer header;
     core::ByteBuffer buf;
+    cgi::Executor*   executor;
 
     Response();
     ~Response();
 
-    void init(Request& request, config::Server& server, config::Location& location);
+    void init(Request& request, config::Location& location, core::EventNotificationInterface& eni);
 };
 
 }  // namespace http

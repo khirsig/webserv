@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 11:25:51 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/24 14:52:49 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <iostream>
 #include <vector>
 
+#include "cgi/Executor.hpp"
 #include "config/Parser.hpp"
 #include "core/Connections.hpp"
 #include "core/EventNotificationInterface.hpp"
@@ -26,8 +27,9 @@
 #include "http/httpStatusCodes.hpp"
 #include "log/Log.hpp"
 
-http::StatusCodes http::g_status_codes;
-http::ErrorPages  http::g_error_pages;
+http::StatusCodes             http::g_status_codes;
+http::ErrorPages              http::g_error_pages;
+std::map<int, cgi::Executor*> cgi::g_executor;
 // #define DEBUG_CONFIG_PARSER
 
 int main(int argc, char* argv[]) {
@@ -75,7 +77,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        core::Connections connections(1024, v_server);
+        core::Connections                       connections(1024, v_server);
+        std::map<int, cgi::Executor*>::iterator it_cgi_exec;
         while (42) {
             try {
                 int num_events = eni.poll_events();
@@ -86,6 +89,12 @@ int main(int argc, char* argv[]) {
                         throw std::runtime_error("kevent: " + std::string(strerror(errno)));
                     } else if (m_socket.find(eni.events[i].ident) != m_socket.end()) {
                         connections.accept_connection(eni.events[i].ident, eni);
+                    } else if ((it_cgi_exec = cgi::g_executor.find(eni.events[i].ident)) !=
+                               cgi::g_executor.end()) {
+                        if (eni.events[i].filter == EVFILT_READ)
+                            it_cgi_exec->second->read(eni.events[i].flags & EV_EOF);
+                        else if (eni.events[i].filter == EVFILT_WRITE)
+                            it_cgi_exec->second->write(eni.events[i].data);
                     }
                     // else if ((it = m_cgi.find(eni.events[i].ident)) != m_cgi.end()) {
                     // if (eni.events[i].filter == EVFILT_READ) {

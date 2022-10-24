@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Executor.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:53:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 14:09:08 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/24 15:28:17 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,12 @@ namespace cgi {
 
 Executor::Executor(http::Request &request, http::Response &response,
                    core::EventNotificationInterface &eni)
-    : _request(request),
+    : _read_fd(-1),
+      _write_fd(-1),
+      _request(request),
       _response(response),
       _eni(eni),
-      _request_index(_request._body_start),
-      _read_fd(-1),
-      _write_fd(-1) {}
+      _request_index(_request._body_start) {}
 
 Executor::~Executor() {
     close(_read_fd);  // delete events
@@ -47,13 +47,12 @@ void Executor::execute(std::string &root, std::string &path) {
     }
 
     if (_id == 0) {
-        close(read_fd[0]);
-        dup2(read_fd[1], STDIN_FILENO);
-        close(read_fd[1]);
-        dup2(write_fd[0], STDOUT_FILENO);
-        close(write_fd[0]);
         close(write_fd[1]);
-
+        close(read_fd[0]);
+        dup2(write_fd[0], STDIN_FILENO);
+        close(write_fd[0]);
+        dup2(read_fd[1], STDOUT_FILENO);
+        close(read_fd[1]);
         _run_program(root, path);
     } else {
         _read_fd = read_fd[0];
@@ -73,18 +72,20 @@ void Executor::execute(std::string &root, std::string &path) {
 
 void Executor::read(bool eof) {
     std::string temp_buf;
-    char        __buf[CGI_READ_BUFFER_SIZE];
-    std::size_t chars_read = 0;
-    int         buf_count = 0;
-    chars_read = ::read(_read_fd, __buf, CGI_READ_BUFFER_SIZE - 1);
-    __buf[chars_read] = '\0';
-    _response.buf.append(__buf);
+    char        buf[CGI_READ_BUFFER_SIZE];
+    int         chars_read = 0;
+    // std::cerr << _read_fd << '\n';
+    chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);
+    buf[chars_read] = '\0';
+    _response.buf.append(buf);
     if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
         _eni.delete_event(_read_fd, EVFILT_READ);
+        cgi::g_executor.erase(_read_fd);
         close(_read_fd);  // destructor?
         _read_fd = -1;
         _response.cgi_done = true;
     }
+    _eni.add_event(_request.connection_fd, EVFILT_WRITE, 0);
 }
 
 void Executor::write(std::size_t max_size) {
@@ -114,6 +115,7 @@ void Executor::write(std::size_t max_size) {
     }
     if (left_bytes == 0) {
         _eni.delete_event(_write_fd, EVFILT_WRITE);
+        cgi::g_executor.erase(_write_fd);
         close(_write_fd);  // destructor?
         _write_fd = -1;
     }
@@ -134,13 +136,13 @@ void Executor::_run_program(std::string &root, std::string &path) {
 }
 
 char **Executor::_get_env(std::map<std::string, std::string> &env) {
-    // for (uint32_t i = 0; i < env_arr_length; ++i) {
-    //     if (env.find(env_string[i]) == env.end()) {
-    //         std::string key = env_string[i];
-    //         std::string val;
-    //         env.insert(std::make_pair<std::string, std::string>(key, val));
-    //     }
-    // }
+    for (uint32_t i = 0; i < env_arr_length; ++i) {
+        if (env.find(env_string[i]) == env.end()) {
+            std::string key = env_string[i];
+            std::string val;
+            env.insert(std::make_pair<std::string, std::string>(key, val));
+        }
+    }
 
     _update_env(env);
 
