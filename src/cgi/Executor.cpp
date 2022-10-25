@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:53:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 15:47:41 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/24 16:51:58 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,6 @@ void Executor::read(bool eof) {
     std::string temp_buf;
     char        buf[CGI_READ_BUFFER_SIZE];
     int         chars_read = 0;
-    // std::cerr << _read_fd << '\n';
     chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);
     buf[chars_read] = '\0';
     _response.buf.append(buf);

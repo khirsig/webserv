@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Handler.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:49 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 19:50:17 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/25 10:42:41 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,11 +28,13 @@ class Handler {
     void   init(const std::string &path);
     size_t read(char *buf, const std::size_t buffer_size);
 
+    bool is_open() const;
+
     std::size_t max_size() const;
     std::size_t read_size() const;
     std::size_t left_size() const;
 
-    const std::string& get_path() const;
+    const std::string &get_path() const;
 
    private:
     std::string  _path;

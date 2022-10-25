@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 14:52:49 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/25 09:09:18 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     try {
         std::string file_path;
         if (argc == 1)
-            file_path = "./webserv.conf";
+            file_path = "./tester.conf";
         else if (argc == 2)
             file_path = argv[1];
         else {
