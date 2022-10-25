@@ -233,8 +233,6 @@ void Connections::build_response(int index, EventNotificationInterface& eni) {
     if (!location)
         throw HTTP_NOT_FOUND;
 
-    location->print("");
-
     // check method allowed....
     if (location->v_accepted_method.size() > 0) {
         if (std::find(location->v_accepted_method.begin(), location->v_accepted_method.end(),
@@ -262,19 +260,17 @@ void send_response_cgi(http::Response& response, int fd, size_t max_bytes,
     max_bytes -= 22;  // chunk size
     max_bytes -= 2;   // ending /r/n for content
 
-    std::cerr << response.buf.size() << std::endl;
-    std::cerr << response.buf << std::endl;
-
     size_t left_bytes = response.buf.size() - response.buf.pos;
     size_t send_bytes = left_bytes < max_bytes ? left_bytes : max_bytes;
     if (send_bytes > 0) {
         const std::string chunked_info(SSTR_HEX(send_bytes) + "\r\n");
         if (send(fd, chunked_info.c_str(), chunked_info.length(), 0) < 0)
-            throw std::runtime_error("send() failed");
-        if (send(fd, &response.buf[0], send_bytes, 0) < 0)
-            throw std::runtime_error("send() failed");
+            throw std::runtime_error("send() failed");  // close_connection
+        if (send(fd, &response.buf[response.buf.pos], send_bytes, 0) < 0)
+            throw std::runtime_error("send() failed");  // close_connection
         if (send(fd, "\r\n", 2, 0) < 0)
-            throw std::runtime_error("send() failed");
+            throw std::runtime_error("send() failed");  // close_connection
+        // add timeout
         response.buf.pos += send_bytes;
     }
     if (response.buf.pos >= response.buf.size()) {

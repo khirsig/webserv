@@ -60,10 +60,7 @@ void Response::init(Request& request, config::Location& location,
     std::string relative_file_path(request._uri_path_decoded.begin() + location.path.length(),
                                    request._uri_path_decoded.end());
     std::string file_path(location.root + relative_file_path);
-    std::cerr << file_path << std::endl;
     directory = !file.init(file_path);
-
-    std::cerr << "is dir: " << directory << std::endl;
 
     config::Redirect* redir;
     if (directory)
