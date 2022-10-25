@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   Handler.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: hepple <hepple@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:31 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 12:48:58 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 17:58:13 by hepple           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Handler.hpp"
+#include "../http/httpStatusCodes.hpp"
 
 namespace file {
 
@@ -27,11 +28,11 @@ bool Handler::init(const std::string &path) {
     _file.open(path);
     if (!_file.is_open()) {
         if (errno == 13)
-            throw 403;
+            throw HTTP_FORBIDDEN;
         else if (errno == 21)
             return false;
         else
-            throw 404;
+            throw HTTP_NOT_FOUND;
     }
     _file.seekg(0, _file.end);
     _max_size = _file.tellg();
