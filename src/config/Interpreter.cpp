@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 12:32:34 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 13:11:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -372,9 +372,9 @@ void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint
         exit(EXIT_FAILURE);
     }
 
-    if (num.size() > 3) {
-        std::cerr << "numeric amount too high. Maximum 3 digits allowed. Use 'B', 'K', 'M', 'G' "
-                     "instead\n";
+    if ((num.size() > 3 && multiplier == 1000000000) || (num.size() > 6 && multiplier == 1000000) ||
+        (num.size() > 9 && multiplier == 1000) || (num.size() > 12 && multiplier == 1)) {
+        std::cerr << "numeric amount too high. maximum allowed file-size = 999gb\n";
         exit(EXIT_FAILURE);
     }
 
