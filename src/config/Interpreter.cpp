@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 11:51:46 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/10/25 12:32:34 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,6 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             } else if (*_last_directive == "client_max_body_size") {
                 if (client_max_size_set) {
                     _directive_already_set(it);
-
                 } else {
                     _parse_bytes(it, new_server.client_max_body_size);
                     client_max_size_set = true;
@@ -82,6 +81,7 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
 
     bool dir_listing_set = false;
     bool acc_methods_set = false;
+    bool client_max_size_set = false;
 
     if (it->text == "{" && it->type == OPERATOR) {
         ++it;
@@ -115,6 +115,13 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
                 } else {
                     _parse_bool(it, new_location.directory_listing);
                     dir_listing_set = true;
+                }
+            } else if (*_last_directive == "client_max_body_size") {
+                if (client_max_size_set) {
+                    _directive_already_set(it);
+                } else {
+                    _parse_bytes(it, new_location.client_max_body_size);
+                    client_max_size_set = true;
                 }
             } else {
                 _invalid_directive(it);
@@ -452,8 +459,8 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                 break;
         }
     }
-    if (location_path[location_path.size() - 1] == '/')
-        location_path.erase(location_path.end() - 1);
+    if (location_path[location_path.size() - 1] != '/')
+        location_path += '/';
 
     ++it;
     if (it->text != "{") {

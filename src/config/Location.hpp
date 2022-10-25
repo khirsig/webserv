@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 14:10:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 16:57:54 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 12:26:58 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,10 @@ class Location {
     std::vector<std::string> v_accepted_method;
     std::vector<Redirect>    v_redirect;
     std::string              root;
-    bool                     directory_listing;
+
+    std::uint64_t client_max_body_size;
+    bool          directory_listing;
+
     std::vector<std::string> v_index;
     std::vector<Location>    v_location;
     std::vector<CgiPass>     v_cgi_pass;
