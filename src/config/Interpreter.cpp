@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 13:11:36 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 13:13:20 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -459,8 +459,8 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                 break;
         }
     }
-    if (location_path[location_path.size() - 1] != '/')
-        location_path += '/';
+    if (location_path[location_path.size() - 1] == '/')
+        location_path.erase(location_path.end() - 1);
 
     ++it;
     if (it->text != "{") {

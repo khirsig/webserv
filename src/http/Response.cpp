@@ -23,13 +23,14 @@ Response::~Response() {
     }
 }
 
-inline bool find_index(Request& request, config::Location& location, file::Handler& file) {
-    std::string origin(request._uri_path_decoded.begin() + location.path.length(),
-                       request._uri_path_decoded.end());
+inline bool find_index(const std::string& file_path, config::Location& location,
+                       file::Handler& file) {
+    // std::string origin(request._uri_path_decoded.begin() + location.path.length(),
+    //                    request._uri_path_decoded.end());
     for (size_t i = 0; i < location.v_index.size(); i++) {
         try {
-            std::cerr << location.root + origin + "/" + location.v_index[i] << std::endl;
-            file.init(location.root + origin + "/" + location.v_index[i]);
+            std::cerr << file_path + location.v_index[i] << std::endl;
+            file.init(file_path + "/" + location.v_index[i]);
             return true;
         } catch (...) {
         }
@@ -55,19 +56,26 @@ void Response::init(Request& request, config::Location& location,
                     core::EventNotificationInterface& eni) {
     connection_state = request.connection_state;
 
-    bool directory = (request._uri_path_decoded.length() == location.path.length()) ||
-                     (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
+    bool        directory;
+    std::string relative_file_path(request._uri_path_decoded.begin() + location.path.length(),
+                                   request._uri_path_decoded.end());
+    std::string file_path(location.root + relative_file_path);
+    std::cerr << file_path << std::endl;
+    directory = !file.init(file_path);
+
+    std::cerr << "is dir: " << directory << std::endl;
+
     config::Redirect* redir;
     if (directory)
         redir = _find_redir_folder(&location);
     else
-        redir = _find_redir_file(&location, request._uri_path_decoded);
+        redir = _find_redir_file(&location, relative_file_path);
     if (redir) {
         _respond_redir(*redir);
         return;
     }
 
-    if (directory && !find_index(request, location, file)) {
+    if (directory && !find_index(file_path, location, file)) {
         if (location.directory_listing) {
             buf.append("cgi dir listing\n");
             // _construct_header_cgi();
@@ -78,7 +86,7 @@ void Response::init(Request& request, config::Location& location,
             // content = RESPONSE_CONTENT_CGI;
             return;
         }
-        throw HTTP_FORBIDDEN;
+        throw HTTP_NOT_FOUND;
     } else {
         config::CgiPass* cgi_pass = find_cgi_pass(request, location);
         if (cgi_pass) {
@@ -92,8 +100,11 @@ void Response::init(Request& request, config::Location& location,
         }
         if (request._method != "GET" && request._method != "HEAD")
             throw HTTP_METHOD_NOT_ALLOWED;
-        if (!file.is_open())
-            file.init(location.root + request._uri_path_decoded);
+        // if (!file.is_open()) {
+        //     std::string origin(request._uri_path_decoded.begin() + location.path.length(),
+        //                        request._uri_path_decoded.end());
+        //     // file.init(location.root + origin);
+        // }
         if (file.max_size() == 0 || request._method == "HEAD")
             content = RESPONSE_CONTENT_NONE;
         else
@@ -112,10 +123,10 @@ config::Redirect* Response::_find_redir_folder(config::Location* location) {
 }
 
 config::Redirect* Response::_find_redir_file(config::Location*  location,
-                                             const std::string& file_path) {
-    std::string origin(file_path.begin() + location->path.length() + 1, file_path.end());
+                                             const std::string& relative_file_path) {
+    // std::string origin(file_path.begin() + location->path.length() + 1, file_path.end());
     for (size_t i = 0; i < location->v_redirect.size(); i++) {
-        if (location->v_redirect[i].origin == origin) {
+        if (location->v_redirect[i].origin == relative_file_path) {
             return &location->v_redirect[i];
         }
     }

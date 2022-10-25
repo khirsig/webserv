@@ -233,6 +233,8 @@ void Connections::build_response(int index, EventNotificationInterface& eni) {
     if (!location)
         throw HTTP_NOT_FOUND;
 
+    location->print("");
+
     // check method allowed....
     if (location->v_accepted_method.size() > 0) {
         if (std::find(location->v_accepted_method.begin(), location->v_accepted_method.end(),
