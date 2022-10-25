@@ -350,6 +350,68 @@ void Request::_uri_path_depth_check() {
     }
 }
 
+// config::Server* _find_server(int index, const http::Request& request) {
+//     config::Server*    server = NULL;
+//     struct sockaddr_in connection_addr;
+//     memset(&connection_addr, 0, sizeof(connection_addr));
+//     socklen_t connection_addr_len = sizeof(connection_addr);
+//     if (getsockname(_v_socket_fd[index], (struct sockaddr*)&connection_addr, &connection_addr_len) <
+//         0)
+//         throw HTTP_INTERNAL_SERVER_ERROR;
+//     for (size_t i = 0; i < _v_server.size(); i++) {
+//         for (size_t j = 0; j < _v_server[i].v_listen.size(); j++) {
+//             if (_v_server[i].v_listen[j].addr == connection_addr.sin_addr.s_addr &&
+//                 _v_server[i].v_listen[j].port == connection_addr.sin_port) {
+//                 if (!server) {
+//                     server = &_v_server[i];
+//                 } else {
+//                     for (size_t k = 0; k < _v_server[i].v_server_name.size(); k++) {
+//                         if (_v_server[i].v_server_name[k] == request._uri_host_decoded) {
+//                             server = &_v_server[i];
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     return server;
+// }
+
+// config::Location* _find_location(const http::Request& request,
+//                                               config::Server*      server) {
+//     config::Location* location = NULL;
+//     for (size_t i = 0; i < server->v_location.size(); i++) {
+//         if (request._uri_path_decoded.find(server->v_location[i].path) == 0) {
+//             if (location == NULL || server->v_location[i].path.length() > location->path.length())
+//                 location = &(server->v_location[i]);
+//         }
+//     }
+//     return location;
+// }
+
+// void Request::_finalize() {
+//     // Find Sever
+//     config::Server* server_ptr = _find_server(index, *this);
+//     if (!server_ptr)
+//         throw HTTP_INTERNAL_SERVER_ERROR;
+
+//     // Find Location
+//     config::Location* location_ptr = _find_location(*this, server_ptr);
+//     if (!location_ptr)
+//         throw HTTP_NOT_FOUND;
+
+//     // check method allowed....
+//     if (location_ptr->v_accepted_method.size() > 0) {
+//         if (std::find(location_ptr->v_accepted_method.begin(),
+//                       location_ptr->v_accepted_method.end(),
+//                       this->_method) == location_ptr->v_accepted_method.end())
+//             throw HTTP_METHOD_NOT_ALLOWED;
+//     }
+
+//     _server = *server_ptr;
+//     _location = *location_ptr;
+// }
+
 void Request::_analyze_request_line() {
     _uri_decode(_buf, _uri_host_start, _uri_host_end, _uri_host_decoded);
     _uri_decode(_buf, _uri_path_start, _uri_path_end, _uri_path_decoded);

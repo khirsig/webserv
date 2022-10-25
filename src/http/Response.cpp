@@ -24,9 +24,12 @@ Response::~Response() {
 }
 
 inline bool find_index(Request& request, config::Location& location, file::Handler& file) {
+    std::string origin(request._uri_path_decoded.begin() + location.path.length(),
+                       request._uri_path_decoded.end());
     for (size_t i = 0; i < location.v_index.size(); i++) {
         try {
-            file.init(location.root + request._uri_path_decoded + location.v_index[i]);
+            std::cerr << location.root + origin + "/" + location.v_index[i] << std::endl;
+            file.init(location.root + origin + "/" + location.v_index[i]);
             return true;
         } catch (...) {
         }
@@ -41,12 +44,6 @@ config::CgiPass* find_cgi_pass(Request& request, config::Location& location) {
             if (request._uri_path_decoded.compare(type_pos + 1,
                                                   request._uri_path_decoded.length() - type_pos,
                                                   location.v_cgi_pass[i].type) == 0) {
-                // _construct_header_cgi();
-                // cgi::Executor* exec = new cgi::Executor(request, *this, eni);
-                // exec->execute();
-                // cgi::g_executor.insert(exec->get_read_fd(), exec);
-                // cgi::g_executor.insert(exec->get_write_fd(), exec);
-                // content = RESPONSE_CONTENT_CGI;
                 return &location.v_cgi_pass[i];
             }
         }
@@ -58,7 +55,8 @@ void Response::init(Request& request, config::Location& location,
                     core::EventNotificationInterface& eni) {
     connection_state = request.connection_state;
 
-    bool directory = (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
+    bool directory = (request._uri_path_decoded.length() == location.path.length()) ||
+                     (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
     config::Redirect* redir;
     if (directory)
         redir = _find_redir_folder(&location);
@@ -92,10 +90,11 @@ void Response::init(Request& request, config::Location& location,
             content = RESPONSE_CONTENT_CGI;
             return;
         }
-        if (request._method != "GET")
+        if (request._method != "GET" && request._method != "HEAD")
             throw HTTP_METHOD_NOT_ALLOWED;
-        file.init(location.root + request._uri_path_decoded);
-        if (file.max_size() == 0)
+        if (!file.is_open())
+            file.init(location.root + request._uri_path_decoded);
+        if (file.max_size() == 0 || request._method == "HEAD")
             content = RESPONSE_CONTENT_NONE;
         else
             content = RESPONSE_CONTENT_FILE;
@@ -114,7 +113,7 @@ config::Redirect* Response::_find_redir_folder(config::Location* location) {
 
 config::Redirect* Response::_find_redir_file(config::Location*  location,
                                              const std::string& file_path) {
-    std::string origin(file_path.begin() + location->path.length(), file_path.end());
+    std::string origin(file_path.begin() + location->path.length() + 1, file_path.end());
     for (size_t i = 0; i < location->v_redirect.size(); i++) {
         if (location->v_redirect[i].origin == origin) {
             return &location->v_redirect[i];

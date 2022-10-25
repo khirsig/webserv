@@ -3,11 +3,11 @@
 
 ## TO-DO
 
+- Port in Host
 - timer reset nach send()
-
+- HEAD implementieren
 - cleint_max_body_size abfragen request
 - error messages ueber poll schreiben
-- cgi in keque() einbauen
 
 - eni in connection packen
 - eni mit enable / disable

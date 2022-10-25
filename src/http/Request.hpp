@@ -148,6 +148,7 @@ class Request {
     void _analyze_request_line();
     void _analyze_header();
     void _uri_path_depth_check();
+    // void _finalize();
 
    public:
     int error;

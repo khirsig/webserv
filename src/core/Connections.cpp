@@ -169,17 +169,18 @@ int Connections::recv_request(int fd, EventNotificationInterface& eni) {
     //         if (it != status_code.codes.end())
     //             write(fd, &(it->second[0]), it->second.size());
     //         else
-    //             write(fd, &(status_code.codes[501]), status_code.codes[501].size());
+    //             write(fd, &(status_code.codes[HTTP_INTERNAL_SERVER_ERROR]),
+    //             status_code.codes[HTTP_INTERNAL_SERVER_ERROR].size());
     //         close_connection(_v_fd[index], eni);
     //         break;
     //     } catch (const std::exception& e) {
-    //         write(fd, &(status_code.codes[501]), status_code.codes[501].size());
-    //         close_connection(_v_fd[index], eni);
-    //         break;
+    //         write(fd, &(status_code.codes[HTTP_INTERNAL_SERVER_ERROR]),
+    //         status_code.codes[HTTP_INTERNAL_SERVER_ERROR].size()); close_connection(_v_fd[index],
+    //         eni); break;
     //     } catch (...) {
-    //         write(fd, &(status_code.codes[501]), status_code.codes[501].size());
-    //         close_connection(_v_fd[index], eni);
-    //         break;
+    //         write(fd, &(status_code.codes[HTTP_INTERNAL_SERVER_ERROR]),
+    //         status_code.codes[HTTP_INTERNAL_SERVER_ERROR].size()); close_connection(_v_fd[index],
+    //         eni); break;
     //     }
     // }
 }
@@ -189,6 +190,8 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
     try {
         _v_request[index]->parse_input();
         if (_v_request[index]->done()) {
+            // _v_response[index] = new http::Response();
+            // _v_response[index]->init(*_v_request[index], *location, eni);
             build_response(index, eni);
             // _v_request_buf[index]->erase(
             //     _v_request_buf[index]->begin(),
@@ -202,16 +205,17 @@ void Connections::parse_request(int index, EventNotificationInterface& eni) {
         if (it != http::g_error_pages.pages.end())
             send(_v_fd[index], &(it->second[0]), it->second.size(), 0);
         else
-            send(_v_fd[index], &(http::g_error_pages.pages[501]),
-                 http::g_error_pages.pages[501].size(), 0);
+            send(_v_fd[index], &(http::g_error_pages.pages[HTTP_INTERNAL_SERVER_ERROR][0]),
+                 http::g_error_pages.pages[HTTP_INTERNAL_SERVER_ERROR].size(), 0);
         close_connection(_v_fd[index], eni);
     } catch (const std::exception& e) {
-        send(_v_fd[index], &(http::g_error_pages.pages[501]), http::g_error_pages.pages[501].size(),
-             0);
+        // std::cerr << "std::exception\n";
+        send(_v_fd[index], &(http::g_error_pages.pages[HTTP_INTERNAL_SERVER_ERROR][0]),
+             http::g_error_pages.pages[HTTP_INTERNAL_SERVER_ERROR].size(), 0);
         close_connection(_v_fd[index], eni);
     } catch (...) {
-        send(_v_fd[index], &(http::g_error_pages.pages[501]), http::g_error_pages.pages[501].size(),
-             0);
+        send(_v_fd[index], &(http::g_error_pages.pages[HTTP_INTERNAL_SERVER_ERROR][0]),
+             http::g_error_pages.pages[HTTP_INTERNAL_SERVER_ERROR].size(), 0);
         close_connection(_v_fd[index], eni);
     }
 }
@@ -235,6 +239,7 @@ void Connections::build_response(int index, EventNotificationInterface& eni) {
                       _v_request[index]->_method) == location->v_accepted_method.end())
             throw HTTP_METHOD_NOT_ALLOWED;
     }
+
     _v_response[index]->init(*_v_request[index], *location, eni);
 }
 
