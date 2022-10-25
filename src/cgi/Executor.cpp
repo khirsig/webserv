@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   Executor.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: hepple <hepple@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 12:53:20 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/24 16:51:58 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 17:44:46 by hepple           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Executor.hpp"
+#include "../http/httpStatusCodes.hpp"
 
 namespace cgi {
 
@@ -32,9 +33,9 @@ void Executor::execute(std::string &root, std::string &path) {
     int write_fd[2];
 
     if (pipe(read_fd) == -1)
-        throw 500;
+        throw HTTP_INTERNAL_SERVER_ERROR;
     if (pipe(write_fd) == -1)
-        throw 500;
+        throw HTTP_INTERNAL_SERVER_ERROR;
 
     _id = fork();
 
@@ -43,7 +44,7 @@ void Executor::execute(std::string &root, std::string &path) {
         close(read_fd[1]);
         close(write_fd[0]);
         close(write_fd[1]);
-        throw 500;
+        throw HTTP_INTERNAL_SERVER_ERROR;
     }
 
     if (_id == 0) {
