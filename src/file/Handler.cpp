@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:31 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 10:43:08 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 12:48:58 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,18 +22,21 @@ Handler::~Handler() {
     }
 }
 
-void Handler::init(const std::string &path) {
+bool Handler::init(const std::string &path) {
     _path = path;
     _file.open(path);
     if (!_file.is_open()) {
         if (errno == 13)
             throw 403;
+        else if (errno == 21)
+            return false;
         else
             throw 404;
     }
     _file.seekg(0, _file.end);
     _max_size = _file.tellg();
     _file.seekg(0, _file.beg);
+    return true;
 }
 
 size_t Handler::read(char *buf, const std::size_t buffer_size) {

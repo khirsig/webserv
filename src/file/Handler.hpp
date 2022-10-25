@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:49 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 10:42:41 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 12:49:21 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ class Handler {
     Handler();
     ~Handler();
 
-    void   init(const std::string &path);
+    bool   init(const std::string &path);
     size_t read(char *buf, const std::size_t buffer_size);
 
     bool is_open() const;
