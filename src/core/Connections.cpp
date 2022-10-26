@@ -149,40 +149,6 @@ int Connections::recv_request(int fd, EventNotificationInterface& eni) {
     _v_request_buf[index]->append(buf, bytes_read);
 
     return index;
-
-    // parse connection buffer
-    // while (_v_request_buf[index]->pos < _v_request_buf[index]->size()) {
-    //     try {
-    //         _v_request[index]->parse_input();
-    //         if (_v_request[index]->done()) {
-    //             write(fd, "HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse",
-    //                   strlen("HTTP/1.1 200 OK\nContent-Length: 8\n\nresponse"));
-    //             _v_request_buf[index]->erase(
-    //                 _v_request_buf[index]->begin(),
-    //                 _v_request_buf[index]->begin() + _v_request_buf[index]->pos);
-    //             _v_request_buf[index]->pos = 0;
-    //             delete _v_request[index];
-    //             _v_request[index] = new http::Request(*_v_request_buf[index]);
-    //         }
-    //     } catch (int error) {
-    //         std::map<int, core::ByteBuffer>::iterator it = status_code.codes.find(error);
-    //         if (it != status_code.codes.end())
-    //             write(fd, &(it->second[0]), it->second.size());
-    //         else
-    //             write(fd, &(status_code.codes[HTTP_INTERNAL_SERVER_ERROR]),
-    //             status_code.codes[HTTP_INTERNAL_SERVER_ERROR].size());
-    //         close_connection(_v_fd[index], eni);
-    //         break;
-    //     } catch (const std::exception& e) {
-    //         write(fd, &(status_code.codes[HTTP_INTERNAL_SERVER_ERROR]),
-    //         status_code.codes[HTTP_INTERNAL_SERVER_ERROR].size()); close_connection(_v_fd[index],
-    //         eni); break;
-    //     } catch (...) {
-    //         write(fd, &(status_code.codes[HTTP_INTERNAL_SERVER_ERROR]),
-    //         status_code.codes[HTTP_INTERNAL_SERVER_ERROR].size()); close_connection(_v_fd[index],
-    //         eni); break;
-    //     }
-    // }
 }
 
 void Connections::parse_request(int index, EventNotificationInterface& eni) {

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 12:50:02 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/26 10:50:49 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,18 +95,7 @@ int main(int argc, char* argv[]) {
                             it_cgi_exec->second->read(eni.events[i].flags & EV_EOF);
                         else if (eni.events[i].filter == EVFILT_WRITE)
                             it_cgi_exec->second->write(eni.events[i].data);
-                    }
-                    // else if ((it = m_cgi.find(eni.events[i].ident)) != m_cgi.end()) {
-                    // if (eni.events[i].filter == EVFILT_READ) {
-                    // cgi.read(eni.events[i].flags & EV_EOF);
-                    // append to response buffer
-                    // eni.delete_event();
-                    // } else if (eni.events[i].filter == EVFILT_WRITE) {
-                    // cgi.write(size_t max_bytes); write request.body
-                    // if request.body finished dann close(write_fd);
-                    // eni.delete_event();
-                    // }
-                    else if (eni.events[i].filter == EVFILT_TIMER) {
+                    } else if (eni.events[i].filter == EVFILT_TIMER) {
                         connections.timeout_connection(eni.events[i].ident, eni);
                     } else if (eni.events[i].flags & EV_EOF) {
                         if (eni.events[i].filter == EVFILT_READ) {
