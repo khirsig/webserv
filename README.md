@@ -12,6 +12,8 @@
 - eni in connection packen
 - eni mit enable / disable
 
+- check for 0 and -1 in write/read/etc
+
 ## Questionable
 
 - Connection keep alive bei einigen errors
