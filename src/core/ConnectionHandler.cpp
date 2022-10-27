@@ -33,12 +33,16 @@ void ConnectionHandler::accept(const Socket &socket) {
         throw std::runtime_error("fcntl: " + std::string(strerror(errno)));
     }
 
+    _eni.add_event(fd, EVFILT_READ, 0);
+    _eni.add_event(fd, EVFILT_WRITE, 0);
+    _eni.disable_event(fd, EVFILT_WRITE);
+
     if (_used_connections >= _max_connections) {
         for (std::vector<Connection>::iterator it = _v_connection.begin();
              it != _v_connection.end(); ++it) {
             if (!it.is_active()) {
                 close(it);
-                // it.init(_eni, accept_addr, socket.addr);
+                it.init(accept_fd, accept_addr, socket.addr);
                 return;
             }
         }
@@ -46,7 +50,7 @@ void ConnectionHandler::accept(const Socket &socket) {
     } else {
         std::vector<Connection>::iterator it =
             std::find(_v_connection.begin(), _v_connection.end(), -1);
-        // it.init(_eni, accept_addr, socket.addr);
+        it.init(accept_fd, accept_addr, socket.addr);
         _used_connections++;
     }
 }
@@ -64,12 +68,10 @@ void ConnectionHandler::receive(int fd, ssize_t data_len) {
     // if (it == _v_connection.end())
     // return;
 
-    try {
-        it.parse_buf(_read_buf, recved_len);
-        if (it.is_done()) {
-            it.build_response();
-        }
-    } catch (int e) {
+    it.parse_buf(_read_buf, recved_len);
+    if (it.is_done()) {
+        _eni.disable_event(fd, EVFILT_READ);
+        _eni.enable_event(fd, EVFILT_WRITE);
     }
 }
 

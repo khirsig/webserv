@@ -34,4 +34,16 @@ int EventNotificationInterface::poll_events() {
     return kevent(_kq_fd, NULL, 0, events, MAX_POLLED_EVENTS, NULL);
 }
 
+int EventNotificationInterface::enable_event(int fd, int16_t filter) {
+    struct kevent event;
+    EV_SET(&event, fd, filter, EV_ENABLE, 0, 0, NULL);
+    return kevent(_kq_fd, &event, 1, NULL, 0, NULL);
+}
+
+int EventNotificationInterface::disable_event(int fd, int16_t filter) {
+    struct kevent event;
+    EV_SET(&event, fd, filter, EV_DISABLE, 0, 0, NULL);
+    return kevent(_kq_fd, &event, 1, NULL, 0, NULL);
+}
+
 }  // namespace core
