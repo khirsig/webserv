@@ -11,7 +11,7 @@
 
 namespace core {
 
-class ConnectionHandler {
+class Webserver {
    private:
     std::vector<Connection>            _v_connection;
     EventNotificationInterface         _eni;
@@ -22,15 +22,16 @@ class ConnectionHandler {
     const size_t                       _max_connections;
 
    public:
-    ConnectionHandler(std::vector<config::Server> v_server, size_t max_connections);
-    ~ConnectionHandler();
+    Webserver(std::vector<config::Server> v_server, size_t max_connections);
+    ~Webserver();
 
-    void accept(const Socket &socket);
+    void accept_connection(const Socket &socket);
+    void close_connection(int fd);
+    void close_connection(std::vector<Connection>::iterator it);
+    void timeout_connection(int fd);
+
     void receive(int fd, ssize_t data_len);
-    void send(int fd);
-    void close(int fd);
-    void close(std::vector<Connection>::iterator it);
-    void timeout(int fd);
+    void send(int fd, ssize_t max_len);
 };
 
 }  // namespace core
