@@ -1,7 +1,7 @@
 #include "Connection.hpp"
 namespace core {
 
-Connection::Conection() {}
+Connection::Connection() {}
 
 Connection::~Connection() {}
 
@@ -22,7 +22,8 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
 void Connection::parse_request(char *read_buf, ssize_t recved_len) {
     _is_request_done = _request.parse(read_buf, recved_len);
     if (_is_request_done) {
-        _response.build()
+        // check header connection close or keep-alive == _should_close...
+        // _response.build();
     }
 }
 
