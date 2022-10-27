@@ -18,16 +18,17 @@ class ConnectionHandler {
     char                              *_read_buf;
     const size_t                       _read_buf_size;
     size_t                             _used_connections;
-    size_t                             _max_connections;
+    const size_t                       _max_connections;
 
    public:
     ConnectionHandler(std::vector<config::Server> v_server, size_t max_connections);
     ~ConnectionHandler();
 
-    void accept(int fd);
-    void receive(int fd);
+    void accept(const Socket &socket);
+    void receive(int fd, ssize_t data_len);
     void send(int fd);
     void close(int fd);
+    void close(std::vector<Connection>::iterator it);
     void timeout(int fd);
 };
 
