@@ -9,6 +9,7 @@ namespace core {
 
 class Connection {
    private:
+    int            _fd;
     http::Request  _request;
     http::Response _response;
     Address        _socket_addr;
@@ -16,6 +17,7 @@ class Connection {
     bool           _should_close;
     bool           _is_active;
     bool           _is_request_done;
+    int            _request_error;
     CgiHandler     _cgi_handler;
 
    public:
@@ -26,7 +28,9 @@ class Connection {
     bool is_request_done() const;
 
     void init(int fd, Address client_addr, Address socket_addr);
-    void parse_request(char *read_buf, ssize_t len);
+    void parse_request(char *read_buf, size_t len);
+    void build_response();
+    void send_response(size_t max_len);
 };
 
 }  // namespace core

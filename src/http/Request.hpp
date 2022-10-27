@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 
+#include "../config/Location.hpp"
 #include "../core/ByteBuffer.hpp"
 
 namespace http {
@@ -66,6 +67,9 @@ class Request {
     std::string                        _host_decoded;
     std::map<std::string, std::string> _m_header;
     core::ByteBuffer                   _body;
+
+    const config::Location *_location;
+    const config::Server   *_server;
 
     State            _state;
     StateRequestLine _state_request_line;

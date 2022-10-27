@@ -42,7 +42,7 @@ void Webserver::accept_connection(const Socket &socket) {
          _eni.add_event(socket.fd, EVFILT_WRITE) || _eni.disable_event(socket.fd, EVFILT_WRITE));
 
     if (error) {
-        ::close(accept_fd);
+        close(accept_fd);
         throw std::runtime_error("eni: " + std::string(strerror(errno)));
     }
 
@@ -55,7 +55,7 @@ void Webserver::accept_connection(const Socket &socket) {
                 return;
             }
         }
-        ::close(accept_fd);
+        close(accept_fd);
     } else {
         std::vector<Connection>::iterator it =
             std::find(_v_connection.begin(), _v_connection.end(), -1);
@@ -65,8 +65,12 @@ void Webserver::accept_connection(const Socket &socket) {
 }
 
 void Webserver::receive(int fd, ssize_t data_len) {
-    ssize_t to_recv_len = data_len < _read_buf_size ? data_len : _read_buf_size;
-    ssize_t recved_len = ::recv(fd, _read_buf, to_recv_len, 0);
+    if (data_len <= 0) {
+        throw std::runtime_error("unexpected kqueue data size");
+        return;
+    }
+    size_t to_recv_len = data_len < _read_buf_size ? data_len : _read_buf_size;
+    size_t recved_len = recv(fd, _read_buf, to_recv_len, 0);
     if (recved_len != to_recv_len) {
         close_connection(fd);
         throw std::runtime_error("recv: failed");
@@ -75,20 +79,32 @@ void Webserver::receive(int fd, ssize_t data_len) {
     std::vector<Connection>::iterator it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
 
-    it->parse_request(_read_buf, recved_len);
-    if (it.is_request_done()) {
-        int error = (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE));
-        if (error) {
-            close_connection(it);
-            throw std::runtime_error("eni: " + std::string(strerror(errno)));
+    try {
+        it->parse_request(_read_buf, recved_len);
+        if (it->is_request_done()) {
+            int error =
+                (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE));
+            if (error) {
+                close_connection(it);
+                throw std::runtime_error("eni: " + std::string(strerror(errno)));
+            }
+            it->build_response();
         }
+    } catch (...) {
+        close_connection(it);
+        throw std::runtime_error("unexpected request/response error");
     }
 }
 
-void Webserver::send(int fd, ssize_t max_len) {
+void Webserver::send(int fd, size_t max_len) {
     std::vector<Connection>::iterator it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
-    it.send_response(max_len);
+    try {
+        it->send_response(max_len);
+    } catch (...) {
+        close_connection(it);
+        throw;
+    }
 }
 
 void Webserver::close_connection(int fd) {

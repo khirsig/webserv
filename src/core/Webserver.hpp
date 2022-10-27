@@ -30,8 +30,8 @@ class Webserver {
     void close_connection(std::vector<Connection>::iterator it);
     void timeout_connection(int fd);
 
-    void receive(int fd, ssize_t data_len);
-    void send(int fd, ssize_t max_len);
+    void receive(int fd, size_t data_len);
+    void send(int fd, size_t max_len);
 };
 
 }  // namespace core
