@@ -18,9 +18,15 @@ EventNotificationInterface::~EventNotificationInterface() {
     close(_kq_fd);
 }
 
-int EventNotificationInterface::add_event(int fd, int16_t filter, int64_t data) {
+int EventNotificationInterface::add_event(int fd, int16_t filter) {
     struct kevent event;
-    EV_SET(&event, fd, filter, EV_ADD, 0, data, NULL);
+    EV_SET(&event, fd, filter, EV_ADD, 0, 0, NULL);
+    return kevent(_kq_fd, &event, 1, NULL, 0, NULL);
+}
+
+int EventNotificationInterface::add_timer(int fd, ssize_t ms) {
+    struct kevent event;
+    EV_SET(&event, fd, EVFILT_TIMER, EV_ADD | EV_ONESHOT, 0, ms, NULL);
     return kevent(_kq_fd, &event, 1, NULL, 0, NULL);
 }
 

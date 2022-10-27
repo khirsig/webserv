@@ -7,6 +7,7 @@
 #include "EventNotificationInterface.hpp"
 
 #define MAX_PIPE_SIZE 1048576
+#define TIMEOUT_TIME 6000
 
 namespace core {
 

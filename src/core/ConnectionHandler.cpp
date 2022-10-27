@@ -33,8 +33,9 @@ void ConnectionHandler::accept(const Socket &socket) {
         throw std::runtime_error("fcntl: " + std::string(strerror(errno)));
     }
 
-    _eni.add_event(fd, EVFILT_READ, 0);
-    _eni.add_event(fd, EVFILT_WRITE, 0);
+    _eni.add_timer(fd, TIMEOUT_TIME);
+    _eni.add_event(fd, EVFILT_READ);
+    _eni.add_event(fd, EVFILT_WRITE);
     _eni.disable_event(fd, EVFILT_WRITE);
 
     if (_used_connections >= _max_connections) {

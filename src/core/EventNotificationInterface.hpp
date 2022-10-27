@@ -22,7 +22,8 @@ class EventNotificationInterface {
     EventNotificationInterface();
     ~EventNotificationInterface();
 
-    int add_event(int fd, int16_t filter, int64_t data);
+    int add_event(int fd, int16_t filter);
+    int add_timer(int fd, ssize_t ms);
     int delete_event(int fd, int16_t filter);
     int enable_event(int fd, int16_t filter);
     int disable_event(int fd, int16_t filter);
