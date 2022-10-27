@@ -3,19 +3,20 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:14 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:00:55 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/18 15:04:04 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
 namespace config {
+bool Listen::operator==(const Listen &rhs) { return addr == rhs.addr && port == rhs.port; }
 
 void Server::print() const {
-    for (std::vector<Address>::const_iterator it = v_listen.begin(); it != v_listen.end(); ++it) {
+    for (std::vector<Listen>::const_iterator it = v_listen.begin(); it != v_listen.end(); ++it) {
         std::cout << "listen\n{\n";
         std::cout << "    address: \"" << it->addr << "\"\n";
         std::cout << "    port: \"" << htons(it->port) << "\"\n";

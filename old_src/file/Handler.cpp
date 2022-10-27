@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:31 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 12:48:58 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/27 10:16:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,15 +14,15 @@
 
 namespace file {
 
-Handler::Handler() : _max_size(0), _read_size(0) {}
+FileHandler::FileHandler() : _max_size(0), _read_size(0) {}
 
-Handler::~Handler() {
+FileHandler::~FileHandler() {
     if (_file.is_open()) {
         _file.close();
     }
 }
 
-bool Handler::init(const std::string &path) {
+bool FileHandler::init(const std::string &path) {
     _path = path;
     _file.open(path);
     if (!_file.is_open()) {
@@ -39,7 +39,7 @@ bool Handler::init(const std::string &path) {
     return true;
 }
 
-size_t Handler::read(char *buf, const std::size_t buffer_size) {
+size_t FileHandler::read(char *buf, const std::size_t buffer_size) {
     if (_file) {
         _file.read(buf, buffer_size);
         size_t read_bytes = _file.gcount();
@@ -51,17 +51,17 @@ size_t Handler::read(char *buf, const std::size_t buffer_size) {
     }
 }
 
-bool Handler::is_open() const { return _file.is_open(); }
+bool FileHandler::is_open() const { return _file.is_open(); }
 
-std::size_t Handler::max_size() const {
+std::size_t FileHandler::max_size() const {
     std::cerr << _max_size << "\n";
     return _max_size;
 }
 
-std::size_t Handler::read_size() const { return _read_size; }
+std::size_t FileHandler::read_size() const { return _read_size; }
 
-std::size_t Handler::left_size() const { return _max_size - _read_size; }
+std::size_t FileHandler::left_size() const { return _max_size - _read_size; }
 
-const std::string &Handler::get_path() const { return _path; }
+const std::string &FileHandler::get_path() const { return _path; }
 
 }  // namespace file

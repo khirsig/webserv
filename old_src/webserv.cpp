@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 09:56:29 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 12:50:02 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/27 10:00:55 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,12 +59,12 @@ int main(int argc, char* argv[]) {
         {
             // Create Socket for each listen in config file
             // Add read event for each socket fd
-            std::vector<config::Listen> used_listens;
+            std::vector<config::Address> used_listens;
             for (std::vector<config::Server>::iterator it_server = v_server.begin();
                  it_server != v_server.end(); ++it_server) {
-                for (std::vector<config::Listen>::iterator it_listen = it_server->v_listen.begin();
+                for (std::vector<config::Address>::iterator it_listen = it_server->v_listen.begin();
                      it_listen != it_server->v_listen.end(); ++it_listen) {
-                    std::vector<config::Listen>::iterator it_listens =
+                    std::vector<config::Address>::iterator it_listens =
                         std::find(used_listens.begin(), used_listens.end(), *it_listen);
                     if (it_listens == used_listens.end()) {
                         used_listens.push_back(*it_listen);

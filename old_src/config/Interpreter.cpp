@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:00:55 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/25 13:11:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "listen") {
-                Address new_listen;
+                Listen new_listen;
                 if (_parse_listen(v_token, it, new_listen))
                     new_server.v_listen.insert(new_server.v_listen.begin(), new_listen);
                 else
@@ -190,7 +190,7 @@ void Interpreter::_parse_cgi_pass(std::vector<Token>::const_iterator &it, CgiPas
     }
 }
 bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
-                                std::vector<Token>::const_iterator &it, Address &identifier) {
+                                std::vector<Token>::const_iterator &it, Listen &identifier) {
     ++it;
     bool default_server = false;
 

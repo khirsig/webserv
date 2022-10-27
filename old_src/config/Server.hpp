@@ -1,51 +1,50 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Location.hpp                                       :+:      :+:    :+:   */
+/*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/09 14:10:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:10:06 by khirsig          ###   ########.fr       */
+/*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
+/*   Updated: 2022/10/27 10:00:55 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
+#include <arpa/inet.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
 
+#include "Location.hpp"
+
 namespace config {
 
-class Redirect {
+class Address {
    public:
-    std::uint32_t status_code;
-    std::string   direction;
-    std::string   origin;
+    in_addr_t addr;
+    in_port_t port;
+
+    bool operator==(const Address &rhs);
 };
 
-class CgiPass {
+class ErrorPage {
    public:
-    std::string path;
-    std::string type;
+    std::string                path;
+    std::vector<std::uint32_t> v_code;
 };
 
-class Location {
+class Server {
    public:
-    void print(std::string prefix) const;
+    void print() const;
 
-    std::string              path;
-    std::vector<std::string> v_accepted_method;
-    std::vector<Redirect>    v_redirect;
-    std::string              root;
-
-    std::uint64_t client_max_body_size;
-    bool          directory_listing;
-
-    std::vector<std::string> v_index;
+    std::vector<Address>     v_listen;
+    std::vector<std::string> v_server_name;
+    std::vector<ErrorPage>   v_error_page;
+    std::uint64_t            client_max_body_size;
     std::vector<Location>    v_location;
-    std::vector<CgiPass>     v_cgi_pass;
 };
 
 }  // namespace config

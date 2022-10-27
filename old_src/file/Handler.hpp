@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/20 12:35:49 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/25 12:49:21 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/10/27 10:16:36 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,10 +20,10 @@
 
 namespace file {
 
-class Handler {
+class FileHandler {
    public:
-    Handler();
-    ~Handler();
+    FileHandler();
+    ~FileHandler();
 
     bool   init(const std::string &path);
     size_t read(char *buf, const std::size_t buffer_size);

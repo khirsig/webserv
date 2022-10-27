@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sys/event.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -8,16 +7,32 @@
 #include <string>
 #include <vector>
 
+#define KQUEUE
+
+#if defined(KQUEUE)
+#include <sys/event.h>
+#elif defined(EPOLL)
+#include <sys/epoll.h>
+#endif
+
 #define MAX_POLLED_EVENTS 16
 
 namespace core {
 
 class EventNotificationInterface {
    private:
+#if defined(KQUEUE)
     int _kq_fd;
+#elif defined(EPOLL)
+    int                 _epoll_fd;
+#endif
 
    public:
+#if defined(KQUEUE)
     struct kevent *events;
+#elif defined(EPOLL)
+    struct epoll_event *events;
+#endif
 
     EventNotificationInterface();
     ~EventNotificationInterface();

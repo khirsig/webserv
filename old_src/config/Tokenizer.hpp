@@ -1,40 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
+/*   Tokenizer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:02:19 by khirsig          ###   ########.fr       */
+/*   Created: 2022/09/07 16:13:07 by khirsig           #+#    #+#             */
+/*   Updated: 2022/09/15 09:38:03 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <vector>
 
-#include "Location.hpp"
+#include "Token.hpp"
 
 namespace config {
 
-class ErrorPage {
+class Tokenizer {
    public:
-    std::string                path;
-    std::vector<std::uint32_t> v_code;
-};
+    void parse(std::vector<Token> &v_token, const std::string &input_file);
 
-class Server {
-   public:
-    void print() const;
-
-    std::vector<Address>     v_listen;
-    std::vector<std::string> v_server_name;
-    std::vector<ErrorPage>   v_error_page;
-    std::uint64_t            client_max_body_size;
-    std::vector<Location>    v_location;
+   private:
+    void _end_token(std::vector<Token> &v_token, Token &current_token);
 };
 
 }  // namespace config

@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
+/*   Token.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:02:19 by khirsig          ###   ########.fr       */
+/*   Created: 2022/09/09 09:29:30 by khirsig           #+#    #+#             */
+/*   Updated: 2022/09/15 09:28:59 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,27 +14,21 @@
 
 #include <iostream>
 #include <string>
-#include <vector>
-
-#include "Location.hpp"
 
 namespace config {
 
-class ErrorPage {
-   public:
-    std::string                path;
-    std::vector<std::uint32_t> v_code;
-};
+enum TokenType { WHITESPACE, IDENTIFIER, OPERATOR, COMMENT, ESCAPE };
 
-class Server {
-   public:
-    void print() const;
+static const char *token_type_string[] = {"WHITESPACE", "IDENTIFIER", "OPERATOR", "COMMENT",
+                                          "ESCAPE"};
 
-    std::vector<Address>     v_listen;
-    std::vector<std::string> v_server_name;
-    std::vector<ErrorPage>   v_error_page;
-    std::uint64_t            client_max_body_size;
-    std::vector<Location>    v_location;
+class Token {
+   public:
+    enum TokenType type;
+    std::string    text;
+    std::size_t    line_number;
+
+    void debug_print() const;
 };
 
 }  // namespace config

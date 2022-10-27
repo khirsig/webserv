@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ByteBuffer.hpp                                     :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/20 12:51:44 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/21 15:21:50 by khirsig          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #pragma once
 
 #include <iostream>
@@ -36,7 +24,6 @@ class ByteBuffer : public std::vector<std::uint8_t> {
     friend std::ostream &operator<<(std::ostream &os, const ByteBuffer &bb);
 };
 
-ByteBuffer operator+(const ByteBuffer &lhs, const ByteBuffer &rhs);
 ByteBuffer operator+(const ByteBuffer &lhs, const ByteBuffer &rhs);
 
 }  // namespace core
