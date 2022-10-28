@@ -257,7 +257,7 @@ void send_response_cgi(http::Response& response, int fd, size_t max_bytes,
                        EventNotificationInterface& eni) {
     if (max_bytes < 25)
         return;
-    max_bytes -= 22;  // chunk size
+    max_bytes -= 22;  // chunk size 20chars + 2 fuer \r\n
     max_bytes -= 2;   // ending /r/n for content
 
     std::cerr << response.buf.size() << std::endl;

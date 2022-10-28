@@ -22,7 +22,8 @@ class Response {
     core::ByteBuffer &header();
     core::ByteBuffer &body();
 
-    void set_state(State new_state);
+    void               set_state(State new_state);
+    core::FileHandler &file_handler();
 };
 
 }  // namespace http

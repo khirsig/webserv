@@ -17,6 +17,7 @@ class Connection {
     bool           _should_close;
     bool           _is_active;
     bool           _is_request_done;
+    bool           _is_response_done;
     int            _request_error;
     CgiHandler     _cgi_handler;
 
@@ -28,11 +29,13 @@ class Connection {
 
     bool is_active() const;
     bool is_request_done() const;
+    bool is_response_done() const;
+    bool should_close() const;
 
     void init(int fd, Address client_addr, Address socket_addr);
-    void parse_request(char *read_buf, size_t len);
+    void parse_request(char* read_buf, size_t len);
     void build_response();
-    void send_response(size_t max_len);
+    void send_response(EventNotificationInterface& eni, size_t max_len);
 };
 
 }  // namespace core

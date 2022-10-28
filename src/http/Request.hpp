@@ -57,14 +57,21 @@ class Request {
         H_ALMOST_DONE_HEADER
     };
 
+    enum Content { CONT_NONE, CONT_LENGTH, CONT_CHUNKED };
+
+    enum Connection { CONN_CLOSE, CONN_KEEP_ALIVE };
+
    private:
-    Method                             _method;
-    std::string                        _method_str;
-    std::string                        _path_encoded;
-    std::string                        _path_decoded;
-    std::string                        _query_string;
-    std::string                        _host_encoded;
-    std::string                        _host_decoded;
+    Method      _method;
+    std::string _method_str;
+    std::string _path_encoded;
+    std::string _path_decoded;
+    std::string _query_string;
+    std::string _host_encoded;
+    std::string _host_decoded;
+    std::string _key;
+    std::string _value;
+
     std::map<std::string, std::string> _m_header;
     core::ByteBuffer                   _body;
 
@@ -75,9 +82,15 @@ class Request {
     StateRequestLine _state_request_line;
     StateHeader      _state_header;
 
+    Content _content;
+    size_t  _content_length;
+
+    Connection _connection;  // naming ??! same as connection from webserver
+
     bool _parse_request_line(char *read_buf, size_t len, size_t &pos);
     void _parse_method();
-    bool _analyze_request_line();
+    void _analyze_request_line();
+    void _analyze_header();
     bool _parse_header(char *read_buf, size_t len, size_t &pos);
     bool _parse_body(char *read_buf, size_t len, size_t &pos);
     bool _parse_body_chunked(char *read_buf, size_t len, size_t &pos);

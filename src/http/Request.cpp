@@ -30,6 +30,9 @@ bool Request::parse(char *read_buf, size_t len) {
         _analyze_request_line();
     }
     if (_state == HEADER) {
+        if (!_parse_header(read_buf, len, pos))
+            return;
+        _analyze_header();
     }
     if (_state == BODY) {
     }
@@ -45,8 +48,8 @@ bool Request::parse(char *read_buf, size_t len) {
 
 bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
     char c;
-    for (size_t i = pos; i < len; i++) {
-        c = read_buf[i];
+    for (; pos < len; pos++) {
+        c = read_buf[pos];
         switch (_state_request_line) {
             case RL_START:
                 switch (c) {
@@ -356,8 +359,282 @@ bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
             case RL_DONE:
                 break;
         }
-        if (_state_request_line == RL_DONE)
+        if (_state_request_line == RL_DONE) {
+            pos++;
             return true;
+        }
+    }
+    return false;
+}
+
+void Request::_parse_method() {
+    switch (_method_str.size()) {
+        case 3:
+            if (_method_str == "GET")
+                _method = Request::Method::GET;
+            if (_method_str == "PUT")
+                throw HTTP_NOT_IMPLEMENTED;
+            break;
+        case 4:
+            if (_method_str == "HEAD")
+                _method = Request::Method::HEAD;
+            if (_method_str == "POST")
+                _method = Request::Method::POST;
+            break;
+        case 5:
+            if (_method_str == "PATCH")
+                throw HTTP_NOT_IMPLEMENTED;
+            if (_method_str == "TRACE")
+                throw HTTP_NOT_IMPLEMENTED;
+            break;
+        case 6:
+            if (_method_str == "DELETE")
+                _method = Request::Method::DELETE;
+            break;
+        case 7:
+            if (_method_str == "CONNECT")
+                throw HTTP_NOT_IMPLEMENTED;
+            if (_method_str == "OPTIONS")
+                throw HTTP_NOT_IMPLEMENTED;
+            break;
+        default:
+            break;
+    }
+    throw HTTP_BAD_REQUEST;
+}
+
+static void uri_decode(std::string &src, std::string &dest) {
+    dest.reserve(src.size());
+    char c, c_decoded;
+    enum StateUriDecode { CHAR, HEX_1, HEX_2 };
+    StateUriDecode state = CHAR;
+    for (size_t i = 0; i < src.size(); i++) {
+        c = src[i];
+        switch (state) {
+            case CHAR:
+                switch (c) {
+                    case '%':
+                        state = HEX_1;
+                        break;
+                    default:
+                        dest += c;
+                        break;
+                }
+                break;
+            case HEX_1:
+                c_decoded = HEX_CHAR_TO_INT(c);
+                state = HEX_2;
+                break;
+            case HEX_2:
+                c_decoded = c_decoded * 16 + HEX_CHAR_TO_INT(c);
+                dest += c_decoded;
+                state = CHAR;
+                break;
+        }
+    }
+}
+
+static void uri_path_depth_check(std::string &path) {
+    char c;
+    int  depth = 0;
+    enum StatePathCheck { SLASH, SEGMENT, DOT_1, DOT_2 };
+    StatePathCheck state = SLASH;
+    for (std::size_t i = 0; i < path.size(); i++) {
+        c = path[i];
+        switch (state) {
+            case SLASH:
+                switch (c) {
+                    case '/':
+                        break;
+                    case '.':
+                        state = DOT_1;
+                        break;
+                    default:
+                        state = SEGMENT;
+                        break;
+                }
+                break;
+            case SEGMENT:
+                switch (c) {
+                    case '/':
+                        depth++;
+                        state = SLASH;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case DOT_1:
+                switch (c) {
+                    case '/':
+                        state = SLASH;
+                        break;
+                    case '.':
+                        state = DOT_2;
+                        break;
+                    default:
+                        state = SEGMENT;
+                        break;
+                }
+                break;
+            case DOT_2:
+                switch (c) {
+                    case '/':
+                        depth--;
+                        if (depth < 0)
+                            throw HTTP_BAD_REQUEST;
+                        state = SLASH;
+                        break;
+                    default:
+                        state = SEGMENT;
+                        break;
+                }
+                break;
+        }
+    }
+    if (state == DOT_2 && depth == 0) {
+        throw HTTP_BAD_REQUEST;
+    }
+}
+
+void Request::_analyze_request_line() {
+    uri_decode(_path_encoded, _path_decoded);
+    uri_decode(_host_encoded, _host_decoded);
+    uri_path_depth_check(_path_decoded);
+}
+
+void Request::_analyze_header() {
+    typedef std::map<std::string, std::string>::iterator header_it;
+
+    for (header_it it = _m_header.begin(); it != _m_header.end(); it++) {
+        if (it->first == "HOST") {
+            if (it->second.size() == 0)
+                throw HTTP_BAD_REQUEST;
+            if (_host_decoded.size() == 0)
+                _host_decoded = it->second;
+        } else if (it->first == "CONTENT-LENGTH") {
+            if (_content != Content::CONT_NONE)
+                throw HTTP_BAD_REQUEST;
+            _content = Content::CONT_LENGTH;
+            _content_length = str_to_num_dec(it->second);
+        } else if (it->first == "TRANSFER-ENCODING") {
+            if (it->second == "chunked") {
+                if (_content != Content::CONT_NONE)
+                    throw HTTP_BAD_REQUEST;
+                _content = Content::CONT_CHUNKED;
+            } else {
+                throw HTTP_NOT_IMPLEMENTED;
+            }
+        } else if (it->first == "CONNECTION") {
+            if (it->second == "close") {
+                _connection = Connection::CONN_CLOSE;
+            } else {
+                throw HTTP_BAD_REQUEST;
+            }
+        }
+    }
+}
+
+bool Request::_parse_header(char *read_buf, size_t len, size_t &pos) {
+    char c;
+    for (; pos < len; pos++) {
+        c = read_buf[pos];
+        switch (_state_header) {
+            case H_KEY_START:
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE_HEADER;
+                        break;
+                    case '\n':
+                        pos++;
+                        return true;
+                    default:
+                        if (!IS_TOKEN_CHAR(c))
+                            throw HTTP_BAD_REQUEST;
+                        _key += c;
+                        _state_header = H_KEY;
+                        break;
+                }
+                break;
+            case H_KEY:
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE_HEADER_LINE;
+                        break;
+                    case '\n':
+                        _state_header = H_KEY_START;
+                        std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
+                        _m_header.insert(std::make_pair(_key, _value));
+                        _key.clear();
+                        _value.clear();
+                        break;
+                    case ':':
+                        _state_header = H_VALUE_START;
+                        break;
+                    default:
+                        if (!IS_TOKEN_CHAR(c))
+                            throw HTTP_BAD_REQUEST;
+                        _key += c;
+                        break;
+                }
+                break;
+            case H_VALUE_START:
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE_HEADER_LINE;
+                        break;
+                    case '\n':
+                        _state_header = H_KEY_START;
+                        std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
+                        _m_header.insert(std::make_pair(_key, _value));
+                        _key.clear();
+                        _value.clear();
+                        break;
+                    case '\t':
+                    case ' ':
+                        break;
+                    default:
+                        if (!IS_TEXT_CHAR(c))
+                            throw HTTP_BAD_REQUEST;
+                        _value += c;
+                        _state_header = H_VALUE;
+                        break;
+                }
+                break;
+            case H_VALUE:
+                switch (c) {
+                    case '\r':
+                        _state_header = H_ALMOST_DONE_HEADER_LINE;
+                        break;
+                    case '\n':
+                        _state_header = H_KEY_START;
+                        std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
+                        _m_header.insert(std::make_pair(_key, _value));
+                        _key.clear();
+                        _value.clear();
+                        break;
+                    default:
+                        if (!IS_TEXT_CHAR(c))
+                            throw HTTP_BAD_REQUEST;
+                        _value += c;
+                        break;
+                }
+                break;
+            case H_ALMOST_DONE_HEADER_LINE:
+                if (c != '\n')
+                    throw HTTP_BAD_REQUEST;
+                _state_header = H_KEY_START;
+                std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
+                _m_header.insert(std::make_pair(_key, _value));
+                _key.clear();
+                _value.clear();
+                break;
+            case H_ALMOST_DONE_HEADER:
+                if (c != '\n')
+                    throw HTTP_BAD_REQUEST;
+                pos++;
+                return true;
+        }
     }
     return false;
 }

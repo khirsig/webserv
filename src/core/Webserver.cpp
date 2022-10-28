@@ -82,9 +82,7 @@ void Webserver::receive(int fd, size_t data_len) {
     try {
         it->parse_request(_read_buf, recved_len);
         if (it->is_request_done()) {
-            int error =
-                (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE));
-            if (error) {
+            if (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE)) {
                 close_connection(it);
                 throw std::runtime_error("eni: " + std::string(strerror(errno)));
             }
@@ -100,7 +98,20 @@ void Webserver::send(int fd, size_t max_len) {
     std::vector<Connection>::iterator it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
     try {
-        it->send_response(max_len);
+        it->send_response(_eni, max_len);
+        if (it->is_response_done()) {
+            if (it->should_close()) {
+                close_connection(it);
+                return;
+            }
+            // it->reset(); // not buf
+            if (_eni.disable_event(it->fd(), EVFILT_WRITE) ||
+                _eni.enable_event(it->fd(), EVFILT_READ)) {
+                close_connection(it);
+                throw std::runtime_error("eni: " + std::string(strerror(errno)));
+            }
+            it->parse_request();
+        }
     } catch (...) {
         close_connection(it);
         throw;
@@ -110,8 +121,7 @@ void Webserver::send(int fd, size_t max_len) {
 void Webserver::close_connection(int fd) {
     std::vector<Connection>::iterator it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
-
-    close(it);
+    close_connection(it);
 }
 
 void Webserver::close_connection(std::vector<Connection>::iterator it) {
