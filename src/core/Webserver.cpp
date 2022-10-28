@@ -64,7 +64,7 @@ void Webserver::accept_connection(const Socket &socket) {
     }
 }
 
-void Webserver::receive(int fd, ssize_t data_len) {
+void Webserver::receive(int fd, size_t data_len) {
     if (data_len <= 0) {
         throw std::runtime_error("unexpected kqueue data size");
         return;

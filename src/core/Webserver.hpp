@@ -10,7 +10,6 @@
 #define TIMEOUT_TIME 6000
 
 namespace core {
-
 class Webserver {
    private:
     std::vector<Connection>            _v_connection;

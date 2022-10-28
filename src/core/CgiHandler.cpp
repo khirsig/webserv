@@ -62,9 +62,9 @@ void CgiHandler::read(bool eof) {
     std::string temp_buf;
     char        buf[CGI_READ_BUFFER_SIZE];
     int         chars_read = 0;
-    chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);
+    chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);  // write in global buff
     buf[chars_read] = '\0';
-    _response.buf.append(buf);
+    _response.buf.append(buf);  // write in response body
     if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
         _eni.delete_event(_read_fd, EVFILT_READ);
         cgi::g_executor.erase(_read_fd);

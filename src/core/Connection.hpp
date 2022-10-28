@@ -20,6 +20,8 @@ class Connection {
     int            _request_error;
     CgiHandler     _cgi_handler;
 
+    static const std::string _max_pipe_size_str;
+
    public:
     Connection();
     ~Connection();

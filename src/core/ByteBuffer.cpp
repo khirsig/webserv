@@ -2,9 +2,9 @@
 
 namespace core {
 
-ByteBuffer::ByteBuffer(std::size_t size) : vector(), pos(0) { reserve(size); }
+ByteBuffer::ByteBuffer(std::size_t size) : vector(), _pos(0) { reserve(size); }
 
-ByteBuffer::ByteBuffer(const ByteBuffer &other) : vector(other), pos(other.pos) {}
+ByteBuffer::ByteBuffer(const ByteBuffer &other) : vector(other), _pos(other._pos) {}
 
 ByteBuffer::~ByteBuffer() {}
 
@@ -12,8 +12,8 @@ void ByteBuffer::append(const char *str, std::size_t n) {
     if (str == NULL)
         return;
     if (n + size() > capacity()) {
-        erase(begin(), begin() + pos);
-        pos = 0;
+        erase(begin(), begin() + _pos);
+        _pos = 0;
     }
     insert(end(), str, str + n);
 }
@@ -25,8 +25,8 @@ void ByteBuffer::append(const char *str) {
     while (str[i])
         i++;
     if (i + size() > capacity()) {
-        erase(begin(), begin() + pos);
-        pos = 0;
+        erase(begin(), begin() + _pos);
+        _pos = 0;
     }
     insert(end(), str, str + i);
 }
@@ -39,6 +39,10 @@ bool ByteBuffer::equal(ByteBuffer::iterator pos, const char *str, std::size_t n)
     }
     return i == n;
 }
+
+size_t ByteBuffer::pos() const { return _pos; }
+
+void ByteBuffer::set_pos(size_t new_pos) { _pos = new_pos; }
 
 ByteBuffer &ByteBuffer::operator+=(const ByteBuffer &buf) {
     insert(end(), buf.begin(), buf.end());

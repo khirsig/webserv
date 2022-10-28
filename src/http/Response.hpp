@@ -17,7 +17,12 @@ class Response {
     core::ByteBuffer  _body;
 
    public:
-    State state() const;
+    State             state() const;
+    BodyType          body_type() const;
+    core::ByteBuffer &header();
+    core::ByteBuffer &body();
+
+    void set_state(State new_state);
 };
 
 }  // namespace http
