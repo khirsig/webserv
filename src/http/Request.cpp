@@ -46,6 +46,29 @@ Request::Request()
 
 Request::~Request() {}
 
+void Request::init() {
+    _state = REQUEST_LINE;
+    _state_request_line = RL_START;
+    _state_header = H_KEY_START;
+    _state_body_chunked = BC_LENGTH_START;
+    _info_len = 0;
+    _chunk_len = 0;
+    _method = NONE;
+    _content = CONT_NONE;
+    _content_len = 0;
+    _connection = CONN_KEEP_ALIVE;
+    _server = NULL;
+    _location = NULL;
+    _method_str.clear();
+    _path_encoded.clear();
+    _path_decoded.clear();
+    _query_string.clear();
+    _host_encoded.clear();
+    _host_decoded.clear();
+    _key.clear();
+    _value.clear();
+}
+
 bool Request::parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
                     const core::Address &client_addr) {
     size_t pos = 0;

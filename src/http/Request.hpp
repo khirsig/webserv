@@ -129,6 +129,7 @@ class Request {
     Request();
     ~Request();
 
+    void init();
     bool parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
                const core::Address &client_addr);
     void print() const;
