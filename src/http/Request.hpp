@@ -12,7 +12,7 @@ namespace http {
 
 class Request {
    public:
-    enum Method { GET, POST, DELETE, HEAD };
+    enum Method { NONE, GET, POST, DELETE, HEAD };
 
    private:
     enum State { REQUEST_LINE, HEADER, BODY, BODY_CHUNKED, DONE };
@@ -78,6 +78,15 @@ class Request {
     enum Connection { CONN_CLOSE, CONN_KEEP_ALIVE };
 
    private:
+    // Parsing
+    State            _state;
+    StateRequestLine _state_request_line;
+    StateHeader      _state_header;
+    StateBodyChunked _state_body_chunked;
+    size_t           _info_len;
+    size_t           _chunk_len;
+
+    // Request line
     Method      _method;
     std::string _method_str;
     std::string _path_encoded;
@@ -85,27 +94,25 @@ class Request {
     std::string _query_string;
     std::string _host_encoded;
     std::string _host_decoded;
-    std::string _key;
-    std::string _value;
 
+    // Headers
+    std::string                        _key;
+    std::string                        _value;
     std::map<std::string, std::string> _m_header;
-    core::ByteBuffer                   _body;
 
+    // Body
+    Content          _content;
+    size_t           _content_len;
+    core::ByteBuffer _body;
+
+    // Other
+    Connection              _connection;  // naming ??! same as connection from webserver
     const config::Server   *_server;
     const config::Location *_location;
 
-    State            _state;
-    StateRequestLine _state_request_line;
-    StateHeader      _state_header;
-    StateBodyChunked _state_body_chunked;
-
-    size_t _info_len;
-    size_t _chunk_len;
-
-    Content _content;
-    size_t  _content_len;
-
-    Connection _connection;  // naming ??! same as connection from webserver
+    // Constants
+    const size_t MAX_INFO_LEN = 8192;
+    const size_t MAX_METHOD_LEN = 7;
 
     bool _parse_request_line(char *read_buf, size_t len, size_t &pos);
     void _parse_method();
@@ -117,9 +124,6 @@ class Request {
     bool _parse_header(char *read_buf, size_t len, size_t &pos);
     bool _parse_body_chunked(char *read_buf, size_t len, size_t &pos);
     bool _finalize();
-
-    const size_t MAX_INFO_LEN = 8096;
-    const size_t MAX_METHOD_LEN = 7;
 
    public:
     Request();

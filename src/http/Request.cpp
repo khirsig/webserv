@@ -21,7 +21,30 @@
 
 namespace http {
 
-Request::Request() {}
+Request::Request()
+    : _state(REQUEST_LINE),
+      _state_request_line(RL_START),
+      _state_header(H_KEY_START),
+      _state_body_chunked(BC_LENGTH_START),
+      _info_len(0),
+      _chunk_len(0),
+      _method(NONE),
+      _content(CONT_NONE),
+      _content_len(0),
+      _connection(CONN_KEEP_ALIVE),
+      _server(NULL),
+      _location(NULL) {
+    _method_str.reserve(MAX_METHOD_LEN);
+    _path_encoded.reserve(MAX_INFO_LEN / 4);
+    _path_decoded.reserve(MAX_INFO_LEN / 4);
+    _query_string.reserve(MAX_INFO_LEN / 4);
+    _host_encoded.reserve(MAX_INFO_LEN / 4);
+    _host_decoded.reserve(MAX_INFO_LEN / 4);
+    _key.reserve(MAX_INFO_LEN / 4);
+    _value.reserve(MAX_INFO_LEN / 4);
+}
+
+Request::~Request() {}
 
 bool Request::parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
                     const core::Address &client_addr) {
