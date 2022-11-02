@@ -4,6 +4,8 @@
 #include <string>
 
 #include "../config/Location.hpp"
+#include "../config/Server.hpp"
+#include "../core/Address.hpp"
 #include "../core/ByteBuffer.hpp"
 
 namespace http {
@@ -57,6 +59,20 @@ class Request {
         H_ALMOST_DONE_HEADER
     };
 
+    enum StateBodyChunked {
+        BC_LENGTH_START,
+        BC_LENGTH,
+        BC_LENGTH_EXTENSION,
+        BC_LENGTH_ALMOST_DONE,
+        BC_DATA,
+        BC_DATA_ALMOST_DONE,
+        BC_LENGTH_0,
+        BC_LENGTH_0_ALMOST_DONE,
+        BC_DATA_0,
+        BC_ALMOST_DONE,
+        BC_DONE
+    };
+
     enum Content { CONT_NONE, CONT_LENGTH, CONT_CHUNKED };
 
     enum Connection { CONN_CLOSE, CONN_KEEP_ALIVE };
@@ -75,15 +91,19 @@ class Request {
     std::map<std::string, std::string> _m_header;
     core::ByteBuffer                   _body;
 
-    const config::Location *_location;
     const config::Server   *_server;
+    const config::Location *_location;
 
     State            _state;
     StateRequestLine _state_request_line;
     StateHeader      _state_header;
+    StateBodyChunked _state_body_chunked;
+
+    size_t _info_len;
+    size_t _chunk_len;
 
     Content _content;
-    size_t  _content_length;
+    size_t  _content_len;
 
     Connection _connection;  // naming ??! same as connection from webserver
 
@@ -91,13 +111,23 @@ class Request {
     void _parse_method();
     void _analyze_request_line();
     void _analyze_header();
+    void _find_server(const std::vector<config::Server> &v_server,
+                      const core::Address               &client_addr);
+    void _find_location();
     bool _parse_header(char *read_buf, size_t len, size_t &pos);
-    bool _parse_body(char *read_buf, size_t len, size_t &pos);
     bool _parse_body_chunked(char *read_buf, size_t len, size_t &pos);
     bool _finalize();
 
+    const size_t MAX_INFO_LEN = 8096;
+    const size_t MAX_METHOD_LEN = 7;
+
    public:
-    bool parse(char *read_buf, size_t len);
+    Request();
+    ~Request();
+
+    bool parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
+               const core::Address &client_addr);
+    void print() const;
 };
 
 }  // namespace http

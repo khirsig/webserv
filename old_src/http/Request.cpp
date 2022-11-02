@@ -130,7 +130,7 @@ int Request::parse_chunked_body() {
                         if (!isxdigit(c))
                             throw HTTP_BAD_REQUEST;
                         _chunked_body_state = CHUNKED_BODY_LENGTH;
-                        _chunk_size = HEX_CHAR_TO_INT(c);
+                        _chunk_len = HEX_CHAR_TO_INT(c);
                         break;
                 }
                 break;
@@ -148,7 +148,7 @@ int Request::parse_chunked_body() {
                     default:
                         if (!isxdigit(c))
                             throw HTTP_BAD_REQUEST;
-                        _chunk_size = _chunk_size * 16 + HEX_CHAR_TO_INT(c);
+                        _chunk_len = _chunk_len * 16 + HEX_CHAR_TO_INT(c);
                         // if (_chunk_size > max_client_body)
                         //     throw HTTP_BAD_REQUEST;
                         break;
@@ -172,9 +172,9 @@ int Request::parse_chunked_body() {
                 _chunked_body_state = CHUNKED_BODY_DATA_SKIP;
                 break;
             case CHUNKED_BODY_DATA_SKIP:
-                if (_chunk_size > 0) {
+                if (_chunk_len > 0) {
                     _chunked_body_buf.push_back(c);
-                    _chunk_size--;
+                    _chunk_len--;
                     break;
                 }
                 switch (c) {
@@ -355,7 +355,8 @@ void Request::_uri_path_depth_check() {
 //     struct sockaddr_in connection_addr;
 //     memset(&connection_addr, 0, sizeof(connection_addr));
 //     socklen_t connection_addr_len = sizeof(connection_addr);
-//     if (getsockname(_v_socket_fd[index], (struct sockaddr*)&connection_addr, &connection_addr_len) <
+//     if (getsockname(_v_socket_fd[index], (struct sockaddr*)&connection_addr,
+//     &connection_addr_len) <
 //         0)
 //         throw HTTP_INTERNAL_SERVER_ERROR;
 //     for (size_t i = 0; i < _v_server.size(); i++) {
@@ -382,7 +383,8 @@ void Request::_uri_path_depth_check() {
 //     config::Location* location = NULL;
 //     for (size_t i = 0; i < server->v_location.size(); i++) {
 //         if (request._uri_path_decoded.find(server->v_location[i].path) == 0) {
-//             if (location == NULL || server->v_location[i].path.length() > location->path.length())
+//             if (location == NULL || server->v_location[i].path.length() >
+//             location->path.length())
 //                 location = &(server->v_location[i]);
 //         }
 //     }

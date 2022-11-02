@@ -33,7 +33,7 @@ class Connection {
     bool should_close() const;
 
     void init(int fd, Address client_addr, Address socket_addr);
-    void parse_request(char* read_buf, size_t len);
+    void parse_request(char* read_buf, size_t len, const std::vector<config::Server>& v_server);
     void build_response();
     void send_response(EventNotificationInterface& eni, size_t max_len);
 };

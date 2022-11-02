@@ -80,7 +80,7 @@ void Webserver::receive(int fd, size_t data_len) {
         std::find(_v_connection.begin(), _v_connection.end(), fd);
 
     try {
-        it->parse_request(_read_buf, recved_len);
+        it->parse_request(_read_buf, recved_len, _v_server);
         if (it->is_request_done()) {
             if (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE)) {
                 close_connection(it);

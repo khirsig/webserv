@@ -30,9 +30,10 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _response.init();
 }
 
-void Connection::parse_request(char* read_buf, size_t recved_len) {
+void Connection::parse_request(char* read_buf, size_t recved_len,
+                               const std::vector<config::Server>& v_server) {
     try {
-        _is_request_done = _request.parse(read_buf, recved_len);
+        _is_request_done = _request.parse(read_buf, recved_len, v_server, _client_addr);
     } catch (int error) {
         _request_error = error;
         _is_request_done = true;

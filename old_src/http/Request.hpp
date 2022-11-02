@@ -122,7 +122,7 @@ class Request {
     bool               _chunked_body;
     core::ByteBuffer   _chunked_body_buf;
     state_chunked_body _chunked_body_state;
-    std::size_t        _chunk_size;
+    std::size_t        _chunk_len;
     std::size_t        _body_expected_size;
     std::size_t        _body_start;
     std::size_t        _body_end;

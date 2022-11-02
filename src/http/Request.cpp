@@ -1,5 +1,8 @@
 #include "Request.hpp"
 
+#include "../core/Address.hpp"
+#include "../utils/color.hpp"
+#include "../utils/str_to_num.hpp"
 #include "StatusCodes.hpp"
 
 #define IS_METHOD_CHAR(c) (c >= 'A' && c <= 'Z')
@@ -16,13 +19,12 @@
 #define IS_HOST_CHAR(c) (IS_UNRESERVED_URI_CHAR(c) || IS_URI_SUBDELIM(c))
 #define HEX_CHAR_TO_INT(c) (isdigit(c) ? c - '0' : tolower(c) - 87)
 
-#define MAX_METHOD_LEN 7
-
 namespace http {
 
-static const std::string required_header[] = {"host"};
+Request::Request() {}
 
-bool Request::parse(char *read_buf, size_t len) {
+bool Request::parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
+                    const core::Address &client_addr) {
     size_t pos = 0;
     if (_state == State::REQUEST_LINE) {
         if (!_parse_request_line(read_buf, len, pos))
@@ -33,22 +35,47 @@ bool Request::parse(char *read_buf, size_t len) {
         if (!_parse_header(read_buf, len, pos))
             return;
         _analyze_header();
+        _find_server(v_server, client_addr);
+        _find_location();
+        if (_content == Content::CONT_LENGTH && _location->client_max_body_size < _content_len)
+            throw HTTP_CONTENT_TOO_LARGE;
+        _body.reserve(_content_len);
+        switch (_content) {
+            case Content::CONT_LENGTH:
+                _state = BODY;
+                break;
+            case Content::CONT_CHUNKED:
+                _state = BODY_CHUNKED;
+                break;
+            case Content::CONT_NONE:
+                _state = DONE;
+                break;
+        }
     }
     if (_state == BODY) {
+        size_t left_len = _content_len - _body.size();
+        if (left_len > len - pos)
+            left_len = len - pos;
+        _body.append(read_buf + pos, left_len);
+        if (_body.size() != _content_len)
+            return;
+        _state = DONE;
     }
     if (_state == BODY_CHUNKED) {
-        // if (!parse_chunked_body())
-        //     return;
+        if (!_parse_body_chunked(read_buf, len, pos))
+            return;
         _state = DONE;
     }
     if (_state == DONE) {
-        // print();
+        print();
     }
 }
 
 bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
     char c;
-    for (; pos < len; pos++) {
+    for (; pos < len; pos++, _info_len++) {
+        if (_info_len > MAX_INFO_LEN)
+            throw HTTP_BAD_REQUEST;
         c = read_buf[pos];
         switch (_state_request_line) {
             case RL_START:
@@ -66,7 +93,7 @@ bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
                 }
                 break;
             case RL_METHOD:
-                if (IS_METHOD_CHAR(c) && _method_str.length() < MAX_METHOD_LEN) {
+                if (IS_METHOD_CHAR(c) && _method_str.size() < MAX_METHOD_LEN) {
                     _method_str += c;
                     break;
                 } else if (c != ' ') {
@@ -504,19 +531,22 @@ void Request::_analyze_request_line() {
 }
 
 void Request::_analyze_header() {
-    typedef std::map<std::string, std::string>::iterator header_it;
+    typedef std::map<std::string, std::string>::const_iterator const_header_it;
 
-    for (header_it it = _m_header.begin(); it != _m_header.end(); it++) {
+    bool host_found = false;
+    for (const_header_it it = _m_header.begin(); it != _m_header.end(); it++) {
         if (it->first == "HOST") {
             if (it->second.size() == 0)
                 throw HTTP_BAD_REQUEST;
+            host_found = true;
             if (_host_decoded.size() == 0)
                 _host_decoded = it->second;
         } else if (it->first == "CONTENT-LENGTH") {
             if (_content != Content::CONT_NONE)
                 throw HTTP_BAD_REQUEST;
             _content = Content::CONT_LENGTH;
-            _content_length = str_to_num_dec(it->second);
+            if (!utils::str_to_num_dec(it->second, _content_len))
+                throw HTTP_BAD_REQUEST;
         } else if (it->first == "TRANSFER-ENCODING") {
             if (it->second == "chunked") {
                 if (_content != Content::CONT_NONE)
@@ -533,11 +563,53 @@ void Request::_analyze_header() {
             }
         }
     }
+    if (!host_found)
+        throw HTTP_BAD_REQUEST;
+}
+
+void Request::_find_server(const std::vector<config::Server> &v_server,
+                           const core::Address               &client_addr) {
+    typedef std::vector<config::Server>::const_iterator const_server_it;
+
+    _server = NULL;
+    for (const_server_it it = v_server.begin(); it != v_server.end(); it++) {
+        for (std::size_t i = 0; i < it->v_listen.size(); i++) {
+            if (it->v_listen[i].addr == client_addr.addr &&
+                it->v_listen[i].port == client_addr.port) {
+                if (_server == NULL) {
+                    _server = &(*it);
+                } else {
+                    for (std::size_t j = 0; j < it->v_server_name.size(); j++) {
+                        if (it->v_server_name[j] == _host_decoded) {
+                            _server = &(*it);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+    if (_server == NULL)
+        throw HTTP_INTERNAL_SERVER_ERROR;
+}
+
+void Request::_find_location() {
+    _location = NULL;
+    for (std::size_t i = 0; i < _server->v_location.size(); i++) {
+        if (_path_decoded.find(_server->v_location[i].path) == 0) {
+            if (_location == NULL || _location->path.size() < _server->v_location[i].path.size())
+                _location = &(_server->v_location[i]);
+        }
+    }
+    if (_location == NULL)
+        throw HTTP_NOT_FOUND;
 }
 
 bool Request::_parse_header(char *read_buf, size_t len, size_t &pos) {
     char c;
-    for (; pos < len; pos++) {
+    for (; pos < len; pos++, _info_len++) {
+        if (_info_len > MAX_INFO_LEN)
+            throw HTTP_BAD_REQUEST;
         c = read_buf[pos];
         switch (_state_header) {
             case H_KEY_START:
@@ -637,6 +709,144 @@ bool Request::_parse_header(char *read_buf, size_t len, size_t &pos) {
         }
     }
     return false;
+}
+
+bool Request::_parse_body_chunked(char *read_buf, size_t len, size_t &pos) {
+    char c;
+
+    for (; pos < len; pos++) {
+        c = read_buf[pos];
+        switch (_state_body_chunked) {
+            case BC_LENGTH_START:
+                switch (c) {
+                    case '0':
+                        _state_body_chunked = BC_LENGTH_0;
+                        break;
+                    default:
+                        if (!isxdigit(c))
+                            throw HTTP_BAD_REQUEST;
+                        _state_body_chunked = BC_LENGTH;
+                        _chunk_len = HEX_CHAR_TO_INT(c);
+                        break;
+                }
+                break;
+            case BC_LENGTH:
+                switch (c) {
+                    case '\r':
+                        _state_body_chunked = BC_LENGTH_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_body_chunked = BC_DATA;
+                        break;
+                    case ';':
+                        _state_body_chunked = BC_LENGTH_EXTENSION;
+                        break;
+                    default:
+                        if (!isxdigit(c))
+                            throw HTTP_BAD_REQUEST;
+                        _chunk_len = _chunk_len * 16 + HEX_CHAR_TO_INT(c);
+                        if (_body.size() + _chunk_len > _location->client_max_body_size)
+                            throw HTTP_CONTENT_TOO_LARGE;
+                        break;
+                }
+                break;
+            case BC_LENGTH_EXTENSION:
+                switch (c) {
+                    case '\r':
+                        _state_body_chunked = BC_LENGTH_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_body_chunked = BC_DATA;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case BC_LENGTH_ALMOST_DONE:
+                if (c != '\n')
+                    throw HTTP_BAD_REQUEST;
+                _state_body_chunked = BC_DATA;
+                break;
+            case BC_DATA:
+                if (_chunk_len > 0) {
+                    _body += c;
+                    _chunk_len--;
+                    break;
+                }
+                switch (c) {
+                    case '\r':
+                        _state_body_chunked = BC_DATA_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_body_chunked = BC_LENGTH_START;
+                        break;
+                    default:
+                        throw HTTP_BAD_REQUEST;
+                }
+                break;
+            case BC_DATA_ALMOST_DONE:
+                if (c != '\n')
+                    throw HTTP_BAD_REQUEST;
+                _state_body_chunked = BC_LENGTH_START;
+                break;
+            case BC_LENGTH_0:
+                switch (c) {
+                    case '\r':
+                        _state_body_chunked = BC_LENGTH_0_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_body_chunked = BC_DATA_0;
+                        break;
+                    default:
+                        throw HTTP_BAD_REQUEST;
+                }
+                break;
+            case BC_LENGTH_0_ALMOST_DONE:
+                if (c != '\n')
+                    throw HTTP_BAD_REQUEST;
+                _state_body_chunked = BC_DATA_0;
+                break;
+            case BC_DATA_0:
+                switch (c) {
+                    case '\r':
+                        _state_body_chunked = BC_ALMOST_DONE;
+                        break;
+                    case '\n':
+                        _state_body_chunked = BC_DONE;
+                        break;
+                    default:
+                        throw HTTP_BAD_REQUEST;
+                }
+                break;
+            case BC_ALMOST_DONE:
+                if (c != '\n')
+                    throw HTTP_BAD_REQUEST;
+                _state_body_chunked = BC_DONE;
+                break;
+            case BC_DONE:
+                break;
+        }
+        if (_state_body_chunked == BC_DONE) {
+            pos++;
+            return true;
+        }
+    }
+    return false;
+}
+
+void Request::print() const {
+    typedef std::map<std::string, std::string>::const_iterator const_header_it;
+    std::cout << "REQUEST: \n";
+
+    std::cout << "\tmethod:    " << _method_str << "\n";
+    std::cout << "\tpath:      " << _path_decoded << "\n";
+    std::cout << "\tquery:     " << _query_string << "\n";
+    std::cout << "\thost:      " << _host_decoded << "\n";
+    std::cout << "\tHEADER:    \n";
+    for (const_header_it it = _m_header.begin(); it != _m_header.end(); it++)
+        std::cout << "\t\t" << it->first << ": " << it->second << "\n";
+    std::cout << "\tBODY_SIZE: " << _body.size() << "\n";
+    std::cout << "\tBODY:      " << '\'' << _body << "\'\n";
 }
 
 }  // namespace http
