@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:14 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:02:31 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/03 13:04:21 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,8 @@
 namespace config {
 
 void Server::print() const {
-    for (std::vector<Listen>::const_iterator it = v_listen.begin(); it != v_listen.end(); ++it) {
+    for (std::vector<core::Address>::const_iterator it = v_listen.begin(); it != v_listen.end();
+         ++it) {
         std::cout << "listen\n{\n";
         std::cout << "    address: \"" << it->addr << "\"\n";
         std::cout << "    port: \"" << htons(it->port) << "\"\n";

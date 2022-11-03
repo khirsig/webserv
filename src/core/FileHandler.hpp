@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include "../settings.hpp"
 #include "ByteBuffer.hpp"
 
 namespace core {
@@ -14,13 +15,17 @@ class FileHandler {
     std::fstream _file;
     std::size_t  _max_size;
     std::size_t  _read_size;
+    char        *_buf;
 
    public:
+    static const size_t BUF_SIZE = FILE_BUF_SIZE;
+
     FileHandler();
+    FileHandler(const FileHandler &other);
     ~FileHandler();
 
     bool   init(const std::string &path);
-    size_t read(char *buf, const std::size_t buffer_size);
+    size_t read(size_t max_len);
 
     bool is_open() const;
 
@@ -28,7 +33,8 @@ class FileHandler {
     std::size_t read_size() const;
     std::size_t left_size() const;
 
-    const std::string &get_path() const;
+    const std::string &path() const;
+    const char        *buf() const;
 };
 
 }  // namespace core

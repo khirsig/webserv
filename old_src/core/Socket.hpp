@@ -25,7 +25,7 @@ class Socket {
     int close();
 
    private:
-    int fd_;
+    int _fd;
 
     void _socket(int family, int type, int protocol);
     void _setsockopt(int level, int option_name, int option_value);

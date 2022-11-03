@@ -111,18 +111,17 @@ class Request {
     const config::Location *_location;
 
     // Constants
-    const size_t MAX_INFO_LEN = 8192;
-    const size_t MAX_METHOD_LEN = 7;
+    const size_t MAX_METHOD_LEN;
 
-    bool _parse_request_line(char *read_buf, size_t len, size_t &pos);
+    bool _parse_request_line(const char *buf, size_t buf_len, size_t &buf_pos);
     void _parse_method();
     void _analyze_request_line();
     void _analyze_header();
     void _find_server(const std::vector<config::Server> &v_server,
-                      const core::Address               &client_addr);
+                      const core::Address               &socket_addr);
     void _find_location();
-    bool _parse_header(char *read_buf, size_t len, size_t &pos);
-    bool _parse_body_chunked(char *read_buf, size_t len, size_t &pos);
+    bool _parse_header(const char *buf, size_t buf_len, size_t &buf_pos);
+    bool _parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_pos);
     bool _finalize();
 
    public:
@@ -130,8 +129,8 @@ class Request {
     ~Request();
 
     void init();
-    bool parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
-               const core::Address &client_addr);
+    bool parse(const char *buf, size_t buf_len, size_t &buf_pos,
+               const std::vector<config::Server> &v_server, const core::Address &socket_addr);
     void print() const;
 };
 

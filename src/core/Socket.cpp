@@ -15,20 +15,20 @@ Socket::Socket(in_addr_t bind_addr, in_port_t port) {
         throw std::runtime_error("fcntl: " + std::string(strerror(errno)));
     _bind(bind_addr, port);
     _listen(SOMAXCONN);
-}
 
-Socket::Socket(const Socket& other) : _fd(other._fd) {}
+    struct sockaddr_in addr;
+    socklen_t          addr_len = sizeof(struct sockaddr_in);
+    if (getsockname(_fd, (struct sockaddr *)&addr, &addr_len) == -1)
+        throw std::runtime_error("getsockname: " + std::string(strerror(errno)));
+    _addr.addr = addr.sin_addr.s_addr;
+    _addr.port = addr.sin_port;
+}
 
 Socket::~Socket() {}
 
-Socket& Socket::operator=(const Socket& other) {
-    if (this != &other) {
-        _fd = other._fd;
-    }
-    return *this;
-}
+int Socket::fd() const { return _fd; }
 
-int Socket::getFD() const { return _fd; }
+const Address &Socket::addr() const { return _addr; }
 
 int Socket::close() { return ::close(_fd); }
 
@@ -51,7 +51,7 @@ void Socket::_bind(in_addr_t bind_addr, in_port_t port) {
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = bind_addr;
     address.sin_port = port;
-    if (::bind(_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+    if (::bind(_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         throw std::runtime_error("bind: " + std::string(strerror(errno)));
     }
 }
@@ -61,9 +61,5 @@ void Socket::_listen(int backlog) {
         throw std::runtime_error("listen: " + std::string(strerror(errno)));
     }
 }
-
-bool operator==(const Socket& lhs, const Socket& rhs) { return lhs.getFD() == rhs.getFD(); }
-bool operator==(const Socket& lhs, int rhs) { return lhs.getFD() == rhs; }
-bool operator==(int lhs, const Socket& rhs) { return lhs == rhs.getFD(); }
 
 }  // namespace core

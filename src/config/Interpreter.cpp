@@ -3,14 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:00:55 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/03 15:29:16 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Interpreter.hpp"
+
+#include "../utils/timestamp.hpp"
 
 namespace config {
 
@@ -35,7 +37,7 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "listen") {
-                Address new_listen;
+                core::Address new_listen;
                 if (_parse_listen(v_token, it, new_listen))
                     new_server.v_listen.insert(new_server.v_listen.begin(), new_listen);
                 else
@@ -190,7 +192,7 @@ void Interpreter::_parse_cgi_pass(std::vector<Token>::const_iterator &it, CgiPas
     }
 }
 bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
-                                std::vector<Token>::const_iterator &it, Address &identifier) {
+                                std::vector<Token>::const_iterator &it, core::Address &identifier) {
     ++it;
     bool default_server = false;
 
@@ -321,13 +323,13 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
         std::stringstream(it->text) >> identifier.status_code;
         const uint32_t *end_ptr = allowed_redir + sizeof(allowed_redir) / sizeof(uint32_t);
         if (std::find(allowed_redir, end_ptr, identifier.status_code) == end_ptr) {
-            core::timestamp();
+            utils::print_timestamp(std::cerr);
             std::cerr << "invalid status code \"" << identifier.status_code << "\" for \""
                       << *_last_directive << "\" in " << _path << ":" << it->line_number << "\n";
             exit(EXIT_FAILURE);
         }
     } else {
-        core::timestamp();
+        utils::print_timestamp(std::cerr);
         std::cerr << "invalid status code for \"" << *_last_directive << "\" in " << _path << ":"
                   << it->line_number << "\n";
         exit(EXIT_FAILURE);
@@ -409,7 +411,7 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                     state = SLASH;
                     break;
                 } else {
-                    core::timestamp();
+                    utils::print_timestamp(std::cerr);
                     std::cerr << "invalid path \"" << it->text << "\" for directive \""
                               << *_last_directive << "\" in " << _path << ":" << it->line_number
                               << "\n";
@@ -446,7 +448,7 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                 break;
             case SECOND_DOT:
                 if (c == '/') {
-                    core::timestamp();
+                    utils::print_timestamp(std::cerr);
                     std::cerr << "invalid path \"" << it->text << "\" for directive \""
                               << *_last_directive << "\" in " << _path << ":" << it->line_number
                               << "\n";
@@ -484,42 +486,42 @@ void Interpreter::_parse_bool(std::vector<Token>::const_iterator &it, bool &iden
 }
 
 void Interpreter::_invalid_directive(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "\"" << *_last_directive << "\" directive is not allowed here in " << _path << ":"
               << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Interpreter::_directive_already_set(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "duplicate entry for directive \"" << *_last_directive << "\" in " << _path << ":"
               << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Interpreter::_unexpected_file_ending(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "unexpected end of file, expecting \"}\" in " << _path << ":"
               << (it - 1)->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Interpreter::_unexpected_operator(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "unexpected operator \"" << it->text << "\" in " << _path << ":" << it->line_number
               << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Interpreter::_none_terminated_directive(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "directive \"" << *_last_directive << "\" is not terminated by \";\" in " << _path
               << ":" << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Interpreter::_invalid_bool_argument(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "invalid value \"" << it->text << "\" in \"" << *_last_directive
               << "\" directive, it must be \"on\" or \"off\" in " << _path << ":" << it->line_number
               << "\n";
@@ -527,14 +529,14 @@ void Interpreter::_invalid_bool_argument(std::vector<Token>::const_iterator &it)
 }
 
 void Interpreter::_invalid_directive_argument_amount(std::vector<Token>::const_iterator &it) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "invalid number of arguments in \"" << *_last_directive << "\" directive in "
               << _path << ":" << it->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 
 void Interpreter::_missing_opening(std::vector<Token>::const_iterator &it, const char &op) const {
-    core::timestamp();
+    utils::print_timestamp(std::cerr);
     std::cerr << "directive \"" << *_last_directive << "\" has no opening \"" << op << "\" in "
               << _path << ":" << it->line_number << "\n";
     exit(EXIT_FAILURE);

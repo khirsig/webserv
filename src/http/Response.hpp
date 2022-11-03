@@ -17,6 +17,9 @@ class Response {
     core::ByteBuffer  _body;
 
    public:
+    Response();
+    ~Response();
+
     State             state() const;
     BodyType          body_type() const;
     core::ByteBuffer &header();

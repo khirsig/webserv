@@ -1,6 +1,7 @@
 #include "Request.hpp"
 
 #include "../core/Address.hpp"
+#include "../settings.hpp"
 #include "../utils/color.hpp"
 #include "../utils/str_to_num.hpp"
 #include "StatusCodes.hpp"
@@ -33,7 +34,8 @@ Request::Request()
       _content_len(0),
       _connection(CONN_KEEP_ALIVE),
       _server(NULL),
-      _location(NULL) {
+      _location(NULL),
+      MAX_METHOD_LEN(7) {
     _method_str.reserve(MAX_METHOD_LEN);
     _path_encoded.reserve(MAX_INFO_LEN / 4);
     _path_decoded.reserve(MAX_INFO_LEN / 4);
@@ -69,19 +71,19 @@ void Request::init() {
     _value.clear();
 }
 
-bool Request::parse(char *read_buf, size_t len, const std::vector<config::Server> &v_server,
-                    const core::Address &client_addr) {
-    size_t pos = 0;
-    if (_state == State::REQUEST_LINE) {
-        if (!_parse_request_line(read_buf, len, pos))
-            return;
+bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
+                    const std::vector<config::Server> &v_server, const core::Address &socket_addr) {
+    if (_state == REQUEST_LINE) {
+        if (!_parse_request_line(buf, buf_len, buf_pos))
+            return false;
         _analyze_request_line();
+        _state = HEADER;
     }
     if (_state == HEADER) {
-        if (!_parse_header(read_buf, len, pos))
-            return;
+        if (!_parse_header(buf, buf_len, buf_pos))
+            return false;
         _analyze_header();
-        _find_server(v_server, client_addr);
+        _find_server(v_server, socket_addr);
         _find_location();
         if (_content == Content::CONT_LENGTH && _location->client_max_body_size < _content_len)
             throw HTTP_CONTENT_TOO_LARGE;
@@ -100,29 +102,31 @@ bool Request::parse(char *read_buf, size_t len, const std::vector<config::Server
     }
     if (_state == BODY) {
         size_t left_len = _content_len - _body.size();
-        if (left_len > len - pos)
-            left_len = len - pos;
-        _body.append(read_buf + pos, left_len);
+        if (left_len > buf_len - buf_pos)
+            left_len = buf_len - buf_pos;
+        _body.append(buf + buf_pos, left_len);
         if (_body.size() != _content_len)
-            return;
+            return false;
         _state = DONE;
     }
     if (_state == BODY_CHUNKED) {
-        if (!_parse_body_chunked(read_buf, len, pos))
-            return;
+        if (!_parse_body_chunked(buf, buf_len, buf_pos))
+            return false;
         _state = DONE;
     }
     if (_state == DONE) {
         print();
+        return true;
     }
+    return false;
 }
 
-bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
+bool Request::_parse_request_line(const char *buf, size_t buf_len, size_t &buf_pos) {
     char c;
-    for (; pos < len; pos++, _info_len++) {
+    for (; buf_pos < buf_len; buf_pos++, _info_len++) {
         if (_info_len > MAX_INFO_LEN)
             throw HTTP_BAD_REQUEST;
-        c = read_buf[pos];
+        c = buf[buf_pos];
         switch (_state_request_line) {
             case RL_START:
                 switch (c) {
@@ -433,7 +437,7 @@ bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
                 break;
         }
         if (_state_request_line == RL_DONE) {
-            pos++;
+            buf_pos++;
             return true;
         }
     }
@@ -443,16 +447,22 @@ bool Request::_parse_request_line(char *read_buf, size_t len, size_t &pos) {
 void Request::_parse_method() {
     switch (_method_str.size()) {
         case 3:
-            if (_method_str == "GET")
+            if (_method_str == "GET") {
                 _method = Request::Method::GET;
+                return;
+            }
             if (_method_str == "PUT")
                 throw HTTP_NOT_IMPLEMENTED;
             break;
         case 4:
-            if (_method_str == "HEAD")
+            if (_method_str == "HEAD") {
                 _method = Request::Method::HEAD;
-            if (_method_str == "POST")
+                return;
+            }
+            if (_method_str == "POST") {
                 _method = Request::Method::POST;
+                return;
+            }
             break;
         case 5:
             if (_method_str == "PATCH")
@@ -461,8 +471,10 @@ void Request::_parse_method() {
                 throw HTTP_NOT_IMPLEMENTED;
             break;
         case 6:
-            if (_method_str == "DELETE")
+            if (_method_str == "DELETE") {
                 _method = Request::Method::DELETE;
+                return;
+            }
             break;
         case 7:
             if (_method_str == "CONNECT")
@@ -614,14 +626,14 @@ void Request::_analyze_header() {
 }
 
 void Request::_find_server(const std::vector<config::Server> &v_server,
-                           const core::Address               &client_addr) {
+                           const core::Address               &socket_addr) {
     typedef std::vector<config::Server>::const_iterator const_server_it;
 
     _server = NULL;
     for (const_server_it it = v_server.begin(); it != v_server.end(); it++) {
         for (std::size_t i = 0; i < it->v_listen.size(); i++) {
-            if (it->v_listen[i].addr == client_addr.addr &&
-                it->v_listen[i].port == client_addr.port) {
+            if ((it->v_listen[i].addr == INADDR_ANY || it->v_listen[i].addr == socket_addr.addr) &&
+                it->v_listen[i].port == socket_addr.port) {
                 if (_server == NULL) {
                     _server = &(*it);
                 } else {
@@ -651,12 +663,12 @@ void Request::_find_location() {
         throw HTTP_NOT_FOUND;
 }
 
-bool Request::_parse_header(char *read_buf, size_t len, size_t &pos) {
+bool Request::_parse_header(const char *buf, size_t buf_len, size_t &buf_pos) {
     char c;
-    for (; pos < len; pos++, _info_len++) {
+    for (; buf_pos < buf_len; buf_pos++, _info_len++) {
         if (_info_len > MAX_INFO_LEN)
             throw HTTP_BAD_REQUEST;
-        c = read_buf[pos];
+        c = buf[buf_pos];
         switch (_state_header) {
             case H_KEY_START:
                 switch (c) {
@@ -664,7 +676,7 @@ bool Request::_parse_header(char *read_buf, size_t len, size_t &pos) {
                         _state_header = H_ALMOST_DONE_HEADER;
                         break;
                     case '\n':
-                        pos++;
+                        buf_pos++;
                         return true;
                     default:
                         if (!IS_TOKEN_CHAR(c))
@@ -750,18 +762,18 @@ bool Request::_parse_header(char *read_buf, size_t len, size_t &pos) {
             case H_ALMOST_DONE_HEADER:
                 if (c != '\n')
                     throw HTTP_BAD_REQUEST;
-                pos++;
+                buf_pos++;
                 return true;
         }
     }
     return false;
 }
 
-bool Request::_parse_body_chunked(char *read_buf, size_t len, size_t &pos) {
+bool Request::_parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_pos) {
     char c;
 
-    for (; pos < len; pos++) {
-        c = read_buf[pos];
+    for (; buf_pos < buf_len; buf_pos++) {
+        c = buf[buf_pos];
         switch (_state_body_chunked) {
             case BC_LENGTH_START:
                 switch (c) {
@@ -873,7 +885,7 @@ bool Request::_parse_body_chunked(char *read_buf, size_t len, size_t &pos) {
                 break;
         }
         if (_state_body_chunked == BC_DONE) {
-            pos++;
+            buf_pos++;
             return true;
         }
     }

@@ -16,9 +16,8 @@ LDLIBS      :=
 VPATH       :=	src/		\
 				src/config/	\
 				src/core/	\
-				src/file/	\
 				src/http/	\
-				src/cgi/
+				src/utils/
 
 SRCS		:=	$(notdir $(foreach dir, $(VPATH), $(wildcard $(dir)/*.cpp)))
 

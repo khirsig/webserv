@@ -2,6 +2,10 @@
 
 namespace http {
 
+Response::Response() : _body_type(NONE), _state(HEADER) {}
+
+Response::~Response() {}
+
 Response::State Response::state() const { return _state; }
 
 Response::BodyType Response::body_type() const { return _body_type; }

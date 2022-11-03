@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/27 10:00:55 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/03 15:17:09 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,9 +18,9 @@
 #include <sstream>
 #include <vector>
 
-#include "../core/utils.hpp"
+#include "../core/Address.hpp"
 #include "../http/ErrorPages.hpp"
-#include "../http/httpStatusCodes.hpp"
+#include "../http/StatusCodes.hpp"
 #include "Server.hpp"
 #include "Token.hpp"
 
@@ -49,7 +49,7 @@ class Interpreter {
     void _parse_string(std::vector<Token>::const_iterator &it, std::string &identifier);
     void _parse_cgi_pass(std::vector<Token>::const_iterator &it, CgiPass &identifier);
     bool _parse_listen(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
-                       Address &identifier);
+                       core::Address &identifier);
     void _parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
                      in_port_t &port);
     void _parse_error_page(const std::vector<Token>           &v_token,

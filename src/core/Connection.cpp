@@ -1,5 +1,7 @@
 #include "Connection.hpp"
 
+#include "../utils/addr_to_str.hpp"
+#include "../utils/color.hpp"
 #include "../utils/num_to_str.hpp"
 #include "Webserver.hpp"
 
@@ -7,33 +9,55 @@ namespace core {
 
 const std::string Connection::_max_pipe_size_str = utils::num_to_str_hex(MAX_PIPE_SIZE);
 
-Connection::Connection() {}
+Connection::Connection() : _fd(-1), _buf_pos(0), _buf_filled(0), BUF_SIZE(CONNECTION_BUF_SIZE) {
+    _buf = new char[BUF_SIZE];
+}
 
-Connection::~Connection() {}
+Connection::~Connection() { delete[] _buf; }
 
 bool Connection::is_active() const { return _is_active; }
 
 bool Connection::is_request_done() const { return _is_request_done; }
 
 bool Connection::is_response_done() const { return _is_response_done; }
+
 bool Connection::should_close() const { return _should_close; }
+
+int Connection::fd() const { return _fd; }
 
 void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _fd = fd;
+    _buf_pos = 0;
+    _buf_filled = 0;
     _client_addr = client_addr;
     _socket_addr = socket_addr;
     _should_close = false;
     _is_active = false;
     _is_request_done = false;
+    _is_response_done = false;
     _request_error = 0;
     _request.init();
-    _response.init();
+    // _response.init();
+
+#ifdef DEBUG
+    std::cout << utils::COLOR_BL << "[Accepted]: " << utils::COLOR_NO
+              << utils::addr_to_str(_client_addr) << std::endl;
+#endif
 }
 
-void Connection::parse_request(char* read_buf, size_t recved_len,
-                               const std::vector<config::Server>& v_server) {
+void Connection::receive(size_t data_len) {
+    _buf_pos = 0;
+    size_t to_recv_len = data_len < BUF_SIZE ? data_len : BUF_SIZE;
+    _buf_filled = recv(_fd, _buf, to_recv_len, 0);
+    if (_buf_filled != to_recv_len) {
+        throw std::runtime_error("recv: failed");
+    }
+    write(1, _buf, _buf_filled);
+}
+
+void Connection::parse_request(const std::vector<config::Server>& v_server) {
     try {
-        _is_request_done = _request.parse(read_buf, recved_len, v_server, _client_addr);
+        _is_request_done = _request.parse(_buf, _buf_filled, _buf_pos, v_server, _socket_addr);
     } catch (int error) {
         _request_error = error;
         _is_request_done = true;
@@ -41,10 +65,16 @@ void Connection::parse_request(char* read_buf, size_t recved_len,
 }
 
 void Connection::build_response() {
-    if (!_request_error)
-        _response.build();
-    else
-        _response.build_error();
+    if (_request_error) {
+        std::cerr << "BAD REQUEST: " << _request_error << std::endl;
+    } else {
+        std::cerr << "GOOD request" << std::endl;
+    }
+
+    // if (!_request_error)
+    //     _response.build();
+    // else
+    //     _response.build_error();
 }
 
 void Connection::send_response(EventNotificationInterface& eni, size_t max_len) {
@@ -66,7 +96,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
     }
     if (_response.state() == http::Response::State::BODY && max_len > 0) {
         switch (_response.body_type()) {
-            case http::Response::BodyType::BUFFER:
+            case http::Response::BodyType::BUFFER: {
                 pos = _response.body().pos();
                 left_len = _response.body().size() - pos;
                 to_send_len = left_len < max_len ? left_len : max_len;
@@ -79,56 +109,75 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 if (pos >= _response.body().size())
                     _response.set_state(http::Response::State::DONE);
                 break;
+            }
             case http::Response::BodyType::CGI: {
-                if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
-                    return;
-                size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
-                pos = _response.body().pos();
-                left_len = _response.body().size() - pos;
-                to_send_len = left_len < max_chunk_cont_len ? left_len : max_chunk_cont_len;
-                if (to_send_len > 0) {
-                    std::string chunk;
-                    chunk.reserve(to_send_len + _max_pipe_size_str.size() + 4);
-                    utils::num_to_str_hex(to_send_len, chunk);
-                    chunk += "\r\n";
-                    chunk.insert(chunk.end(), _response.body().begin() + pos,
-                                 _response.body().begin() + to_send_len);
-                    chunk += "\r\n";
-                    if (send(_fd, chunk.c_str(), chunk.size(), 0) != chunk.size())
-                        throw std::runtime_error("send: failed");
-                    max_len -= chunk.size();
-                    pos += to_send_len;
-                    _response.body().set_pos(pos);
-                }
-                if (pos >= _response.body().size()) {
-                    if (_cgi_handler.is_done()) {
-                        if (max_len >= 5) {
-                            if (send(_fd, "0\r\n\r\n", 5, 0) != 5)
-                                throw std::runtime_error("send: failed");
-                            _response.set_state(http::Response::State::DONE);
-                        }
-                    } else {
-                        eni.disable_event(_fd, EVFILT_WRITE);
-                    }
-                }
+                // if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
+                //     return;
+                // size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
+                // pos = _response.body().pos();
+                // left_len = _response.body().size() - pos;
+                // to_send_len = left_len < max_chunk_cont_len ? left_len : max_chunk_cont_len;
+                // if (to_send_len > 0) {
+                //     std::string chunk;
+                //     chunk.reserve(to_send_len + _max_pipe_size_str.size() + 4);
+                //     utils::num_to_str_hex(to_send_len, chunk);
+                //     chunk += "\r\n";
+                //     chunk.insert(chunk.end(), _response.body().begin() + pos,
+                //                  _response.body().begin() + to_send_len);
+                //     chunk += "\r\n";
+                //     if (send(_fd, chunk.c_str(), chunk.size(), 0) != chunk.size())
+                //         throw std::runtime_error("send: failed");
+                //     max_len -= chunk.size();
+                //     pos += to_send_len;
+                //     _response.body().set_pos(pos);
+                // }
+                // if (pos >= _response.body().size()) {
+                //     if (_cgi_handler.is_done()) {
+                //         if (max_len >= 5) {
+                //             if (send(_fd, "0\r\n\r\n", 5, 0) != 5)
+                //                 throw std::runtime_error("send: failed");
+                //             _response.set_state(http::Response::State::DONE);
+                //         }
+                //     } else {
+                //         eni.disable_event(_fd, EVFILT_WRITE);
+                //     }
+                // }
                 break;
             }
-            case http::Response::BodyType::FILE:
-                size_t to_send_len = _response.file_handler().read(read_buf, read_buf_size);
+            case http::Response::BodyType::FILE: {
+                size_t to_send_len = _response.file_handler().read(max_len);
                 if (to_send_len > 0) {
-                    if (send(_fd, read_buf, to_send_len, 0) != to_send_len)
+                    if (send(_fd, _response.file_handler().buf(), to_send_len, 0) !=
+                        (ssize_t)to_send_len)
                         throw std::runtime_error("send: failed");
                 }
                 if (_response.file_handler().left_size() == 0)
                     _response.set_state(http::Response::State::DONE);
                 break;
+            }
             case http::Response::BodyType::NONE:
                 break;
         }
     }
-    // if (_response.state() == http::Response::State::DONE) {
-
-    // }
+    if (_response.state() == http::Response::State::DONE) {
+        _request.init();
+    }
 }
+
+void Connection::destroy() {
+    close(_fd);
+    _fd = -1;
+
+#ifdef DEBUG
+    std::cout << utils::COLOR_YE << "[Closed]: " << utils::COLOR_NO
+              << utils::addr_to_str(_client_addr) << std::endl;
+#endif
+}
+
+bool operator==(const Connection& lhs, int fd) { return lhs.fd() == fd; }
+
+bool operator==(int fd, const Connection& rhs) { return rhs.fd() == fd; }
+
+bool operator==(const Connection& lhs, const Connection& rhs) { return lhs.fd() == rhs.fd(); }
 
 }  // namespace core
