@@ -6,8 +6,12 @@ namespace core {
 
 FileHandler::FileHandler() : _max_size(0), _read_size(0) { _buf = new char[BUF_SIZE]; }
 
-FileHandler::FileHandler(const FileHandler &other) : _max_size(0), _read_size(0) {
-    _buf = new char[BUF_SIZE];
+FileHandler::FileHandler(const FileHandler &other) {
+    if (this != &other) {
+        _max_size = 0;
+        _read_size = 0;
+        _buf = new char[BUF_SIZE];
+    }
 }
 
 FileHandler::~FileHandler() {

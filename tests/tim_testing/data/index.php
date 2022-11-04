@@ -1,8 +1,15 @@
 
 <?php
 
-while (list($var,$value) = each($_ENV)) {
-    echo "$var $value <br />";
+// while (list($var,$value) = each($_ENV)) {
+//     echo "$var $value <br />\n";
+// }
+
+// loop for 10s
+$end = time() + 70;
+while (time() < $end) {
+    sleep(1);
+    echo "Hello World\n";
 }
 
 // fwrite(STDERR, “hello, world\n”);

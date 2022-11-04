@@ -85,17 +85,17 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _analyze_header();
         _find_server(v_server, socket_addr);
         _find_location();
-        if (_content == Content::CONT_LENGTH && _location->client_max_body_size < _content_len)
+        if (_content == CONT_LENGTH && _location->client_max_body_size < _content_len)
             throw HTTP_CONTENT_TOO_LARGE;
         _body.reserve(_content_len);
         switch (_content) {
-            case Content::CONT_LENGTH:
+            case CONT_LENGTH:
                 _state = BODY;
                 break;
-            case Content::CONT_CHUNKED:
+            case CONT_CHUNKED:
                 _state = BODY_CHUNKED;
                 break;
-            case Content::CONT_NONE:
+            case CONT_NONE:
                 _state = DONE;
                 break;
         }
@@ -448,7 +448,7 @@ void Request::_parse_method() {
     switch (_method_str.size()) {
         case 3:
             if (_method_str == "GET") {
-                _method = Request::Method::GET;
+                _method = Request::GET;
                 return;
             }
             if (_method_str == "PUT")
@@ -456,11 +456,11 @@ void Request::_parse_method() {
             break;
         case 4:
             if (_method_str == "HEAD") {
-                _method = Request::Method::HEAD;
+                _method = Request::HEAD;
                 return;
             }
             if (_method_str == "POST") {
-                _method = Request::Method::POST;
+                _method = Request::POST;
                 return;
             }
             break;
@@ -472,7 +472,7 @@ void Request::_parse_method() {
             break;
         case 6:
             if (_method_str == "DELETE") {
-                _method = Request::Method::DELETE;
+                _method = Request::DELETE;
                 return;
             }
             break;
@@ -600,22 +600,22 @@ void Request::_analyze_header() {
             if (_host_decoded.size() == 0)
                 _host_decoded = it->second;
         } else if (it->first == "CONTENT-LENGTH") {
-            if (_content != Content::CONT_NONE)
+            if (_content != CONT_NONE)
                 throw HTTP_BAD_REQUEST;
-            _content = Content::CONT_LENGTH;
+            _content = CONT_LENGTH;
             if (!utils::str_to_num_dec(it->second, _content_len))
                 throw HTTP_BAD_REQUEST;
         } else if (it->first == "TRANSFER-ENCODING") {
             if (it->second == "chunked") {
-                if (_content != Content::CONT_NONE)
+                if (_content != CONT_NONE)
                     throw HTTP_BAD_REQUEST;
-                _content = Content::CONT_CHUNKED;
+                _content = CONT_CHUNKED;
             } else {
                 throw HTTP_NOT_IMPLEMENTED;
             }
         } else if (it->first == "CONNECTION") {
             if (it->second == "close") {
-                _connection = Connection::CONN_CLOSE;
+                _connection = CONN_CLOSE;
             } else {
                 throw HTTP_BAD_REQUEST;
             }

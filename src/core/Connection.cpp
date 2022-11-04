@@ -81,7 +81,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
     size_t left_len;
     size_t to_send_len;
     size_t pos;
-    if (_response.state() == http::Response::State::HEADER) {
+    if (_response.state() == http::Response::HEADER) {
         pos = _response.header().pos();
         left_len = _response.header().size() - pos;
         to_send_len = left_len < max_len ? left_len : max_len;
@@ -92,11 +92,11 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         _response.header().set_pos(pos);
         max_len -= sent_len;
         if (pos >= _response.header().size())
-            _response.set_state(http::Response::State::BODY);
+            _response.set_state(http::Response::BODY);
     }
-    if (_response.state() == http::Response::State::BODY && max_len > 0) {
+    if (_response.state() == http::Response::BODY && max_len > 0) {
         switch (_response.body_type()) {
-            case http::Response::BodyType::BUFFER: {
+            case http::Response::BUFFER: {
                 pos = _response.body().pos();
                 left_len = _response.body().size() - pos;
                 to_send_len = left_len < max_len ? left_len : max_len;
@@ -107,10 +107,10 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 _response.body().set_pos(pos);
                 max_len -= sent_len;
                 if (pos >= _response.body().size())
-                    _response.set_state(http::Response::State::DONE);
+                    _response.set_state(http::Response::DONE);
                 break;
             }
-            case http::Response::BodyType::CGI: {
+            case http::Response::CGI: {
                 // if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
                 //     return;
                 // size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
@@ -144,7 +144,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 // }
                 break;
             }
-            case http::Response::BodyType::FILE: {
+            case http::Response::FILE: {
                 size_t to_send_len = _response.file_handler().read(max_len);
                 if (to_send_len > 0) {
                     if (send(_fd, _response.file_handler().buf(), to_send_len, 0) !=
@@ -152,14 +152,14 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                         throw std::runtime_error("send: failed");
                 }
                 if (_response.file_handler().left_size() == 0)
-                    _response.set_state(http::Response::State::DONE);
+                    _response.set_state(http::Response::DONE);
                 break;
             }
-            case http::Response::BodyType::NONE:
+            case http::Response::NONE:
                 break;
         }
     }
-    if (_response.state() == http::Response::State::DONE) {
+    if (_response.state() == http::Response::DONE) {
         _request.init();
     }
 }

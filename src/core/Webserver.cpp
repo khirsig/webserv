@@ -145,7 +145,6 @@ void Webserver::_receive(int fd, size_t data_len) {
 
     try {
         conn_it->receive(data_len);
-        _eni.add_timer(fd, TIMEOUT_TIME);
     } catch (...) {
         _close_connection(conn_it);
         throw;
@@ -155,11 +154,13 @@ void Webserver::_receive(int fd, size_t data_len) {
         conn_it->parse_request(_v_server);
         if (conn_it->is_request_done()) {
             if (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE)) {
-                _close_connection(conn_it);
                 throw std::runtime_error("eni: " + std::string(strerror(errno)));
             }
             conn_it->build_response();
         }
+    } catch (const std::exception &e) {
+        _close_connection(conn_it);
+        throw;
     } catch (...) {
         _close_connection(conn_it);
         throw std::runtime_error("unexpected request/response error");
@@ -183,9 +184,8 @@ void Webserver::_send(int fd, size_t max_len) {
                 return;
             }
 
-            if (_eni.disable_event(it->fd(), EVFILT_WRITE) ||
+            if (_eni.add_timer(fd, TIMEOUT_TIME) || _eni.disable_event(it->fd(), EVFILT_WRITE) ||
                 _eni.enable_event(it->fd(), EVFILT_READ)) {
-                _close_connection(it);
                 throw std::runtime_error("eni: " + std::string(strerror(errno)));
             }
         }
