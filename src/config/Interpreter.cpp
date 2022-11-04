@@ -6,12 +6,13 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/03 15:29:16 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/11/04 12:26:15 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Interpreter.hpp"
 
+#include "../core/ByteBuffer.hpp"
 #include "../utils/timestamp.hpp"
 
 namespace config {
@@ -256,7 +257,7 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
         if (it->text.find_first_not_of("0123456789") == std::string::npos) {
             std::uint32_t new_code;
             std::stringstream(it->text) >> new_code;
-            if (http::g_error_pages.pages.find(new_code) == http::g_error_pages.pages.end()) {
+            if (_m_error_page.find(new_code) == _m_error_page.end()) {
                 std::cerr << "invalid error_code \"" << new_code << "\""
                           << " for directive \"" << *_last_directive << "\" in " << _path << ":"
                           << it->line_number << "\n";

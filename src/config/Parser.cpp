@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Parser.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/09/15 10:35:16 by khirsig           #+#    #+#             */
-/*   Updated: 2022/09/15 10:51:09 by khirsig          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Parser.hpp"
 
 namespace config {
@@ -32,7 +20,7 @@ std::string Parser::_file_to_string(std::string file_path) {
 
     file.open(file_path);
     if (!file.is_open()) {
-        std::cerr << "Could not open the file \"" << file_path << "\"" << std::endl;
+        std::cerr << strerror(errno) << ": \"" << file_path << "\"" << std::endl;
         exit(EXIT_FAILURE);
     }
     buf << file.rdbuf();

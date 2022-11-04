@@ -28,7 +28,7 @@ class Webserver {
     void _send(int fd, size_t max_len);
 
    public:
-    Webserver(const std::vector<config::Server> &v_server, size_t max_connections);
+    Webserver(const std::vector<config::Server> &v_server);
     ~Webserver();
 
     void run();

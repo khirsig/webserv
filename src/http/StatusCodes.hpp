@@ -1,9 +1,5 @@
 #pragma once
 
-#include <map>
-
-#include "../core/ByteBuffer.hpp"
-
 //
 // STATUS CODES
 //
@@ -171,19 +167,3 @@
 // Other
 
 #define HTTP_I_AM_A_TEAPOT_MSG "418 I'm A Teapot"
-
-namespace http {
-
-struct StatusCodes {
-    std::map<int, core::ByteBuffer> codes;
-
-    void init();
-};
-
-//
-// GLOBAL
-//
-
-extern StatusCodes g_status_codes;
-
-}  // namespace http

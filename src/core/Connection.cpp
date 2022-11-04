@@ -52,7 +52,6 @@ void Connection::receive(size_t data_len) {
     if (_buf_filled != to_recv_len) {
         throw std::runtime_error("recv: failed");
     }
-    write(1, _buf, _buf_filled);
 }
 
 void Connection::parse_request(const std::vector<config::Server>& v_server) {

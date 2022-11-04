@@ -13,8 +13,8 @@
 
 namespace core {
 
-Webserver::Webserver(const std::vector<config::Server> &v_server, size_t max_connections)
-    : _v_server(v_server), _used_connections(0), _max_connections(max_connections) {
+Webserver::Webserver(const std::vector<config::Server> &v_server)
+    : _v_server(v_server), _used_connections(0), _max_connections(MAX_CONNECTIONS) {
     _v_connection.resize(_max_connections);
 
     // Create sockets

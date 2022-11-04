@@ -27,6 +27,8 @@ class Response {
 
     void               set_state(State new_state);
     core::FileHandler &file_handler();
+
+    // void build_error(int error_code);
 };
 
 }  // namespace http

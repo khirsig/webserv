@@ -23,7 +23,7 @@ void print_timestamp(std::ostream& os) {
     os << time_master->tm_min << ":";
     if (time_master->tm_sec < 10)
         os << "0";
-    os << time_master->tm_sec << " ";
+    os << time_master->tm_sec;
 }
 
 }  // namespace utils

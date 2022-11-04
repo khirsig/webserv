@@ -13,4 +13,4 @@
 #define CGI_BUF_SIZE 4096
 #define CONNECTION_BUF_SIZE 4096
 
-#define DEFAULT_CONF "./webserv.conf"
+#define DEFAULT_CONFIG_FILE "./webserv.conf"

@@ -6,7 +6,7 @@
 /*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/03 15:17:09 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/11/04 12:25:26 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,6 @@
 #include <vector>
 
 #include "../core/Address.hpp"
-#include "../http/ErrorPages.hpp"
 #include "../http/StatusCodes.hpp"
 #include "Server.hpp"
 #include "Token.hpp"
