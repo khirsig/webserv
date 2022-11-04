@@ -14,3 +14,5 @@
 #define CONNECTION_BUF_SIZE 4096
 
 #define DEFAULT_CONFIG_FILE "./webserv.conf"
+
+#define SERVER_NAME "webserv"

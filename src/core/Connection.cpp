@@ -57,9 +57,14 @@ void Connection::receive(size_t data_len) {
 void Connection::parse_request(const std::vector<config::Server>& v_server) {
     try {
         _is_request_done = _request.parse(_buf, _buf_filled, _buf_pos, v_server, _socket_addr);
+        if (_is_request_done) {
+            if (_request.connection_should_close())
+                _should_close = true;
+        }
     } catch (int error) {
         _request_error = error;
         _is_request_done = true;
+        _should_close = true;
     }
 }
 

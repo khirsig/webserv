@@ -1,6 +1,6 @@
 #include "FileHandler.hpp"
 
-#include "../http/StatusCodes.hpp"
+#include "../http/status_codes.hpp"
 
 namespace core {
 

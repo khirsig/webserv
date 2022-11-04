@@ -1,10 +1,10 @@
 #include "Request.hpp"
 
 #include "../core/Address.hpp"
+#include "../http/status_codes.hpp"
 #include "../settings.hpp"
 #include "../utils/color.hpp"
 #include "../utils/str_to_num.hpp"
-#include "StatusCodes.hpp"
 
 #define IS_METHOD_CHAR(c) (c >= 'A' && c <= 'Z')
 #define IS_SEPERATOR_CHAR(c)                                                               \
@@ -906,5 +906,7 @@ void Request::print() const {
     std::cout << "\tBODY_SIZE: " << _body.size() << "\n";
     std::cout << "\tBODY:      " << '\'' << _body << "\'\n";
 }
+
+const config::Server *Request::server() const { return _server; }
 
 }  // namespace http

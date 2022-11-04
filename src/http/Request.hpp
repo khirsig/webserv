@@ -74,10 +74,8 @@ class Request {
     };
 
     enum Content { CONT_NONE, CONT_LENGTH, CONT_CHUNKED };
-
     enum Connection { CONN_CLOSE, CONN_KEEP_ALIVE };
 
-   private:
     // Parsing
     State            _state;
     StateRequestLine _state_request_line;
@@ -132,6 +130,9 @@ class Request {
     bool parse(const char *buf, size_t buf_len, size_t &buf_pos,
                const std::vector<config::Server> &v_server, const core::Address &socket_addr);
     void print() const;
+
+    bool                  connection_should_close() const;
+    const config::Server *server() const;
 };
 
 }  // namespace http

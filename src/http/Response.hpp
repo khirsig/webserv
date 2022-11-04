@@ -1,6 +1,11 @@
 #pragma once
 
+#include <map>
+
+#include "../core/ByteBuffer.hpp"
 #include "../core/FileHandler.hpp"
+#include "Request.hpp"
+#include "error_page.hpp"
 
 namespace http {
 
@@ -16,6 +21,12 @@ class Response {
     core::ByteBuffer  _header;
     core::ByteBuffer  _body;
 
+    static const std::map<int, error_page_t> _m_error_page;
+
+    // void _construct_header_buffer(int status_code, const std::string &content_type);
+    void _construct_header_file();
+    void _construct_header_cgi();
+
    public:
     Response();
     ~Response();
@@ -28,7 +39,9 @@ class Response {
     void               set_state(State new_state);
     core::FileHandler &file_handler();
 
-    // void build_error(int error_code);
+    void init();
+
+    void build_error(const Request &req, int error_code);
 };
 
 }  // namespace http

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 //
 // STATUS CODES
 //
@@ -167,3 +169,11 @@
 // Other
 
 #define HTTP_I_AM_A_TEAPOT_MSG "418 I'm A Teapot"
+
+namespace http {
+
+typedef std::map<int, std::string>::const_iterator m_status_codes_iterator_t;
+
+extern const std::map<int, std::string> m_status_codes;
+
+}  // namespace http
