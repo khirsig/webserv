@@ -41,6 +41,7 @@ class Connection {
     int fd() const;
 
     void init(int fd, Address client_addr, Address socket_addr);
+    void reinit();
     void receive(size_t data_len);
     void parse_request(const std::vector<config::Server>& v_server);
     void build_response();

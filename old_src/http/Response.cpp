@@ -55,19 +55,23 @@ void Response::init(Request& request, config::Location& location,
                     core::EventNotificationInterface& eni) {
     connection_state = request.connection_state;
 
-    bool directory = (request._uri_path_decoded.length() == location.path.length()) ||
-                     (request._uri_path_decoded[request._uri_path_decoded.size() - 1] == '/');
+    bool        directory;
+    std::string relative_file_path(request._uri_path_decoded.begin() + location.path.length(),
+                                   request._uri_path_decoded.end());
+    std::string file_path(location.root + relative_file_path);
+    directory = !file.init(file_path);
+
     config::Redirect* redir;
     if (directory)
         redir = _find_redir_folder(&location);
     else
-        redir = _find_redir_file(&location, request._uri_path_decoded);
+        redir = _find_redir_file(&location, relative_file_path);
     if (redir) {
         _respond_redir(*redir);
         return;
     }
 
-    if (directory && !find_index(request, location, file)) {
+    if (directory && !find_index(file_path, location, file)) {
         if (location.directory_listing) {
             buf.append("cgi dir listing\n");
             // _construct_header_cgi();
@@ -78,7 +82,7 @@ void Response::init(Request& request, config::Location& location,
             // content = RESPONSE_CONTENT_CGI;
             return;
         }
-        throw HTTP_FORBIDDEN;
+        throw HTTP_NOT_FOUND;
     } else {
         config::CgiPass* cgi_pass = find_cgi_pass(request, location);
         if (cgi_pass) {
@@ -92,8 +96,11 @@ void Response::init(Request& request, config::Location& location,
         }
         if (request._method != "GET" && request._method != "HEAD")
             throw HTTP_METHOD_NOT_ALLOWED;
-        if (!file.is_open())
-            file.init(location.root + request._uri_path_decoded);
+        // if (!file.is_open()) {
+        //     std::string origin(request._uri_path_decoded.begin() + location.path.length(),
+        //                        request._uri_path_decoded.end());
+        //     // file.init(location.root + origin);
+        // }
         if (file.max_size() == 0 || request._method == "HEAD")
             content = RESPONSE_CONTENT_NONE;
         else

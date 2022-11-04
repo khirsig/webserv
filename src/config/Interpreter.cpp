@@ -3,16 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
+/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/04 14:36:08 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/04 18:15:54 by tjensen          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Interpreter.hpp"
 
 #include "../core/ByteBuffer.hpp"
+#include "../settings.hpp"
 #include "../utils/timestamp.hpp"
 
 namespace config {
@@ -136,6 +137,12 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
     } else {
         _missing_opening(it, '{');
     }
+
+    if (new_location.client_max_body_size == 0 ||
+        new_location.client_max_body_size > CLIENT_MAX_BODY_SIZE) {
+        new_location.client_max_body_size = CLIENT_MAX_BODY_SIZE;
+    }
+
     return (new_location);
 }
 
@@ -463,8 +470,11 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                 break;
         }
     }
-    if (location_path[location_path.size() - 1] != '/')
-        location_path += '/';
+    // if (location_path[location_path.size() - 1] != '/')
+    //     location_path += '/';
+
+    if (location_path.size() > 1 && location_path[location_path.size() - 1] == '/')
+        location_path.erase(location_path.size() - 1);
 
     ++it;
     if (it->text != "{") {

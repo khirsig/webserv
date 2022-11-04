@@ -41,6 +41,7 @@ class Response {
 
     void init();
 
+    void build(const Request &req);
     void build_error(const Request &req, int error_code);
 };
 

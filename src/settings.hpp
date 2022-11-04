@@ -1,6 +1,6 @@
 #pragma once
 
-#define DEBUG 1
+#define DEBUG 2
 
 #define MAX_CONNECTIONS 1024
 #define TIMEOUT_TIME 20000
@@ -16,3 +16,5 @@
 #define DEFAULT_CONFIG_FILE "./webserv.conf"
 
 #define SERVER_NAME "webserv"
+
+#define CLIENT_MAX_BODY_SIZE (1ULL << 32)  // 4GB

@@ -37,12 +37,24 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _is_response_done = false;
     _request_error = 0;
     _request.init();
-    // _response.init();
+    _response.init();
 
 #ifdef DEBUG
     std::cout << utils::COLOR_BL << "[Accepted]: " << utils::COLOR_NO
               << utils::addr_to_str(_client_addr) << std::endl;
 #endif
+}
+
+void Connection::reinit() {
+    _buf_pos = 0;
+    _buf_filled = 0;
+    _should_close = false;
+    _is_active = false;
+    _is_request_done = false;
+    _is_response_done = false;
+    _request_error = 0;
+    _request.init();
+    _response.init();
 }
 
 void Connection::receive(size_t data_len) {
@@ -55,6 +67,9 @@ void Connection::receive(size_t data_len) {
 }
 
 void Connection::parse_request(const std::vector<config::Server>& v_server) {
+    if (_buf_pos == _buf_filled)
+        return;
+    _is_active = true;
     try {
         _is_request_done = _request.parse(_buf, _buf_filled, _buf_pos, v_server, _socket_addr);
         if (_is_request_done) {
@@ -70,8 +85,7 @@ void Connection::parse_request(const std::vector<config::Server>& v_server) {
 
 void Connection::build_response() {
     if (!_request_error)
-        std::cerr << "GOOD request" << std::endl;
-    // _response.build();
+        _response.build(_request);
     else
         _response.build_error(_request, _request_error);
 }
@@ -105,7 +119,6 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 pos += sent_len;
                 _response.body().set_pos(pos);
                 max_len -= sent_len;
-                std::cerr << "pos: " << pos << " size: " << _response.body().size() << std::endl;
                 if (pos >= _response.body().size())
                     _response.set_state(http::Response::DONE);
                 break;
@@ -161,6 +174,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
     }
     if (_response.state() == http::Response::DONE) {
         _is_response_done = true;
+        _is_active = false;
         _request.init();
     }
 }

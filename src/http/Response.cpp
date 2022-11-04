@@ -49,7 +49,37 @@ void Response::init() {
     _body_type = NONE;
     _state = HEADER;
     _header.clear();
+    _header.set_pos(0);
     _body.clear();
+    _body.set_pos(0);
+}
+
+// req path: /index.html
+// location: /
+//     root: /root/dir/1/
+
+// req path: /var/www/html/index.html
+// location: /var/www/html
+//     root: /root/dir/1/
+
+static std::string get_relative_path(const std::string &req_path,
+                                     const std::string &location_path) {
+    size_t uri_path_offset;
+    if (location_path.size() == 1)
+        uri_path_offset = 1;
+    else if (location_path.size() == req_path.size())
+        uri_path_offset = location_path.size();
+    else
+        uri_path_offset = location_path.size() + 1;
+    return std::string(req_path.begin() + uri_path_offset, req_path.end());
+}
+
+void Response::build(const Request &req) {
+    std::string relative_path = get_relative_path(req.path_decoded(), req.location()->path);
+    std::string absolute_path = req.location()->root + relative_path;
+    std::cerr << "relative_path: " << relative_path << std::endl;
+    std::cerr << "absolute_path: " << absolute_path << std::endl;
+    // req.location()->print("");
 }
 
 void Response::build_error(const Request &req, int error_code) {

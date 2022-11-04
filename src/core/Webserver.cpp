@@ -72,6 +72,7 @@ void Webserver::run() {
                     _timeout_connection(_eni.events[i].ident);
                 } else if (_eni.events[i].flags & EV_EOF) {
                     // do something
+                    std::cerr << "EOF" << std::endl;
                     _close_connection(_eni.events[i].ident);
                 } else if (_eni.events[i].filter == EVFILT_READ) {
                     _receive(_eni.events[i].ident, _eni.events[i].data);
@@ -177,7 +178,7 @@ void Webserver::_send(int fd, size_t max_len) {
                 _close_connection(it);
                 return;
             }
-
+            it->reinit();
             it->parse_request(_v_server);
             if (it->is_request_done()) {
                 it->build_response();

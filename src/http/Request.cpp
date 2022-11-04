@@ -30,7 +30,7 @@ Request::Request()
       _info_len(0),
       _chunk_len(0),
       _method(NONE),
-      _content(CONT_NONE),
+      _body_content_type(CONT_NONE),
       _content_len(0),
       _connection(CONN_KEEP_ALIVE),
       _server(NULL),
@@ -56,7 +56,7 @@ void Request::init() {
     _info_len = 0;
     _chunk_len = 0;
     _method = NONE;
-    _content = CONT_NONE;
+    _body_content_type = CONT_NONE;
     _content_len = 0;
     _connection = CONN_KEEP_ALIVE;
     _server = NULL;
@@ -69,6 +69,8 @@ void Request::init() {
     _host_decoded.clear();
     _key.clear();
     _value.clear();
+    _m_header.clear();
+    _body.clear();
 }
 
 bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
@@ -85,10 +87,10 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _analyze_header();
         _find_server(v_server, socket_addr);
         _find_location();
-        if (_content == CONT_LENGTH && _location->client_max_body_size < _content_len)
+        if (_body_content_type == CONT_LENGTH && _location->client_max_body_size < _content_len)
             throw HTTP_CONTENT_TOO_LARGE;
         _body.reserve(_content_len);
-        switch (_content) {
+        switch (_body_content_type) {
             case CONT_LENGTH:
                 _state = BODY;
                 break;
@@ -115,7 +117,9 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _state = DONE;
     }
     if (_state == DONE) {
+#if DEBUG > 1
         print();
+#endif
         return true;
     }
     return false;
@@ -600,24 +604,22 @@ void Request::_analyze_header() {
             if (_host_decoded.size() == 0)
                 _host_decoded = it->second;
         } else if (it->first == "CONTENT-LENGTH") {
-            if (_content != CONT_NONE)
+            if (_body_content_type != CONT_NONE)
                 throw HTTP_BAD_REQUEST;
-            _content = CONT_LENGTH;
+            _body_content_type = CONT_LENGTH;
             if (!utils::str_to_num_dec(it->second, _content_len))
                 throw HTTP_BAD_REQUEST;
         } else if (it->first == "TRANSFER-ENCODING") {
             if (it->second == "chunked") {
-                if (_content != CONT_NONE)
+                if (_body_content_type != CONT_NONE)
                     throw HTTP_BAD_REQUEST;
-                _content = CONT_CHUNKED;
+                _body_content_type = CONT_CHUNKED;
             } else {
                 throw HTTP_NOT_IMPLEMENTED;
             }
         } else if (it->first == "CONNECTION") {
             if (it->second == "close") {
                 _connection = CONN_CLOSE;
-            } else {
-                throw HTTP_BAD_REQUEST;
             }
         }
     }
@@ -894,21 +896,57 @@ bool Request::_parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_p
 
 void Request::print() const {
     typedef std::map<std::string, std::string>::const_iterator const_header_it;
-    std::cout << "REQUEST: \n";
-
-    std::cout << "\tmethod:    " << _method_str << "\n";
-    std::cout << "\tpath:      " << _path_decoded << "\n";
-    std::cout << "\tquery:     " << _query_string << "\n";
-    std::cout << "\thost:      " << _host_decoded << "\n";
-    std::cout << "\tHEADER:    \n";
+    std::cout
+        << utils::COLOR_PL_1
+        << "--------------------------------------------------------------------------------\n"
+        << "REQUEST: \n"
+        << utils::COLOR_NO;
+    std::cout << utils::COLOR_GR_1 << " REQUEST LINE: \n" << utils::COLOR_NO;
+    std::cout << utils::COLOR_GR << "  - METHOD: " << utils::COLOR_NO << _method_str << "\n";
+    std::cout << utils::COLOR_GR << "  - PATH:   " << utils::COLOR_NO << _path_decoded << "\n";
+    std::cout << utils::COLOR_GR << "  - QUERY:  " << utils::COLOR_NO << _query_string << "\n";
+    std::cout << utils::COLOR_GR << "  - HOST:   " << utils::COLOR_NO << _host_decoded << "\n";
+    std::cout << utils::COLOR_BL_1 << " HEADER:\n" << utils::COLOR_NO;
     for (const_header_it it = _m_header.begin(); it != _m_header.end(); it++)
-        std::cout << "\t\t" << it->first << ": " << it->second << "\n";
-    std::cout << "\tBODY_SIZE: " << _body.size() << "\n";
-    std::cout << "\tBODY:      " << '\'' << _body << "\'\n";
+        std::cout << utils::COLOR_BL << "  - " << it->first << ": " << utils::COLOR_NO << it->second
+                  << "\n";
+    std::cout << utils::COLOR_CY_1 << " BODY (" << utils::COLOR_NO << _body.size()
+              << utils::COLOR_CY_1 << "):" << utils::COLOR_NO << "\n";
+    std::cout << utils::COLOR_CY << "  \'" << utils::COLOR_NO;
+    for (size_t i = 0; i < _body.size(); i++) {
+        if (i > 0 && i % 75 == 0)
+            std::cout << "\n   ";
+        std::cout << _body[i];
+    }
+    std::cout << utils::COLOR_CY << "\'\n" << utils::COLOR_NO;
+    std::cout
+        << utils::COLOR_PL_1
+        << "--------------------------------------------------------------------------------\n"
+        << utils::COLOR_NO;
 }
 
 bool Request::connection_should_close() const { return _connection == CONN_CLOSE; }
 
+Request::Method Request::method() const { return _method; }
+
+const std::string &Request::method_str() const { return _method_str; }
+
+const std::string &Request::path_encoded() const { return _path_encoded; }
+
+const std::string &Request::path_decoded() const { return _path_decoded; }
+
+const std::string &Request::query_string() const { return _query_string; }
+
+const std::string &Request::host_encoded() const { return _host_encoded; }
+
+const std::string &Request::host_decoded() const { return _host_decoded; }
+
+const std::map<std::string, std::string> &Request::m_header() const { return _m_header; }
+
 const config::Server *Request::server() const { return _server; }
+
+const config::Location *Request::location() const { return _location; }
+
+const core::ByteBuffer &Request::body() const { return _body; }
 
 }  // namespace http

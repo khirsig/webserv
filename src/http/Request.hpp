@@ -73,7 +73,7 @@ class Request {
         BC_DONE
     };
 
-    enum Content { CONT_NONE, CONT_LENGTH, CONT_CHUNKED };
+    enum BodyContentType { CONT_NONE, CONT_LENGTH, CONT_CHUNKED };
     enum Connection { CONN_CLOSE, CONN_KEEP_ALIVE };
 
     // Parsing
@@ -99,7 +99,7 @@ class Request {
     std::map<std::string, std::string> _m_header;
 
     // Body
-    Content          _content;
+    BodyContentType  _body_content_type;
     size_t           _content_len;
     core::ByteBuffer _body;
 
@@ -131,8 +131,20 @@ class Request {
                const std::vector<config::Server> &v_server, const core::Address &socket_addr);
     void print() const;
 
-    bool                  connection_should_close() const;
-    const config::Server *server() const;
+    bool connection_should_close() const;
+
+    // GETTERS
+    Method                                    method() const;
+    const std::string                        &method_str() const;
+    const std::string                        &path_encoded() const;
+    const std::string                        &path_decoded() const;
+    const std::string                        &query_string() const;
+    const std::string                        &host_encoded() const;
+    const std::string                        &host_decoded() const;
+    const std::map<std::string, std::string> &m_header() const;
+    const config::Server                     *server() const;
+    const config::Location                   *location() const;
+    const core::ByteBuffer                   &body() const;
 };
 
 }  // namespace http
