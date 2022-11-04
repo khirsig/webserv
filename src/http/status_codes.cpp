@@ -24,14 +24,12 @@ static const struct s_status_code static_status_codes[] = {
     {HTTP_NOT_IMPLEMENTED, HTTP_NOT_IMPLEMENTED_MSG},
     {HTTP_VERSION_NOT_SUPPORTED, HTTP_VERSION_NOT_SUPPORTED_MSG}};
 
-static std::map<int, std::string> new_m_status_codes() {
+std::map<int, std::string> new_m_status_codes() {
     std::map<int, std::string> m_implemented;
     for (size_t i = 0; i < sizeof(static_status_codes) / sizeof(static_status_codes[0]); i++) {
         m_implemented[static_status_codes[i].code] = static_status_codes[i].msg;
     }
     return m_implemented;
 }
-
-const std::map<int, std::string> m_status_codes = new_m_status_codes();
 
 }  // namespace http

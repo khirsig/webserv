@@ -907,6 +907,8 @@ void Request::print() const {
     std::cout << "\tBODY:      " << '\'' << _body << "\'\n";
 }
 
+bool Request::connection_should_close() const { return _connection == CONN_CLOSE; }
+
 const config::Server *Request::server() const { return _server; }
 
 }  // namespace http

@@ -6,18 +6,21 @@
 
 namespace http {
 
-// void Response::_construct_header_buffer(int status_code, const std::string &content_type) {
-//     _header.append("HTTP/1.1");
-// }
-
 static std::map<int, error_page_t> new_error_page_default() {
     std::map<int, error_page_t> m_error_page;
 
-    for (m_status_codes_iterator_t it = m_status_codes.begin(); it != m_status_codes.end(); it++) {
+    for (m_status_codes_iterator_t it = g_m_status_codes.begin(); it != g_m_status_codes.end();
+         it++) {
         if (it->first >= 400) {
             error_page_t error_page;
+            error_page.content.reserve(200);
             error_page.content_type = "text/html";
+            error_page.content.append("<html>\r\n<head><title>");
             error_page.content.append(it->second.c_str());
+            error_page.content.append("</title></head>\r\n<body>\r\n<center><h1>");
+            error_page.content.append(it->second.c_str());
+            error_page.content.append(
+                "</h1></center>\r\n<hr><center>webserv</center>\r\n</body>\r\n</html>\r\n");
             m_error_page[it->first] = error_page;
         }
     }
@@ -64,7 +67,7 @@ void Response::build_error(const Request &req, int error_code) {
     }
     _body.assign(error_page->content.begin(), error_page->content.end());
     _header.append("HTTP/1.1 ");
-    _header.append(m_status_codes.find(error_code)->second.c_str());
+    _header.append(g_m_status_codes.find(error_code)->second.c_str());
     _header.append("\r\nServer: ");
     _header.append(SERVER_NAME);
     _header.append("\r\nContent-Type: ");

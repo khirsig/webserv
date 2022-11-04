@@ -3,7 +3,7 @@
 #define DEBUG 1
 
 #define MAX_CONNECTIONS 1024
-#define TIMEOUT_TIME 6000
+#define TIMEOUT_TIME 20000
 
 #define MAX_INFO_LEN 8196
 

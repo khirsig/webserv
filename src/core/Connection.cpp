@@ -69,16 +69,11 @@ void Connection::parse_request(const std::vector<config::Server>& v_server) {
 }
 
 void Connection::build_response() {
-    if (_request_error) {
-        std::cerr << "BAD REQUEST: " << _request_error << std::endl;
-    } else {
+    if (!_request_error)
         std::cerr << "GOOD request" << std::endl;
-    }
-
-    // if (!_request_error)
-    //     _response.build();
-    // else
-    //     _response.build_error();
+    // _response.build();
+    else
+        _response.build_error(_request, _request_error);
 }
 
 void Connection::send_response(EventNotificationInterface& eni, size_t max_len) {
@@ -110,6 +105,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 pos += sent_len;
                 _response.body().set_pos(pos);
                 max_len -= sent_len;
+                std::cerr << "pos: " << pos << " size: " << _response.body().size() << std::endl;
                 if (pos >= _response.body().size())
                     _response.set_state(http::Response::DONE);
                 break;
@@ -164,6 +160,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         }
     }
     if (_response.state() == http::Response::DONE) {
+        _is_response_done = true;
         _request.init();
     }
 }

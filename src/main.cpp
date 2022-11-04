@@ -3,8 +3,11 @@
 
 #include "config/Parser.hpp"
 #include "core/Webserver.hpp"
+#include "http/status_codes.hpp"
 #include "settings.hpp"
 #include "utils/timestamp.hpp"
+
+const std::map<int, std::string> http::g_m_status_codes = http::new_m_status_codes();
 
 int main(int argc, char** argv) {
     if (argc > 2) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 //
 // STATUS CODES
@@ -172,8 +173,10 @@
 
 namespace http {
 
+std::map<int, std::string> new_m_status_codes();
+
 typedef std::map<int, std::string>::const_iterator m_status_codes_iterator_t;
 
-extern const std::map<int, std::string> m_status_codes;
+extern const std::map<int, std::string> g_m_status_codes;
 
 }  // namespace http
