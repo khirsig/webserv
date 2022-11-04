@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/04 12:26:15 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/11/04 14:36:08 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             } else if (*_last_directive == "server_name") {
                 _parse_string(v_token, it, new_server.v_server_name);
             } else if (*_last_directive == "error_page") {
-                _parse_error_page(v_token, it);
+                _parse_error_page(v_token, it, new_server.m_error_codes);
             } else if (*_last_directive == "client_max_body_size") {
                 if (client_max_size_set) {
                     _directive_already_set(it);
@@ -249,20 +249,21 @@ void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std:
 }
 
 void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
-                                    std::vector<Token>::const_iterator &it) {
+                                    std::vector<Token>::const_iterator &it,
+                                    std::map<int, http::error_page_t>  &m_error_page) {
     ++it;
     std::vector<std::uint32_t> v_code;
 
     for (; it != v_token.end() && it->text != ";"; ++it) {
         if (it->text.find_first_not_of("0123456789") == std::string::npos) {
             std::uint32_t new_code;
-            std::stringstream(it->text) >> new_code;
-            if (_m_error_page.find(new_code) == _m_error_page.end()) {
-                std::cerr << "invalid error_code \"" << new_code << "\""
-                          << " for directive \"" << *_last_directive << "\" in " << _path << ":"
-                          << it->line_number << "\n";
-                exit(EXIT_FAILURE);
-            }
+            // std::stringstream(it->text) >> new_code;
+            // if (_m_error_page.find(new_code) == _m_error_page.end()) {
+            //     std::cerr << "invalid error_code \"" << new_code << "\""
+            //               << " for directive \"" << *_last_directive << "\" in " << _path << ":"
+            //               << it->line_number << "\n";
+            //     exit(EXIT_FAILURE);
+            // }
             std::stringstream(it->text) >> new_code;
             v_code.push_back(new_code);
         } else {
@@ -286,18 +287,18 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
     }
     std::stringstream file_stream;
     file_stream << file.rdbuf();
-    std::string      content(file_stream.str());
-    core::ByteBuffer buf;
-    buf.append(content.c_str(), content.size());
+    std::string content(file_stream.str());
 
-    std::string content_type;
+    http::error_page_t new_error_page;
+    new_error_page.content.append(content.c_str(), content.size());
+
     if (it->text.find(".html", it->text.size() - 5) != std::string::npos)
-        content_type = "text/html";
+        new_error_page.content_type = "text/html";
     else
-        content_type = "text/plain";
+        new_error_page.content_type = "text/plain";
 
     for (std::size_t i = 0; i < v_code.size(); ++i) {
-        http::g_error_pages.insert_page(v_code[i], buf, content_type);
+        m_error_page.insert(std::make_pair(v_code[i], new_error_page));
     }
 
     ++it;

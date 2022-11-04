@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/04 14:17:54 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/11/04 14:29:39 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,8 @@ class Interpreter {
     void _parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
                      in_port_t &port);
     void _parse_error_page(const std::vector<Token>           &v_token,
-                           std::vector<Token>::const_iterator &it);
+                           std::vector<Token>::const_iterator &it,
+                           std::map<int, http::error_page_t>  &m_error_page);
     void _parse_redirect(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                          Redirect &identifier);
     void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
