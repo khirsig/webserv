@@ -107,6 +107,8 @@ class Request {
     Connection              _connection;  // naming ??! same as connection from webserver
     const config::Server   *_server;
     const config::Location *_location;
+    std::string             _relative_path;
+    std::string             _absolute_path;
 
     // Constants
     const size_t MAX_METHOD_LEN;
@@ -120,6 +122,7 @@ class Request {
     void _find_server(const std::vector<config::Server> &v_server,
                       const core::Address               &socket_addr);
     void _find_location();
+    void _process_path();
     bool _parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_pos);
     bool _finalize();
 
@@ -146,6 +149,8 @@ class Request {
     const config::Server                     *server() const;
     const config::Location                   *location() const;
     const core::ByteBuffer                   &body() const;
+    const std::string                        &relative_path() const;
+    const std::string                        &absolute_path() const;
 };
 
 }  // namespace http

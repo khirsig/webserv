@@ -9,7 +9,12 @@ namespace core {
 
 const std::string Connection::_max_pipe_size_str = utils::num_to_str_hex(MAX_PIPE_SIZE);
 
-Connection::Connection() : _fd(-1), _buf_pos(0), _buf_filled(0), BUF_SIZE(CONNECTION_BUF_SIZE) {
+Connection::Connection()
+    : _fd(-1),
+      _buf_pos(0),
+      _buf_filled(0),
+      _cgi_handler(_request, _response),
+      BUF_SIZE(CONNECTION_BUF_SIZE) {
     _buf = new char[BUF_SIZE];
 }
 
@@ -38,7 +43,7 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _request_error = 0;
     _request.init();
     _response.init();
-    // _cgi_handler.init(_fd);
+    _cgi_handler.init(_fd);
 
 #ifdef DEBUG
     std::cout << utils::COLOR_BL << "[Accepted]: " << utils::COLOR_NO
@@ -56,7 +61,7 @@ void Connection::reinit() {
     _request_error = 0;
     _request.init();
     _response.init();
-    // _cgi_handler.init(_fd);
+    _cgi_handler.init(_fd);
 }
 
 void Connection::receive(size_t data_len) {
@@ -85,10 +90,12 @@ void Connection::parse_request(const std::vector<config::Server>& v_server) {
     }
 }
 
-void Connection::build_response() {
+void Connection::build_response(EventNotificationInterface& eni) {
     if (!_request_error) {
         try {
             _response.build(_request);
+            if (_response.need_cgi())
+                _cgi_handler.execute(eni, _response.cgi_pass()->path);
         } catch (int error) {
             _response.build_error(_request, error);
             return;
@@ -112,9 +119,45 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         pos += sent_len;
         _response.header().set_pos(pos);
         max_len -= sent_len;
-        if (pos >= _response.header().size())
-            _response.set_state(http::Response::BODY);
+        if (pos >= _response.header().size()) {
+            if (_response.body_type() == http::Response::BODY_NONE) {
+                _response.set_state(http::Response::DONE);
+            } else if (_response.body_type() == http::Response::BODY_CGI) {
+                _response.set_state(http::Response::HEADER_CGI);
+            } else {
+                _response.set_state(http::Response::BODY);
+            }
+        }
     }
+    // if (_response.state() == http::Response::HEADER_CGI) {
+    //     char needle_1[] = "\r\n\r\n";
+    //     char needle_2[] = "\n\n";
+
+    //     core::ByteBuffer::const_iterator start_needle_1 = std::search(
+    //         _request.body().begin(), _request.body().end(), needle_1, needle_1 +
+    //         sizeof(needle_1));
+    //     core::ByteBuffer::const_iterator start_needle_2 = std::search(
+    //         _request.body().begin(), _request.body().end(), needle_2, needle_2 +
+    //         sizeof(needle_2));
+    //     core::ByteBuffer::const_iterator cgi_header_end;
+    //     if (start_needle_1 < start_needle_2)
+    //         cgi_header_end = start_needle_1 + sizeof(needle_1);
+    //     else if (start_needle_2 < start_needle_1)
+    //         cgi_header_end = start_needle_2 + sizeof(needle_2);
+    //     else
+    //         cgi_header_end = _request.body().end();
+    //     pos = _response.body().pos();
+    //     left_len = cgi_header_end - (_response.body().begin() + pos);
+    //     to_send_len = left_len < max_len ? left_len : max_len;
+    //     size_t sent_len = send(_fd, &(_response.body()[pos]), to_send_len, 0);
+    //     if (sent_len != to_send_len)
+    //         throw std::runtime_error("send: failed");
+    //     pos += sent_len;
+    //     _response.body().set_pos(pos);
+    //     max_len -= sent_len;
+    //     if (cgi_header_end != _request.body().end())
+    //         _response.set_state(http::Response::BODY);
+    // }
     if (_response.state() == http::Response::BODY && max_len > 0) {
         switch (_response.body_type()) {
             case http::Response::BODY_BUFFER: {
@@ -151,7 +194,6 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 //     max_len -= chunk.size();
                 //     pos += to_send_len;
                 //     _response.body().set_pos(pos);
-                //      clear body();
                 // }
                 // if (pos >= _response.body().size()) {
                 //     if (_cgi_handler.is_done()) {

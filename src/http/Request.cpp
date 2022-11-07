@@ -87,6 +87,7 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _analyze_header();
         _find_server(v_server, socket_addr);
         _find_location();
+        _process_path();
         if (_body_content_type == CONT_LENGTH && _location->client_max_body_size < _content_len)
             throw HTTP_CONTENT_TOO_LARGE;
         _body.reserve(_content_len);
@@ -665,6 +666,20 @@ void Request::_find_location() {
         throw HTTP_NOT_FOUND;
 }
 
+void Request::_process_path() {
+    const std::string &uri_path = _path_decoded;
+    size_t             uri_path_offset;
+
+    if (_location->path.size() == 1)
+        uri_path_offset = 1;
+    else if (_location->path.size() == uri_path.size())
+        uri_path_offset = _location->path.size();
+    else
+        uri_path_offset = _location->path.size() + 1;
+    _relative_path.assign(uri_path.begin() + uri_path_offset, uri_path.end());
+    _absolute_path = _location->root + _relative_path;
+}
+
 void Request::_add_header() {
     std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
     std::pair<std::map<std::string, std::string>::iterator, bool> pair =
@@ -903,11 +918,13 @@ void Request::print() const {
         << "REQUEST: \n"
         << utils::COLOR_NO;
     std::cout << utils::COLOR_GR_1 << " REQUEST LINE: \n" << utils::COLOR_NO;
-    std::cout << utils::COLOR_GR << "  - METHOD: " << utils::COLOR_NO << _method_str << "\n";
-    std::cout << utils::COLOR_GR << "  - PATH:   " << utils::COLOR_NO << _path_decoded << "\n";
-    std::cout << utils::COLOR_GR << "  - QUERY:  " << utils::COLOR_NO << _query_string << "\n";
-    std::cout << utils::COLOR_GR << "  - HOST:   " << utils::COLOR_NO << _host_decoded << "\n";
-    std::cout << utils::COLOR_BL_1 << " HEADER:\n" << utils::COLOR_NO;
+    std::cout << utils::COLOR_GR << "  - METHOD:   " << utils::COLOR_NO << _method_str << "\n";
+    std::cout << utils::COLOR_GR << "  - PATH:     " << utils::COLOR_NO << _path_decoded << "\n";
+    std::cout << utils::COLOR_GR << "  - REL_PATH: " << utils::COLOR_NO << _relative_path << "\n";
+    std::cout << utils::COLOR_GR << "  - ABS_PATH: " << utils::COLOR_NO << _absolute_path << "\n";
+    std::cout << utils::COLOR_GR << "  - QUERY:    " << utils::COLOR_NO << _query_string << "\n";
+    std::cout << utils::COLOR_GR << "  - HOST:     " << utils::COLOR_NO << _host_decoded << "\n";
+    std::cout << utils::COLOR_BL_1 << " HEADER:\n  " << utils::COLOR_NO;
     for (const_header_it it = _m_header.begin(); it != _m_header.end(); it++)
         std::cout << utils::COLOR_BL << "  - " << it->first << ": " << utils::COLOR_NO << it->second
                   << "\n";
@@ -949,5 +966,9 @@ const config::Server *Request::server() const { return _server; }
 const config::Location *Request::location() const { return _location; }
 
 const core::ByteBuffer &Request::body() const { return _body; }
+
+const std::string &Request::relative_path() const { return _relative_path; }
+
+const std::string &Request::absolute_path() const { return _absolute_path; }
 
 }  // namespace http

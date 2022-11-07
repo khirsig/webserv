@@ -2,14 +2,8 @@
 
 namespace core {
 
-CgiHandler::CgiHandler(http::Request &request, http::Response &response,
-                       core::EventNotificationInterface &eni)
-    : _read_fd(-1),
-      _write_fd(-1),
-      _request(request),
-      _response(response),
-      _eni(eni),
-      _is_done(true) {}
+CgiHandler::CgiHandler(const http::Request &request, http::Response &response)
+    : _request(request), _response(response), _read_fd(-1), _write_fd(-1), _is_done(true) {}
 
 CgiHandler::~CgiHandler() {
     close(_read_fd);  // delete events
@@ -20,7 +14,7 @@ void CgiHandler::init(int connection_fd) {
     _connection_fd = connection_fd;
 }
 
-void CgiHandler::execute(std::string &root, std::string &path) {
+void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi_path) {
     reset();
 
     int read_fd[2];
@@ -54,18 +48,18 @@ void CgiHandler::execute(std::string &root, std::string &path) {
         close(write_fd[0]);
         dup2(read_fd[1], STDOUT_FILENO);
         close(read_fd[1]);
-        _run_program(root, path);
+        _run_program(cgi_path);
     } else {
         _read_fd = read_fd[0];
         _write_fd = write_fd[1];
         close(read_fd[1]);
         close(write_fd[0]);
 
-        _eni.enable_event(_read_fd, EVFILT_READ);
-        _eni.add_cgi_fd(this, _read_fd);
+        eni.enable_event(_read_fd, EVFILT_READ);
+        eni.add_cgi_fd(_read_fd, *this);
         if (_request.body().begin() != _request.body().end()) {
-            _eni.add_event(_write_fd, EVFILT_WRITE);
-            _eni.add_cgi_fd(this, _write_fd);
+            eni.add_event(_write_fd, EVFILT_WRITE);
+            eni.add_cgi_fd(_write_fd, *this);
         }
     }
 }
@@ -84,7 +78,7 @@ void CgiHandler::reset() {
     }
 }
 
-void CgiHandler::read(bool eof) {
+void CgiHandler::read(EventNotificationInterface &eni, bool eof) {
     std::string temp_buf;
     char        buf[CGI_READ_BUFFER_SIZE];
     int         chars_read = 0;
@@ -92,16 +86,16 @@ void CgiHandler::read(bool eof) {
     buf[chars_read] = '\0';
     _response.body().append(buf);  // write in response body
     if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
-        _eni.disable_event(_read_fd, EVFILT_READ);
-        _eni.remove_cgi_fd(_read_fd);
+        eni.disable_event(_read_fd, EVFILT_READ);
+        eni.remove_cgi_fd(_read_fd);
         close(_read_fd);  // destructor?
         _read_fd = -1;
         _is_done = true;
     }
-    _eni.enable_event(_connection_fd, EVFILT_WRITE);
+    eni.enable_event(_connection_fd, EVFILT_WRITE);
 }
 
-void CgiHandler::write(std::size_t max_size) {
+void CgiHandler::write(EventNotificationInterface &eni, std::size_t max_size) {
     std::size_t left_bytes;
     std::size_t send_bytes;
 
@@ -114,8 +108,8 @@ void CgiHandler::write(std::size_t max_size) {
     _body_pos += send_bytes;
     left_bytes = _request.body().size() - _body_pos;
     if (left_bytes == 0) {
-        _eni.disable_event(_write_fd, EVFILT_WRITE);
-        _eni.remove_cgi_fd(_write_fd);
+        eni.disable_event(_write_fd, EVFILT_WRITE);
+        eni.remove_cgi_fd(_write_fd);
         close(_write_fd);  // destructor?
         _write_fd = -1;
     }
@@ -127,24 +121,23 @@ int32_t CgiHandler::get_read_fd() const { return _read_fd; }
 
 int32_t CgiHandler::get_write_fd() const { return _write_fd; }
 
-void CgiHandler::_run_program(std::string &root, std::string &path) {
-    chdir(root.c_str());
-    std::string path_decoded(_request.path_decoded());
-    path_decoded.insert(0, ".");
+void CgiHandler::_run_program(const std::string &cgi_path) {
     std::map<std::string, std::string> m_header(_request.m_header());
-    char                             **env_str = _get_env(m_header);
-    char                             **argv = _get_argv(path, path_decoded);
-    if (execve(path.c_str(), argv, env_str) == -1)
-        perror("execve");
+
+    char **env = _get_env(m_header);
+    char **argv = _get_argv(cgi_path, _request.path_decoded());
+
+    chdir(_request.location()->root.c_str());
+    execve(cgi_path.c_str(), argv, env);
+    perror("execve");
+    // free env && argv
     exit(EXIT_FAILURE);
 }
 
 char **CgiHandler::_get_env(std::map<std::string, std::string> &env) {
     for (uint32_t i = 0; i < env_arr_length; ++i) {
         if (env.find(env_string[i]) == env.end()) {
-            std::string key = env_string[i];
-            std::string val;
-            env.insert(std::make_pair<std::string, std::string>(key, val));
+            env.insert(std::make_pair(env_string[i], ""));
         }
     }
 
@@ -167,7 +160,6 @@ char **CgiHandler::_get_env(std::map<std::string, std::string> &env) {
         ++i;
     }
     ret[env.size()] = NULL;
-
     return ret;
 }
 
@@ -177,35 +169,22 @@ void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
         it->second = _request.query_string();
     it = env.find("REQUEST_METHOD");
     if (it != env.end()) {
-        switch (_request.method()) {
-            case http::Request::Method::GET:
-                it->second = "GET";
-                break;
-            case http::Request::Method::POST:
-                it->second = "POST";
-                break;
-            case http::Request::Method::DELETE:
-                it->second = "DELETE";
-                break;
-            case http::Request::Method::HEAD:
-                it->second = "HEAD";
-                break;
-        }
+        it->second = _request.method_str();
     }
 }
 
-char **CgiHandler::_get_argv(const std::string &path, const std::string &body) {
+char **CgiHandler::_get_argv(const std::string &cgi_path, const std::string &script_path) {
     char **argv = new char *[3];
-    argv[0] = new char[path.size() + 1];
-    for (std::size_t i = 0; i < path.size(); ++i) {
-        argv[0][i] = path[i];
+    argv[0] = new char[cgi_path.size() + 1];
+    for (std::size_t i = 0; i < cgi_path.size(); ++i) {
+        argv[0][i] = cgi_path[i];
     }
-    argv[0][path.size()] = '\0';
-    argv[1] = new char[body.size() + 1];
-    for (std::size_t i = 0; i < body.size(); ++i) {
-        argv[1][i] = body[i];
+    argv[0][cgi_path.size()] = '\0';
+    argv[1] = new char[script_path.size() + 1];
+    for (std::size_t i = 0; i < script_path.size(); ++i) {
+        argv[1][i] = script_path[i];
     }
-    argv[1][body.size()] = '\0';
+    argv[1][script_path.size()] = '\0';
     argv[2] = NULL;
     return argv;
 }

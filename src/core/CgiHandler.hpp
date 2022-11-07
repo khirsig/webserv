@@ -23,17 +23,18 @@ static const std::string env_string[env_arr_length] = {
 
 namespace core {
 
+class EventNotificationInterface;
+
 class CgiHandler {
    public:
-    CgiHandler(http::Request &request, http::Response &response,
-               core::EventNotificationInterface &eni);
+    CgiHandler(const http::Request &request, http::Response &response);
     ~CgiHandler();
 
     void init(int connection_fd);
-    void execute(std::string &root, std::string &path);
+    void execute(EventNotificationInterface &eni, const std::string &cgi_path);
     void reset();
-    void read(bool eof);
-    void write(std::size_t max_size);
+    void read(EventNotificationInterface &eni, bool eof);
+    void write(EventNotificationInterface &eni, std::size_t max_size);
 
     bool is_done() const;
 
@@ -41,20 +42,17 @@ class CgiHandler {
     int get_write_fd() const;
 
    private:
-    int   _read_fd;
-    int   _write_fd;
-    int   _connection_fd;
-    pid_t _id;
+    const http::Request &_request;
+    http::Response      &_response;
 
+    int    _read_fd;
+    int    _write_fd;
+    int    _connection_fd;
+    pid_t  _id;
+    bool   _is_done;
     size_t _body_pos;
 
-    http::Request                    &_request;
-    http::Response                   &_response;
-    core::EventNotificationInterface &_eni;
-
-    bool _is_done;
-
-    void   _run_program(std::string &root, std::string &path);
+    void   _run_program(const std::string &cgi_path);
     char **_get_env(std::map<std::string, std::string> &env);
     void   _update_env(std::map<std::string, std::string> &env);
     char **_get_argv(const std::string &path, const std::string &body);

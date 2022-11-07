@@ -4,10 +4,13 @@
 #include "../http/Response.hpp"
 #include "../settings.hpp"
 #include "Address.hpp"
+#include "CgiHandler.hpp"
 #include "EventNotificationInterface.hpp"
-// #include "CgiHandler.hpp"
 
 namespace core {
+
+class EventNotificationInterface;
+class CgiHandler;
 
 class Connection {
    private:
@@ -24,7 +27,7 @@ class Connection {
     bool           _is_request_done;
     bool           _is_response_done;
     int            _request_error;
-    // CgiHandler     _cgi_handler;
+    CgiHandler     _cgi_handler;
 
     const size_t             BUF_SIZE;
     static const std::string _max_pipe_size_str;
@@ -44,7 +47,7 @@ class Connection {
     void reinit();
     void receive(size_t data_len);
     void parse_request(const std::vector<config::Server>& v_server);
-    void build_response();
+    void build_response(EventNotificationInterface& eni);
     void send_response(EventNotificationInterface& eni, size_t max_len);
     void destroy();
 };

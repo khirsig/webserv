@@ -14,7 +14,10 @@
 namespace core {
 
 Webserver::Webserver(const std::vector<config::Server> &v_server)
-    : _v_server(v_server), _used_connections(0), _max_connections(MAX_CONNECTIONS) {
+    : _eni(_m_socket),
+      _v_server(v_server),
+      _used_connections(0),
+      _max_connections(MAX_CONNECTIONS) {
     _v_connection.resize(_max_connections);
 
     // Create sockets
@@ -160,7 +163,7 @@ void Webserver::_receive(int fd, size_t data_len) {
             if (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE)) {
                 throw std::runtime_error("eni: " + std::string(strerror(errno)));
             }
-            conn_it->build_response();
+            conn_it->build_response(_eni);
         }
     } catch (const std::exception &e) {
         _close_connection(conn_it);
@@ -184,7 +187,7 @@ void Webserver::_send(int fd, size_t max_len) {
             it->reinit();
             it->parse_request(_v_server);
             if (it->is_request_done()) {
-                it->build_response();
+                it->build_response(_eni);
                 return;
             }
 
