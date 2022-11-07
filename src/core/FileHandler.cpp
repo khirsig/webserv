@@ -51,6 +51,14 @@ size_t FileHandler::read(size_t max_len) {
     }
 }
 
+void FileHandler::close() {
+    if (_file.is_open()) {
+        _file.close();
+    }
+    _max_size = 0;
+    _read_size = 0;
+}
+
 bool FileHandler::is_open() const { return _file.is_open(); }
 
 std::size_t FileHandler::max_size() const { return _max_size; }

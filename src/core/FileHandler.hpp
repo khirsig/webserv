@@ -26,6 +26,7 @@ class FileHandler {
 
     bool   init(const std::string &path);
     size_t read(size_t max_len);
+    void   close();
 
     bool is_open() const;
 

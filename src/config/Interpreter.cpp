@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Interpreter.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/04 18:15:54 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/11/07 12:08:47 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,8 +79,7 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
     if (it->type == IDENTIFIER || it->text == "(") {
         _parse_location_path(it, new_location.path);
     } else {
-        std::cout << "No identifier for location in " << _path << ":" << it->line_number << "\n";
-        exit(EXIT_FAILURE);
+        _missing_opening(it, '(');
     }
 
     bool dir_listing_set = false;
@@ -161,9 +160,7 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
         std::string str(it->text);
         if (*_last_directive == "accepted_methods") {
             if (!(str == "GET" || str == "POST" || str == "DELETE" || str == "HEAD")) {
-                std::cerr << "\"" << str << "\" is not allowed as \"accepted_method\" in " << _path
-                          << ":" << it->line_number << "\n";
-                exit(EXIT_FAILURE);
+                _wrong_method(it, str);
             }
         }
         v_identifier.push_back(str);
@@ -206,7 +203,7 @@ bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
 
     std::size_t seperator_index = it->text.find_first_of(':');
     if (seperator_index != it->text.find_last_of(':')) {
-        std::cerr << "multiple \":\" operator used in " << _path << ":" << it->line_number << "\n";
+        _multiple_operator_used(it, ':');
     } else if (seperator_index == std::string::npos) {
         if (it->text.find_first_of('.') == std::string::npos) {
             _parse_port(it, it->text, identifier.port);
@@ -229,9 +226,7 @@ bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
         if (it->text == "default_server") {
             default_server = true;
         } else {
-            std::cerr << "invalid parameter \"" << it->text << "\" in " << _path << ":"
-                      << it->line_number << "\n";
-            exit(EXIT_FAILURE);
+            _invalid_parameter(it);
         }
     }
 
@@ -246,9 +241,7 @@ bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
 void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
                               in_port_t &port) {
     if (str.find_first_not_of("0123456789") != std::string::npos) {
-        std::cerr << "invalid port in \"" << str << "\" of the \"" << *_last_directive
-                  << "\" directive in " << _path << ":" << it->line_number << "\n";
-        exit(EXIT_FAILURE);
+        _invalid_port(it, str);
     }
     int i;
     std::istringstream(str) >> i;
@@ -263,15 +256,11 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
 
     for (; it != v_token.end() && it->text != ";"; ++it) {
         if (it->text.find_first_not_of("0123456789") == std::string::npos) {
-            std::uint32_t new_code;
-            // std::stringstream(it->text) >> new_code;
-            // if (_m_error_page.find(new_code) == _m_error_page.end()) {
-            //     std::cerr << "invalid error_code \"" << new_code << "\""
-            //               << " for directive \"" << *_last_directive << "\" in " << _path << ":"
-            //               << it->line_number << "\n";
-            //     exit(EXIT_FAILURE);
-            // }
+            uint32_t new_code;
             std::stringstream(it->text) >> new_code;
+            if (!http::is_valid_error_code(new_code)) {
+                _invalid_error_code(it, new_code);
+            }
             v_code.push_back(new_code);
         } else {
             break;
@@ -287,10 +276,7 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
     std::ifstream file;
     file.open(it->text);
     if (!file.is_open()) {
-        std::cerr << "file at \"" << it->text << "\""
-                  << " for directive \"" << *_last_directive << "\" could not be opened in "
-                  << _path << ":" << it->line_number << "\n";
-        exit(EXIT_FAILURE);
+        _could_not_open_file(it);
     }
     std::stringstream file_stream;
     file_stream << file.rdbuf();
@@ -332,16 +318,10 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
         std::stringstream(it->text) >> identifier.status_code;
         const uint32_t *end_ptr = allowed_redir + sizeof(allowed_redir) / sizeof(uint32_t);
         if (std::find(allowed_redir, end_ptr, identifier.status_code) == end_ptr) {
-            utils::print_timestamp(std::cerr);
-            std::cerr << "invalid status code \"" << identifier.status_code << "\" for \""
-                      << *_last_directive << "\" in " << _path << ":" << it->line_number << "\n";
-            exit(EXIT_FAILURE);
+            _invalid_status_code(it, identifier.status_code);
         }
     } else {
-        utils::print_timestamp(std::cerr);
-        std::cerr << "invalid status code for \"" << *_last_directive << "\" in " << _path << ":"
-                  << it->line_number << "\n";
-        exit(EXIT_FAILURE);
+        _invalid_status_code(it, identifier.status_code);
     }
     ++it;
     if (it == v_token.end())
@@ -379,23 +359,24 @@ void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint
     } else if (byte_size >= '0' && byte_size <= '9') {
         multiplier = 1;
     } else {
-        std::cerr << "size identifier is wrong\n";
+        _invalid_size_identifier(it, num);
         exit(EXIT_FAILURE);
     }
 
     if ((num.size() > 3 && multiplier == 1000000000) || (num.size() > 6 && multiplier == 1000000) ||
         (num.size() > 9 && multiplier == 1000) || (num.size() > 12 && multiplier == 1)) {
-        std::cerr << "numeric amount too high. maximum allowed file-size = 999gb\n";
-        exit(EXIT_FAILURE);
+        _numeric_overflow(it, num);
     }
 
     if (num.find_first_not_of("0123456789") != std::string::npos) {
-        std::cerr << "numeric characters expected but has other type.\n";
-        exit(EXIT_FAILURE);
+        _numeric_char_expected(it, num);
     }
 
     char *p_end;
     identifier = strtol(num.c_str(), &p_end, 10) * multiplier;
+
+    if (identifier > CLIENT_MAX_BODY_SIZE)
+        _numeric_overflow(it, num);
 
     ++it;
     if (it->text != ";") {
@@ -420,11 +401,7 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                     state = SLASH;
                     break;
                 } else {
-                    utils::print_timestamp(std::cerr);
-                    std::cerr << "invalid path \"" << it->text << "\" for directive \""
-                              << *_last_directive << "\" in " << _path << ":" << it->line_number
-                              << "\n";
-                    exit(EXIT_FAILURE);
+                    _invalid_path(it);
                 }
             case SLASH:
                 if (c == '/')
@@ -457,11 +434,7 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                 break;
             case SECOND_DOT:
                 if (c == '/') {
-                    utils::print_timestamp(std::cerr);
-                    std::cerr << "invalid path \"" << it->text << "\" for directive \""
-                              << *_last_directive << "\" in " << _path << ":" << it->line_number
-                              << "\n";
-                    exit(EXIT_FAILURE);
+                    _invalid_path(it);
                 } else {
                     location_path += "..";
                     location_path += c;
@@ -470,8 +443,6 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
                 break;
         }
     }
-    // if (location_path[location_path.size() - 1] != '/')
-    //     location_path += '/';
 
     if (location_path.size() > 1 && location_path[location_path.size() - 1] == '/')
         location_path.erase(location_path.size() - 1);
@@ -551,6 +522,94 @@ void Interpreter::_missing_opening(std::vector<Token>::const_iterator &it, const
     utils::print_timestamp(std::cerr);
     std::cerr << "directive \"" << *_last_directive << "\" has no opening \"" << op << "\" in "
               << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_status_code(std::vector<Token>::const_iterator &it,
+                                       const uint32_t                     &status_code) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid status code \"" << status_code << "\" for \"" << *_last_directive
+              << "\" in " << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_path(std::vector<Token>::const_iterator &it) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid path \"" << it->text << "\" for directive \"" << *_last_directive
+              << "\" in " << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_error_code(std::vector<Token>::const_iterator &it,
+                                      const int32_t                      &code) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid error_code \"" << code << "\""
+              << " for directive \"" << *_last_directive << "\" in " << _path << ":"
+              << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_could_not_open_file(std::vector<Token>::const_iterator &it) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "file at \"" << it->text << "\""
+              << " for directive \"" << *_last_directive << "\" could not be opened in " << _path
+              << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_port(std::vector<Token>::const_iterator &it,
+                                const std::string                  &port_str) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid port in \"" << port_str << "\" of the \"" << *_last_directive
+              << "\" directive in " << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_numeric_char_expected(std::vector<Token>::const_iterator &it,
+                                         const std::string                  &num) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid character for numeric value in \"" << num << "\" of the \""
+              << *_last_directive << "\" directive in " << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_size_identifier(std::vector<Token>::const_iterator &it,
+                                           const std::string                  &num) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid size identifier in \"" << num << "\" of the \"" << *_last_directive
+              << "\" directive in " << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_numeric_overflow(std::vector<Token>::const_iterator &it,
+                                    const std::string                  &num) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "numeric overflow (max " << CLIENT_MAX_BODY_SIZE << " bytes) in \"" << num
+              << "\" of the \"" << *_last_directive << "\" directive in " << _path << ":"
+              << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_parameter(std::vector<Token>::const_iterator &it) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "invalid parameter \"" << it->text << "\" in " << _path << ":" << it->line_number
+              << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_wrong_method(std::vector<Token>::const_iterator &it,
+                                const std::string                  &method) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "\"" << method << "\" is not allowed as \"accepted_method\" in " << _path << ":"
+              << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_multiple_operator_used(std::vector<Token>::const_iterator &it,
+                                          const char                         &op) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << "multiple \"" << op << "\" operator used in " << _path << ":" << it->line_number
+              << "\n";
     exit(EXIT_FAILURE);
 }
 

@@ -179,4 +179,6 @@ typedef std::map<int, std::string>::const_iterator m_status_codes_iterator_t;
 
 extern const std::map<int, std::string> g_m_status_codes;
 
+bool is_valid_error_code(int32_t code);
+
 }  // namespace http

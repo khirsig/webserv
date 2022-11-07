@@ -33,4 +33,12 @@ std::map<int, std::string> new_m_status_codes() {
     return m_implemented;
 }
 
+bool is_valid_error_code(int32_t code) {
+    if (code < 400)
+        return false;
+    if (g_m_status_codes.find(code) == g_m_status_codes.end())
+        return false;
+    return true;
+}
+
 }  // namespace http

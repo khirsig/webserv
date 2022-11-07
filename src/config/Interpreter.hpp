@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/04 14:29:39 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/07 12:06:18 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,21 @@ class Interpreter {
     void _invalid_bool_argument(std::vector<Token>::const_iterator &it) const;
     void _invalid_directive_argument_amount(std::vector<Token>::const_iterator &it) const;
     void _missing_opening(std::vector<Token>::const_iterator &it, const char &op) const;
+    void _invalid_status_code(std::vector<Token>::const_iterator &it,
+                              const uint32_t                     &status_code) const;
+    void _invalid_path(std::vector<Token>::const_iterator &it) const;
+    void _invalid_error_code(std::vector<Token>::const_iterator &it, const int32_t &code) const;
+    void _could_not_open_file(std::vector<Token>::const_iterator &it) const;
+    void _invalid_port(std::vector<Token>::const_iterator &it, const std::string &port_str) const;
+    void _numeric_char_expected(std::vector<Token>::const_iterator &it,
+                                const std::string                  &num) const;
+    void _invalid_size_identifier(std::vector<Token>::const_iterator &it,
+                                  const std::string                  &num) const;
+    void _numeric_overflow(std::vector<Token>::const_iterator &it, const std::string &num) const;
+    void _invalid_parameter(std::vector<Token>::const_iterator &it) const;
+    void _wrong_method(std::vector<Token>::const_iterator &it, const std::string &method) const;
+    void Interpreter::_multiple_operator_used(std::vector<Token>::const_iterator &it,
+                                              const char                         &op) const;
 };
 
 }  // namespace config
