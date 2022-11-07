@@ -2,9 +2,27 @@
 
 #include "../utils/num_to_str.hpp"
 #include "Request.hpp"
+#include "mime_types.hpp"
 #include "status_codes.hpp"
 
 namespace http {
+
+void Response::_construct_header_file(const Request &req) {
+    _header.append("HTTP/1.1 ");
+    _header.append(g_m_status_codes.find(200)->second.c_str());
+    _header.append("\r\nServer: ");
+    _header.append(SERVER_NAME);
+    _header.append("\r\nContent-Type: ");
+    _header.append(mime_type(_file_handler.path()));
+    _header.append("\r\nContent-Length: ");
+    _header.append(utils::num_to_str_dec(_file_handler.max_size()).c_str());
+    _header.append("\r\nConnection: ");
+    if (req.connection_should_close())
+        _header.append("close");
+    else
+        _header.append("keep-alive");
+    _header.append("\r\n\r\n");
+}
 
 static std::map<int, error_page_t> new_error_page_default() {
     std::map<int, error_page_t> m_error_page;
@@ -29,7 +47,7 @@ static std::map<int, error_page_t> new_error_page_default() {
 
 const std::map<int, error_page_t> Response::_m_error_page = new_error_page_default();
 
-Response::Response() : _body_type(NONE), _state(HEADER) { _header.reserve(MAX_INFO_LEN); }
+Response::Response() : _body_type(BODY_NONE), _state(HEADER) { _header.reserve(MAX_INFO_LEN); }
 
 Response::~Response() {}
 
@@ -46,21 +64,13 @@ void Response::set_state(Response::State new_state) { _state = new_state; }
 core::FileHandler &Response::file_handler() { return _file_handler; }
 
 void Response::init() {
-    _body_type = NONE;
+    _body_type = BODY_NONE;
     _state = HEADER;
     _header.clear();
     _header.set_pos(0);
     _body.clear();
     _body.set_pos(0);
 }
-
-// req path: /index.html
-// location: /
-//     root: /root/dir/1/
-
-// req path: /var/www/html/index.html
-// location: /var/www/html
-//     root: /root/dir/1/
 
 static std::string get_relative_path(const std::string &req_path,
                                      const std::string &location_path) {
@@ -74,16 +84,118 @@ static std::string get_relative_path(const std::string &req_path,
     return std::string(req_path.begin() + uri_path_offset, req_path.end());
 }
 
+const config::Redirect *Response::_find_redir(const config::Location *location,
+                                              const std::string &relative_path, bool dir) {
+    if (relative_path.size() == 0 && dir) {
+        for (size_t i = 0; i < location->v_redirect.size(); i++) {
+            if (location->v_redirect[i].origin == ".")
+                return &location->v_redirect[i];
+        }
+    } else {
+        for (size_t i = 0; i < location->v_redirect.size(); i++) {
+            if (location->v_redirect[i].origin == relative_path)
+                return &location->v_redirect[i];
+        }
+    }
+    return NULL;
+}
+
+bool Response::_find_index(const config::Location *location, const std::string &absolute_path) {
+    for (size_t i = 0; i < location->v_index.size(); i++) {
+        try {
+            _file_handler.init(absolute_path + "/" + location->v_index[i]);
+            return true;
+        } catch (...) {
+        }
+    }
+    return false;
+}
+
+const config::CgiPass *Response::_find_cgi_pass(const config::Location *location,
+                                                const std::string      &path) {
+    size_t type_pos = path.rfind('.');
+    if (type_pos != std::string::npos) {
+        for (size_t i = 0; i < location->v_cgi_pass.size(); i++) {
+            if (path.compare(type_pos + 1, path.size() - type_pos, location->v_cgi_pass[i].type) ==
+                0) {
+                return &location->v_cgi_pass[i];
+            }
+        }
+    }
+    return NULL;
+}
+
+void Response::_build_redir(const Request &req, const config::Redirect &redir) {
+    _body_type = BODY_BUFFER;
+    const std::string &status_code_msg = g_m_status_codes.find(redir.status_code)->second;
+    _body.append("<html>\r\n<head><title>");
+    _body.append(status_code_msg.c_str());
+    _body.append("</title></head>\r\n<body>\r\n<center><h1>");
+    _body.append(status_code_msg.c_str());
+    _body.append("</h1></center>\r\n<hr><center>webserv</center>\r\n</body>\r\n</html>\r\n");
+    _header.append("HTTP/1.1 ");
+    _header.append(status_code_msg.c_str());
+    _header.append("\r\nServer: ");
+    _header.append(SERVER_NAME);
+    _header.append("\r\nContent-Type: text/html");
+    _header.append("\r\nContent-Length: ");
+    _header.append(utils::num_to_str_dec(_body.size()).c_str());
+    _header.append("\r\nConnection: ");
+    if (req.connection_should_close())
+        _header.append("close");
+    else
+        _header.append("keep-alive");
+    _header.append("\r\nLocation: ");
+    _header.append(redir.direction.c_str());
+    _header.append("\r\n\r\n");
+}
+
 void Response::build(const Request &req) {
     std::string relative_path = get_relative_path(req.path_decoded(), req.location()->path);
     std::string absolute_path = req.location()->root + relative_path;
-    std::cerr << "relative_path: " << relative_path << std::endl;
-    std::cerr << "absolute_path: " << absolute_path << std::endl;
-    // req.location()->print("");
+
+    bool directory = !_file_handler.init(absolute_path);
+
+    const config::Redirect *redir = _find_redir(req.location(), relative_path, directory);
+    if (redir) {
+        _build_redir(req, *redir);
+        return;
+    }
+
+    bool found_index = _find_index(req.location(), absolute_path);
+
+    if (directory && !found_index) {
+        if (req.location()->directory_listing) {
+            std::cerr << "Directory listing\n";
+            return;
+        }
+        throw HTTP_NOT_FOUND;
+    }
+
+    const config::CgiPass *cgi_pass = _find_cgi_pass(req.location(), _file_handler.path());
+    if (cgi_pass) {
+        _file_handler.close();
+        // _construct_header_cgi();
+        std::cerr << "CGI found\n";
+        return;
+    }
+
+    if (req.method() != Request::GET && req.method() != Request::HEAD) {
+        _file_handler.close();
+        throw HTTP_METHOD_NOT_ALLOWED;
+    }
+
+    if (_file_handler.max_size() == 0 || req.method() == Request::HEAD) {
+        _body_type = Response::BODY_NONE;
+        _file_handler.close();
+    } else {
+        _body_type = Response::BODY_FILE;
+    }
+    _construct_header_file(req);
 }
 
 void Response::build_error(const Request &req, int error_code) {
-    _body_type = BUFFER;
+    _body_type = BODY_BUFFER;
     const error_page_t *error_page = NULL;
     if (req.server()) {
         std::map<int, error_page_t>::const_iterator it =
@@ -106,5 +218,7 @@ void Response::build_error(const Request &req, int error_code) {
     _header.append(utils::num_to_str_dec(_body.size()).c_str());
     _header.append("\r\nConnection: close\r\n\r\n");
 }
+
+bool Response::need_cgi() { return _body_type == BODY_CGI; }
 
 }  // namespace http

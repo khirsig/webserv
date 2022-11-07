@@ -38,6 +38,7 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _request_error = 0;
     _request.init();
     _response.init();
+    // _cgi_handler.init(_fd);
 
 #ifdef DEBUG
     std::cout << utils::COLOR_BL << "[Accepted]: " << utils::COLOR_NO
@@ -55,6 +56,7 @@ void Connection::reinit() {
     _request_error = 0;
     _request.init();
     _response.init();
+    // _cgi_handler.init(_fd);
 }
 
 void Connection::receive(size_t data_len) {
@@ -84,10 +86,16 @@ void Connection::parse_request(const std::vector<config::Server>& v_server) {
 }
 
 void Connection::build_response() {
-    if (!_request_error)
-        _response.build(_request);
-    else
+    if (!_request_error) {
+        try {
+            _response.build(_request);
+        } catch (int error) {
+            _response.build_error(_request, error);
+            return;
+        }
+    } else {
         _response.build_error(_request, _request_error);
+    }
 }
 
 void Connection::send_response(EventNotificationInterface& eni, size_t max_len) {
@@ -109,7 +117,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
     }
     if (_response.state() == http::Response::BODY && max_len > 0) {
         switch (_response.body_type()) {
-            case http::Response::BUFFER: {
+            case http::Response::BODY_BUFFER: {
                 pos = _response.body().pos();
                 left_len = _response.body().size() - pos;
                 to_send_len = left_len < max_len ? left_len : max_len;
@@ -123,7 +131,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                     _response.set_state(http::Response::DONE);
                 break;
             }
-            case http::Response::CGI: {
+            case http::Response::BODY_CGI: {
                 // if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
                 //     return;
                 // size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
@@ -143,6 +151,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 //     max_len -= chunk.size();
                 //     pos += to_send_len;
                 //     _response.body().set_pos(pos);
+                //      clear body();
                 // }
                 // if (pos >= _response.body().size()) {
                 //     if (_cgi_handler.is_done()) {
@@ -157,7 +166,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 // }
                 break;
             }
-            case http::Response::FILE: {
+            case http::Response::BODY_FILE: {
                 size_t to_send_len = _response.file_handler().read(max_len);
                 if (to_send_len > 0) {
                     if (send(_fd, _response.file_handler().buf(), to_send_len, 0) !=
@@ -168,7 +177,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                     _response.set_state(http::Response::DONE);
                 break;
             }
-            case http::Response::NONE:
+            case http::Response::BODY_NONE:
                 break;
         }
     }

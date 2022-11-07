@@ -81,11 +81,14 @@ void Webserver::run() {
                 }
             }
         } catch (const std::exception &e) {
+            std::cerr << "[";
             utils::print_timestamp(std::cerr);
-            std::cerr << e.what() << '\n';
+            std::cerr << "]: " << e.what() << '\n';
         } catch (...) {
+            std::cerr << "[";
             utils::print_timestamp(std::cerr);
-            std::cerr << "Unknown error\n";
+            std::cerr << "]: "
+                      << "Unknown error\n";
         }
     }
 }

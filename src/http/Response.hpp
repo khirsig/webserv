@@ -11,7 +11,7 @@ namespace http {
 
 class Response {
    public:
-    enum BodyType { NONE, CGI, FILE, BUFFER };
+    enum BodyType { BODY_NONE, BODY_CGI, BODY_FILE, BODY_BUFFER };
     enum State { HEADER, BODY, DONE };
 
    private:
@@ -24,8 +24,15 @@ class Response {
     static const std::map<int, error_page_t> _m_error_page;
 
     // void _construct_header_buffer(int status_code, const std::string &content_type);
-    void _construct_header_file();
+    void _construct_header_file(const Request &req);
     void _construct_header_cgi();
+
+    const config::Redirect *_find_redir(const config::Location *location,
+                                        const std::string &relative_path, bool dir);
+    bool _find_index(const config::Location *location, const std::string &absolute_path);
+    const config::CgiPass *_find_cgi_pass(const config::Location *location,
+                                          const std::string      &path);
+    void                   _build_redir(const Request &req, const config::Redirect &redir);
 
    public:
     Response();
@@ -43,6 +50,7 @@ class Response {
 
     void build(const Request &req);
     void build_error(const Request &req, int error_code);
+    bool need_cgi();
 };
 
 }  // namespace http
