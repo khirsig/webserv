@@ -665,6 +665,19 @@ void Request::_find_location() {
         throw HTTP_NOT_FOUND;
 }
 
+void Request::_add_header() {
+    std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
+    std::pair<std::map<std::string, std::string>::iterator, bool> pair =
+        _m_header.insert(std::make_pair(_key, _value));
+    if (pair.second == false) {
+        if (pair.first->first == "HOST")
+            throw HTTP_BAD_REQUEST;
+        pair.first->second = pair.first->second + ", " + _value;
+    }
+    _key.clear();
+    _value.clear();
+}
+
 bool Request::_parse_header(const char *buf, size_t buf_len, size_t &buf_pos) {
     char c;
     for (; buf_pos < buf_len; buf_pos++, _info_len++) {
@@ -695,10 +708,7 @@ bool Request::_parse_header(const char *buf, size_t buf_len, size_t &buf_pos) {
                         break;
                     case '\n':
                         _state_header = H_KEY_START;
-                        std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
-                        _m_header.insert(std::make_pair(_key, _value));
-                        _key.clear();
-                        _value.clear();
+                        _add_header();
                         break;
                     case ':':
                         _state_header = H_VALUE_START;
@@ -717,10 +727,7 @@ bool Request::_parse_header(const char *buf, size_t buf_len, size_t &buf_pos) {
                         break;
                     case '\n':
                         _state_header = H_KEY_START;
-                        std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
-                        _m_header.insert(std::make_pair(_key, _value));
-                        _key.clear();
-                        _value.clear();
+                        _add_header();
                         break;
                     case '\t':
                     case ' ':
@@ -740,10 +747,7 @@ bool Request::_parse_header(const char *buf, size_t buf_len, size_t &buf_pos) {
                         break;
                     case '\n':
                         _state_header = H_KEY_START;
-                        std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
-                        _m_header.insert(std::make_pair(_key, _value));
-                        _key.clear();
-                        _value.clear();
+                        _add_header();
                         break;
                     default:
                         if (!IS_TEXT_CHAR(c))
@@ -756,10 +760,7 @@ bool Request::_parse_header(const char *buf, size_t buf_len, size_t &buf_pos) {
                 if (c != '\n')
                     throw HTTP_BAD_REQUEST;
                 _state_header = H_KEY_START;
-                std::transform(_key.begin(), _key.end(), _key.begin(), ::toupper);
-                _m_header.insert(std::make_pair(_key, _value));
-                _key.clear();
-                _value.clear();
+                _add_header();
                 break;
             case H_ALMOST_DONE_HEADER:
                 if (c != '\n')

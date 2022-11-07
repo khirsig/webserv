@@ -114,11 +114,12 @@ class Request {
     bool _parse_request_line(const char *buf, size_t buf_len, size_t &buf_pos);
     void _parse_method();
     void _analyze_request_line();
+    bool _parse_header(const char *buf, size_t buf_len, size_t &buf_pos);
+    void _add_header();
     void _analyze_header();
     void _find_server(const std::vector<config::Server> &v_server,
                       const core::Address               &socket_addr);
     void _find_location();
-    bool _parse_header(const char *buf, size_t buf_len, size_t &buf_pos);
     bool _parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_pos);
     bool _finalize();
 
