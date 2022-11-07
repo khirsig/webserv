@@ -9,21 +9,33 @@ CgiHandler::CgiHandler(http::Request &request, http::Response &response,
       _request(request),
       _response(response),
       _eni(eni),
-      _request_index(_request._body_start) {}
+      _is_done(true) {}
 
 CgiHandler::~CgiHandler() {
     close(_read_fd);  // delete events
 }
 
+void CgiHandler::init(int connection_fd) {
+    reset();
+    _connection_fd = connection_fd;
+}
+
 void CgiHandler::execute(std::string &root, std::string &path) {
+    reset();
+
     int read_fd[2];
     int write_fd[2];
 
-    if (pipe(read_fd) == -1)
+    if (pipe(read_fd) == -1) {
+        reset();
         throw 500;
-    if (pipe(write_fd) == -1)
+    }
+    if (pipe(write_fd) == -1) {
+        reset();
         throw 500;
+    }
 
+    _is_done = false;
     _id = fork();
 
     if (_id == -1) {
@@ -31,6 +43,7 @@ void CgiHandler::execute(std::string &root, std::string &path) {
         close(read_fd[1]);
         close(write_fd[0]);
         close(write_fd[1]);
+        reset();
         throw 500;
     }
 
@@ -48,13 +61,26 @@ void CgiHandler::execute(std::string &root, std::string &path) {
         close(read_fd[1]);
         close(write_fd[0]);
 
-        _eni.add_event(_read_fd, EVFILT_READ, 0);
-        if (_request._chunked_body) {
-            if (_request._chunked_body_buf.size() > 0)
-                _eni.add_event(_write_fd, EVFILT_WRITE, 0);
-        } else if (_request._body_end != _request._body_start) {
-            _eni.add_event(_write_fd, EVFILT_WRITE, 0);
+        _eni.enable_event(_read_fd, EVFILT_READ);
+        _eni.add_cgi_fd(this, _read_fd);
+        if (_request.body().begin() != _request.body().end()) {
+            _eni.add_event(_write_fd, EVFILT_WRITE);
+            _eni.add_cgi_fd(this, _write_fd);
         }
+    }
+}
+
+void CgiHandler::reset() {
+    _is_done = true;
+    _id = -1;
+    _body_pos = 0;
+    if (_read_fd != -1) {
+        close(_read_fd);
+        _read_fd = -1;
+    }
+    if (_write_fd != -1) {
+        close(_write_fd);
+        _write_fd = -1;
     }
 }
 
@@ -64,49 +90,38 @@ void CgiHandler::read(bool eof) {
     int         chars_read = 0;
     chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);  // write in global buff
     buf[chars_read] = '\0';
-    _response.buf.append(buf);  // write in response body
+    _response.body().append(buf);  // write in response body
     if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
-        _eni.delete_event(_read_fd, EVFILT_READ);
-        cgi::g_executor.erase(_read_fd);
+        _eni.disable_event(_read_fd, EVFILT_READ);
+        _eni.remove_cgi_fd(_read_fd);
         close(_read_fd);  // destructor?
         _read_fd = -1;
-        _response.cgi_done = true;
+        _is_done = true;
     }
-    _eni.add_event(_request.connection_fd, EVFILT_WRITE, 0);
+    _eni.enable_event(_connection_fd, EVFILT_WRITE);
 }
 
 void CgiHandler::write(std::size_t max_size) {
     std::size_t left_bytes;
     std::size_t send_bytes;
 
-    if (_request._chunked_body) {
-        left_bytes = _request._chunked_body_buf.size() - _request._chunked_body_buf.pos;
-        if (left_bytes > max_size)
-            send_bytes = max_size;
-        else
-            send_bytes = left_bytes;
-        ::write(_write_fd, &(_request._chunked_body_buf[_request._chunked_body_buf.pos]),
-                send_bytes);
-        _request._chunked_body_buf.pos += send_bytes;
-        left_bytes = _request._chunked_body_buf.size() - _request._chunked_body_buf.pos;
-
-    } else {
-        left_bytes = _request._body_end - _request_index;
-        if (left_bytes > max_size)
-            send_bytes = max_size;
-        else
-            send_bytes = left_bytes;
-        ::write(_write_fd, &(_request._buf[_request_index]), send_bytes);
-        _request_index += send_bytes;
-        left_bytes = _request._body_end - _request_index;
-    }
+    left_bytes = _request.body().size() - _body_pos;
+    if (left_bytes > max_size)
+        send_bytes = max_size;
+    else
+        send_bytes = left_bytes;
+    ::write(_write_fd, &(_request.body()[_body_pos]), send_bytes);
+    _body_pos += send_bytes;
+    left_bytes = _request.body().size() - _body_pos;
     if (left_bytes == 0) {
-        _eni.delete_event(_write_fd, EVFILT_WRITE);
-        cgi::g_executor.erase(_write_fd);
+        _eni.disable_event(_write_fd, EVFILT_WRITE);
+        _eni.remove_cgi_fd(_write_fd);
         close(_write_fd);  // destructor?
         _write_fd = -1;
     }
 }
+
+bool CgiHandler::is_done() const { return _is_done; }
 
 int32_t CgiHandler::get_read_fd() const { return _read_fd; }
 
@@ -114,9 +129,11 @@ int32_t CgiHandler::get_write_fd() const { return _write_fd; }
 
 void CgiHandler::_run_program(std::string &root, std::string &path) {
     chdir(root.c_str());
-    _request._uri_path_decoded.insert(0, ".");
-    char **env_str = _get_env(_request._m_header);
-    char **argv = _get_argv(path, _request._uri_path_decoded);
+    std::string path_decoded(_request.path_decoded());
+    path_decoded.insert(0, ".");
+    std::map<std::string, std::string> m_header(_request.m_header());
+    char                             **env_str = _get_env(m_header);
+    char                             **argv = _get_argv(path, path_decoded);
     if (execve(path.c_str(), argv, env_str) == -1)
         perror("execve");
     exit(EXIT_FAILURE);
@@ -157,10 +174,24 @@ char **CgiHandler::_get_env(std::map<std::string, std::string> &env) {
 void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
     std::map<std::string, std::string>::iterator it = env.find("QUERY_STRING");
     if (it != env.end())
-        it->second = _request.to_string(_request._uri_query_start, _request._uri_query_end);
+        it->second = _request.query_string();
     it = env.find("REQUEST_METHOD");
-    if (it != env.end())
-        it->second = _request._method;
+    if (it != env.end()) {
+        switch (_request.method()) {
+            case http::Request::Method::GET:
+                it->second = "GET";
+                break;
+            case http::Request::Method::POST:
+                it->second = "POST";
+                break;
+            case http::Request::Method::DELETE:
+                it->second = "DELETE";
+                break;
+            case http::Request::Method::HEAD:
+                it->second = "HEAD";
+                break;
+        }
+    }
 }
 
 char **CgiHandler::_get_argv(const std::string &path, const std::string &body) {

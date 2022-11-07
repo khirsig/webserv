@@ -29,9 +29,13 @@ class CgiHandler {
                core::EventNotificationInterface &eni);
     ~CgiHandler();
 
+    void init(int connection_fd);
     void execute(std::string &root, std::string &path);
+    void reset();
     void read(bool eof);
     void write(std::size_t max_size);
+
+    bool is_done() const;
 
     int get_read_fd() const;
     int get_write_fd() const;
@@ -39,13 +43,16 @@ class CgiHandler {
    private:
     int   _read_fd;
     int   _write_fd;
+    int   _connection_fd;
     pid_t _id;
+
+    size_t _body_pos;
 
     http::Request                    &_request;
     http::Response                   &_response;
     core::EventNotificationInterface &_eni;
 
-    std::size_t _request_index;
+    bool _is_done;
 
     void   _run_program(std::string &root, std::string &path);
     char **_get_env(std::map<std::string, std::string> &env);
