@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/07 12:06:18 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/07 12:25:32 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,8 +81,7 @@ class Interpreter {
     void _numeric_overflow(std::vector<Token>::const_iterator &it, const std::string &num) const;
     void _invalid_parameter(std::vector<Token>::const_iterator &it) const;
     void _wrong_method(std::vector<Token>::const_iterator &it, const std::string &method) const;
-    void Interpreter::_multiple_operator_used(std::vector<Token>::const_iterator &it,
-                                              const char                         &op) const;
+    void _multiple_operator_used(std::vector<Token>::const_iterator &it, const char &op) const;
 };
 
 }  // namespace config
