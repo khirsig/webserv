@@ -48,7 +48,7 @@ class CgiHandler {
     int    _read_fd;
     int    _write_fd;
     int    _connection_fd;
-    pid_t  _id;
+    pid_t  _pid;
     bool   _is_done;
     size_t _body_pos;
 

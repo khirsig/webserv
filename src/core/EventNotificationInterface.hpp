@@ -20,7 +20,7 @@ class CgiHandler;
 class EventNotificationInterface {
    private:
     int                              _kq_fd;
-    std::map<int, const CgiHandler&> _m_cgi;
+    std::map<int, const CgiHandler*> _m_cgi;
     const std::map<int, Socket>&     _m_socket;
 
    public:
@@ -38,7 +38,7 @@ class EventNotificationInterface {
 
     const Socket*     find_socket(int fd);
     const CgiHandler* find_cgi(int fd);
-    void              add_cgi_fd(int fd, const CgiHandler& cgi);
+    void              add_cgi_fd(int fd, const CgiHandler* cgi);
     void              remove_cgi_fd(int fd);
 };
 

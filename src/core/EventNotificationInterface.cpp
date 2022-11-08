@@ -51,14 +51,14 @@ const Socket* EventNotificationInterface::find_socket(int fd) {
 }
 
 const CgiHandler* EventNotificationInterface::find_cgi(int fd) {
-    std::map<int, const CgiHandler&>::const_iterator it = _m_cgi.find(fd);
+    std::map<int, const CgiHandler*>::const_iterator it = _m_cgi.find(fd);
     if (it != _m_cgi.end())
-        return &it->second;
+        return it->second;
     return NULL;
 }
 
-void EventNotificationInterface::add_cgi_fd(int fd, const CgiHandler& cgi) {
-    _m_cgi.insert(std::make_pair(fd, cgi));
+void EventNotificationInterface::add_cgi_fd(int fd, const CgiHandler* cgi) {
+    _m_cgi.insert(std::pair<int, const CgiHandler*>(fd, cgi));
 }
 
 void EventNotificationInterface::remove_cgi_fd(int fd) { _m_cgi.erase(fd); }

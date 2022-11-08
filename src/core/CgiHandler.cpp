@@ -1,5 +1,7 @@
 #include "CgiHandler.hpp"
 
+#include "../http/status_codes.hpp"
+
 namespace core {
 
 CgiHandler::CgiHandler(const http::Request &request, http::Response &response)
@@ -22,26 +24,26 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
 
     if (pipe(read_fd) == -1) {
         reset();
-        throw 500;
+        throw HTTP_INTERNAL_SERVER_ERROR;
     }
     if (pipe(write_fd) == -1) {
         reset();
-        throw 500;
+        throw HTTP_INTERNAL_SERVER_ERROR;
     }
 
     _is_done = false;
-    _id = fork();
+    _pid = fork();
 
-    if (_id == -1) {
+    if (_pid == -1) {
         close(read_fd[0]);
         close(read_fd[1]);
         close(write_fd[0]);
         close(write_fd[1]);
         reset();
-        throw 500;
+        throw HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    if (_id == 0) {
+    if (_pid == 0) {
         close(write_fd[1]);
         close(read_fd[0]);
         dup2(write_fd[0], STDIN_FILENO);
@@ -56,17 +58,21 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
         close(write_fd[0]);
 
         eni.enable_event(_read_fd, EVFILT_READ);
-        eni.add_cgi_fd(_read_fd, *this);
-        if (_request.body().begin() != _request.body().end()) {
+        eni.add_cgi_fd(_read_fd, this);
+        if (!_request.body().empty()) {
             eni.add_event(_write_fd, EVFILT_WRITE);
-            eni.add_cgi_fd(_write_fd, *this);
+            eni.add_cgi_fd(_write_fd, this);
+        } else {
+            close(_write_fd);
+            _write_fd = -1;
         }
     }
 }
 
 void CgiHandler::reset() {
+    std::cerr << "reset" << std::endl;
     _is_done = true;
-    _id = -1;
+    _pid = -1;
     _body_pos = 0;
     if (_read_fd != -1) {
         close(_read_fd);
