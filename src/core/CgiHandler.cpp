@@ -178,6 +178,7 @@ void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
     if (it != env.end()) {
         it->second = _request.method_str();
     }
+    // TODO: Add all the other env variables
 }
 
 char **CgiHandler::_get_argv(const std::string &cgi_path, const std::string &script_path) {
