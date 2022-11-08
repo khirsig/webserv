@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/08 09:22:59 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/08 11:14:51 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,8 @@ class Interpreter {
     const std::string  _path;
     const std::string *_last_directive;
 
-    Server _parse_server(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it);
+    bool _parse_server(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                       Server &server);
     Location _parse_location(const std::vector<Token>           &v_token,
                              std::vector<Token>::const_iterator &it);
     void _parse_string(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,

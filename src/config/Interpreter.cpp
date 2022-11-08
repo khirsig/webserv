@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/08 10:16:27 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/08 11:17:18 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,20 +22,23 @@ void Interpreter::parse(const std::vector<Token> &v_token, std::vector<Server> &
     for (std::vector<Token>::const_iterator it = v_token.begin(); it != v_token.end(); ++it) {
         _last_directive = &(it->text);
         if (it->text == "server" && it->type == IDENTIFIER) {
-            Server new_server = _parse_server(v_token, it);
-            v_server.push_back(new_server);
+            Server new_server;
+            if (_parse_server(v_token, it, new_server))
+                v_server.insert(v_server.begin(), new_server);
+            else
+                v_server.push_back(new_server);
         } else {
             _invalid_directive(it);
         }
     }
 }
 
-Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
-                                  std::vector<Token>::const_iterator &it) {
+bool Interpreter::_parse_server(const std::vector<Token>           &v_token,
+                                std::vector<Token>::const_iterator &it, Server &new_server) {
     _increment_token(v_token, it);
 
-    bool   client_max_size_set = false;
-    Server new_server;
+    bool is_default_server = false;
+    bool client_max_size_set = false;
 
     if (it->text == "{" && it->type == OPERATOR) {
         _increment_token(v_token, it);
@@ -45,9 +48,8 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
             if (*_last_directive == "listen") {
                 core::Address new_listen;
                 if (_parse_listen(v_token, it, new_listen))
-                    new_server.v_listen.insert(new_server.v_listen.begin(), new_listen);
-                else
-                    new_server.v_listen.push_back(new_listen);
+                    is_default_server = true;
+                new_server.v_listen.push_back(new_listen);
             } else if (*_last_directive == "server_name") {
                 _parse_string(v_token, it, new_server.v_server_name);
             } else if (*_last_directive == "error_page") {
@@ -73,7 +75,7 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
     } else {
         _missing_opening(it, '{');
     }
-    return (new_server);
+    return is_default_server;
 }
 
 Location Interpreter::_parse_location(const std::vector<Token>           &v_token,
