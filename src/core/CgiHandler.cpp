@@ -57,7 +57,7 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
         close(read_fd[1]);
         close(write_fd[0]);
 
-        eni.enable_event(_read_fd, EVFILT_READ);
+        eni.add_event(_read_fd, EVFILT_READ);
         eni.add_cgi_fd(_read_fd, this);
         if (!_request.body().empty()) {
             eni.add_event(_write_fd, EVFILT_WRITE);
@@ -70,7 +70,6 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
 }
 
 void CgiHandler::reset() {
-    std::cerr << "reset" << std::endl;
     _is_done = true;
     _pid = -1;
     _body_pos = 0;
@@ -88,15 +87,17 @@ void CgiHandler::read(EventNotificationInterface &eni, bool eof) {
     std::string temp_buf;
     char        buf[CGI_READ_BUFFER_SIZE];
     int         chars_read = 0;
+
     chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);  // write in global buff
     buf[chars_read] = '\0';
     _response.body().append(buf);  // write in response body
     if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
-        eni.disable_event(_read_fd, EVFILT_READ);
+        eni.delete_event(_read_fd, EVFILT_READ);
         eni.remove_cgi_fd(_read_fd);
         close(_read_fd);  // destructor?
         _read_fd = -1;
         _is_done = true;
+        std::cerr << "CGI DONE" << std::endl;
     }
     eni.enable_event(_connection_fd, EVFILT_WRITE);
 }
@@ -114,7 +115,7 @@ void CgiHandler::write(EventNotificationInterface &eni, std::size_t max_size) {
     _body_pos += send_bytes;
     left_bytes = _request.body().size() - _body_pos;
     if (left_bytes == 0) {
-        eni.disable_event(_write_fd, EVFILT_WRITE);
+        eni.delete_event(_write_fd, EVFILT_WRITE);
         eni.remove_cgi_fd(_write_fd);
         close(_write_fd);  // destructor?
         _write_fd = -1;

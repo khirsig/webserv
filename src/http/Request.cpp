@@ -917,14 +917,14 @@ void Request::print() const {
         << "--------------------------------------------------------------------------------\n"
         << "REQUEST: \n"
         << utils::COLOR_NO;
-    std::cout << utils::COLOR_GR_1 << " REQUEST LINE: \n" << utils::COLOR_NO;
+    std::cout << utils::COLOR_GR_1 << " REQUEST LINE:\n" << utils::COLOR_NO;
     std::cout << utils::COLOR_GR << "  - METHOD:   " << utils::COLOR_NO << _method_str << "\n";
     std::cout << utils::COLOR_GR << "  - PATH:     " << utils::COLOR_NO << _path_decoded << "\n";
     std::cout << utils::COLOR_GR << "  - REL_PATH: " << utils::COLOR_NO << _relative_path << "\n";
     std::cout << utils::COLOR_GR << "  - ABS_PATH: " << utils::COLOR_NO << _absolute_path << "\n";
     std::cout << utils::COLOR_GR << "  - QUERY:    " << utils::COLOR_NO << _query_string << "\n";
     std::cout << utils::COLOR_GR << "  - HOST:     " << utils::COLOR_NO << _host_decoded << "\n";
-    std::cout << utils::COLOR_BL_1 << " HEADER:\n  " << utils::COLOR_NO;
+    std::cout << utils::COLOR_BL_1 << " HEADER:\n" << utils::COLOR_NO;
     for (const_header_it it = _m_header.begin(); it != _m_header.end(); it++)
         std::cout << utils::COLOR_BL << "  - " << it->first << ": " << utils::COLOR_NO << it->second
                   << "\n";

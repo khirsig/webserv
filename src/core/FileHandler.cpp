@@ -34,7 +34,6 @@ bool FileHandler::init(const std::string &path) {
     }
     _file.seekg(0, _file.end);
     _max_size = _file.tellg();
-    std::cerr << "max_size: " << _max_size << std::endl;
     _file.seekg(0, _file.beg);
     return true;
 }

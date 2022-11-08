@@ -42,7 +42,6 @@ Webserver::Webserver(const std::vector<config::Server> &v_server)
 Webserver::~Webserver() {}
 
 void Webserver::run() {
-    typedef std::map<int, Socket>::const_iterator socket_it_t;
     while (42) {
         try {
             int num_events = _eni.poll_events();
@@ -55,20 +54,22 @@ void Webserver::run() {
                 }
 
                 // New connection on listen socket
-                socket_it_t socket_it = _m_socket.find(_eni.events[i].ident);
-                if (socket_it != _m_socket.end()) {
-                    _accept_connection(socket_it->second);
+                const core::Socket *socket = _eni.find_socket(_eni.events[i].ident);
+                if (socket) {
+                    _accept_connection(*socket);
                     continue;
                 }
 
                 // New event on cgi fd
-                // it_cgi_exec = cgi::g_executor.find(eni.events[i].ident);
-                // if (it_cgi_exec != cgi::g_executor.end()) {
-                //     if (eni.events[i].filter == EVFILT_READ)
-                //         it_cgi_exec->second->read(eni.events[i].flags & EV_EOF);
-                //     else if (eni.events[i].filter == EVFILT_WRITE)
-                //         it_cgi_exec->second->write(eni.events[i].data);
-                // }
+                core::CgiHandler *cgi = _eni.find_cgi(_eni.events[i].ident);
+                if (cgi) {
+                    std::cerr << "CGI event" << std::endl;
+                    if (_eni.events[i].filter == EVFILT_READ)
+                        cgi->read(_eni, _eni.events[i].flags & EV_EOF);
+                    else if (_eni.events[i].filter == EVFILT_WRITE)
+                        cgi->write(_eni, _eni.events[i].data);
+                    continue;
+                }
 
                 // Event on established connection
                 if (_eni.events[i].filter == EVFILT_TIMER) {
