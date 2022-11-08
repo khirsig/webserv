@@ -3,9 +3,12 @@
 #include <cerrno>
 #include <stdexcept>
 
+#include "Socket.hpp"
+
 namespace core {
 
-EventNotificationInterface::EventNotificationInterface() {
+EventNotificationInterface::EventNotificationInterface(const std::map<int, Socket>& m_server)
+    : _m_socket(m_server) {
     _kq_fd = kqueue();
     if (_kq_fd == -1) {
         throw std::runtime_error("kqueue: " + std::string(strerror(errno)));
@@ -39,6 +42,26 @@ int EventNotificationInterface::delete_event(int fd, int16_t filter) {
 int EventNotificationInterface::poll_events() {
     return kevent(_kq_fd, NULL, 0, events, MAX_POLLED_EVENTS, NULL);
 }
+
+const Socket* EventNotificationInterface::find_socket(int fd) {
+    std::map<int, Socket>::const_iterator it = _m_socket.find(fd);
+    if (it != _m_socket.end())
+        return &it->second;
+    return NULL;
+}
+
+const CgiHandler* EventNotificationInterface::find_cgi(int fd) {
+    std::map<int, const CgiHandler&>::const_iterator it = _m_cgi.find(fd);
+    if (it != _m_cgi.end())
+        return &it->second;
+    return NULL;
+}
+
+void EventNotificationInterface::add_cgi_fd(int fd, const CgiHandler& cgi) {
+    _m_cgi.insert(std::make_pair(fd, cgi));
+}
+
+void EventNotificationInterface::remove_cgi_fd(int fd) { _m_cgi.erase(fd); }
 
 int EventNotificationInterface::enable_event(int fd, int16_t filter) {
     struct kevent event;
