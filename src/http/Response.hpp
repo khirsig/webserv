@@ -53,6 +53,8 @@ class Response {
 
     bool                   need_cgi() const;
     const config::CgiPass *cgi_pass() const;
+
+    void print() const;
 };
 
 }  // namespace http

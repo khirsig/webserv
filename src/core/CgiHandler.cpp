@@ -5,10 +5,13 @@
 namespace core {
 
 CgiHandler::CgiHandler(const http::Request &request, http::Response &response)
-    : _request(request), _response(response), _read_fd(-1), _write_fd(-1), _is_done(true) {}
+    : _request(request), _response(response), _read_fd(-1), _write_fd(-1), _is_done(true) {
+    _buf = new char[CGI_READ_BUFFER_SIZE];
+}
 
 CgiHandler::~CgiHandler() {
     close(_read_fd);  // delete events
+    delete[] _buf;
 }
 
 void CgiHandler::init(int connection_fd) {
@@ -85,19 +88,23 @@ void CgiHandler::reset() {
 
 void CgiHandler::read(EventNotificationInterface &eni, bool eof) {
     std::string temp_buf;
-    char        buf[CGI_READ_BUFFER_SIZE];
     int         chars_read = 0;
 
-    chars_read = ::read(_read_fd, buf, CGI_READ_BUFFER_SIZE - 1);  // write in global buff
-    buf[chars_read] = '\0';
-    _response.body().append(buf);  // write in response body
+    chars_read = ::read(_read_fd, _buf, CGI_READ_BUFFER_SIZE);  // write in global buff
+    if (chars_read == -1) {
+        eni.delete_event(_read_fd, EVFILT_READ);
+        eni.remove_cgi_fd(_read_fd);
+        close(_read_fd);  // destructor?
+        reset();
+        throw std::runtime_error("Error reading from CGI");
+    }
+    _response.body().append(_buf, chars_read);  // write in response body
     if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
         eni.delete_event(_read_fd, EVFILT_READ);
         eni.remove_cgi_fd(_read_fd);
         close(_read_fd);  // destructor?
         _read_fd = -1;
         _is_done = true;
-        std::cerr << "CGI DONE" << std::endl;
     }
     eni.enable_event(_connection_fd, EVFILT_WRITE);
 }
@@ -142,7 +149,7 @@ void CgiHandler::_run_program(const std::string &cgi_path) {
 }
 
 char **CgiHandler::_get_env(std::map<std::string, std::string> &env) {
-    for (uint32_t i = 0; i < env_arr_length; ++i) {
+    for (uint32_t i = 0; i < sizeof(env_string) / sizeof(env_string[0]); ++i) {
         if (env.find(env_string[i]) == env.end()) {
             env.insert(std::make_pair(env_string[i], ""));
         }
@@ -177,6 +184,10 @@ void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
     it = env.find("REQUEST_METHOD");
     if (it != env.end()) {
         it->second = _request.method_str();
+    }
+    it = env.find("PATH_INFO");
+    if (it != env.end()) {
+        it->second = _request.relative_path();
     }
     // TODO: Add all the other env variables
 }

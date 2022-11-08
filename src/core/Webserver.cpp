@@ -42,46 +42,61 @@ Webserver::Webserver(const std::vector<config::Server> &v_server)
 Webserver::~Webserver() {}
 
 void Webserver::run() {
+#if PRINT_LEVEL > 0
+    std::cout << utils::COLOR_CY_1 << "Webserver running 🚀" << utils::COLOR_NO << std::endl;
+#endif
     while (42) {
         try {
             int num_events = _eni.poll_events();
             if (num_events == -1)
                 throw std::runtime_error("poll_events: " + std::string(strerror(errno)));
             for (int i = 0; i < num_events; i++) {
-                // Kevent error
-                if (_eni.events[i].flags & EV_ERROR) {
-                    throw std::runtime_error("kevent: " + std::string(strerror(errno)));
-                }
+                try {
+                    // Kevent error
+                    if (_eni.events[i].flags & EV_ERROR) {
+                        throw std::runtime_error("kevent: " + std::string(strerror(errno)));
+                    }
 
-                // New connection on listen socket
-                const core::Socket *socket = _eni.find_socket(_eni.events[i].ident);
-                if (socket) {
-                    _accept_connection(*socket);
-                    continue;
-                }
+                    // New connection on listen socket
+                    const core::Socket *socket = _eni.find_socket(_eni.events[i].ident);
+                    if (socket) {
+                        _accept_connection(*socket);
+                        continue;
+                    }
 
-                // New event on cgi fd
-                core::CgiHandler *cgi = _eni.find_cgi(_eni.events[i].ident);
-                if (cgi) {
-                    std::cerr << "CGI event" << std::endl;
-                    if (_eni.events[i].filter == EVFILT_READ)
-                        cgi->read(_eni, _eni.events[i].flags & EV_EOF);
-                    else if (_eni.events[i].filter == EVFILT_WRITE)
-                        cgi->write(_eni, _eni.events[i].data);
-                    continue;
-                }
+                    // New event on cgi fd
+                    core::CgiHandler *cgi = _eni.find_cgi(_eni.events[i].ident);
+                    if (cgi) {
+                        if (_eni.events[i].filter == EVFILT_READ)
+                            cgi->read(_eni, _eni.events[i].flags & EV_EOF);
+                        else if (_eni.events[i].filter == EVFILT_WRITE)
+                            cgi->write(_eni, _eni.events[i].data);
+                        continue;
+                    }
 
-                // Event on established connection
-                if (_eni.events[i].filter == EVFILT_TIMER) {
-                    _timeout_connection(_eni.events[i].ident);
-                } else if (_eni.events[i].flags & EV_EOF) {
-                    // do something
-                    std::cerr << "EOF" << std::endl;
+                    // Event on established connection
+                    if (_eni.events[i].filter == EVFILT_TIMER) {
+                        _timeout_connection(_eni.events[i].ident);
+                    } else if (_eni.events[i].flags & EV_EOF) {
+                        // do something
+                        // std::cerr << "EOF" << std::endl;
+                        _close_connection(_eni.events[i].ident);
+                    } else if (_eni.events[i].filter == EVFILT_READ) {
+                        _receive(_eni.events[i].ident, _eni.events[i].data);
+                    } else if (_eni.events[i].filter == EVFILT_WRITE) {
+                        _send(_eni.events[i].ident, _eni.events[i].data);
+                    }
+                } catch (const std::exception &e) {
+                    std::cerr << "[";
+                    utils::print_timestamp(std::cerr);
+                    std::cerr << "]: " << e.what() << '\n';
                     _close_connection(_eni.events[i].ident);
-                } else if (_eni.events[i].filter == EVFILT_READ) {
-                    _receive(_eni.events[i].ident, _eni.events[i].data);
-                } else if (_eni.events[i].filter == EVFILT_WRITE) {
-                    _send(_eni.events[i].ident, _eni.events[i].data);
+                } catch (...) {
+                    std::cerr << "[";
+                    utils::print_timestamp(std::cerr);
+                    std::cerr << "]: "
+                              << "Unknown error\n";
+                    _close_connection(_eni.events[i].ident);
                 }
             }
         } catch (const std::exception &e) {
@@ -120,6 +135,9 @@ void Webserver::_accept_connection(const Socket &socket) {
          _eni.add_event(accept_fd, EVFILT_WRITE) || _eni.disable_event(accept_fd, EVFILT_WRITE));
 
     if (error) {
+        _eni.delete_event(accept_fd, EVFILT_TIMER);
+        _eni.delete_event(accept_fd, EVFILT_READ);
+        _eni.delete_event(accept_fd, EVFILT_WRITE);
         close(accept_fd);
         throw std::runtime_error("eni: " + std::string(strerror(errno)));
     }
@@ -133,7 +151,11 @@ void Webserver::_accept_connection(const Socket &socket) {
                 return;
             }
         }
+        _eni.delete_event(accept_fd, EVFILT_TIMER);
+        _eni.delete_event(accept_fd, EVFILT_READ);
+        _eni.delete_event(accept_fd, EVFILT_WRITE);
         close(accept_fd);
+        return;
     } else {
         std::vector<Connection>::iterator it =
             std::find(_v_connection.begin(), _v_connection.end(), -1);
@@ -214,10 +236,13 @@ void Webserver::_close_connection(std::vector<Connection>::iterator it) {
     _eni.delete_event(it->fd(), EVFILT_READ);
     _eni.delete_event(it->fd(), EVFILT_WRITE);
     it->destroy();
+    _used_connections--;
 }
 
 void Webserver::_timeout_connection(int fd) {
+#if PRINT_LEVEL > 0
     std::cerr << utils::COLOR_CY << "[Timeout] " << utils::COLOR_NO;
+#endif
     _close_connection(fd);
 }
 

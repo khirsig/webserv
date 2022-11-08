@@ -1,6 +1,6 @@
 #pragma once
 
-#define DEBUG 2
+#define PRINT_LEVEL 1
 
 #define MAX_CONNECTIONS 1024
 #define TIMEOUT_TIME 20000

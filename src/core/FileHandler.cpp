@@ -22,6 +22,10 @@ FileHandler::~FileHandler() {
 }
 
 bool FileHandler::init(const std::string &path) {
+    if (_file.is_open()) {
+        std::cerr << "FileHandler::init: file is already open" << std::endl;
+        _file.close();
+    }
     _path = path;
     _file.open(path);
     if (!_file.is_open()) {
@@ -34,6 +38,7 @@ bool FileHandler::init(const std::string &path) {
     }
     _file.seekg(0, _file.end);
     _max_size = _file.tellg();
+    _read_size = 0;
     _file.seekg(0, _file.beg);
     return true;
 }
@@ -44,6 +49,9 @@ size_t FileHandler::read(size_t max_len) {
         _file.read(_buf, to_read_len);
         size_t read_bytes = _file.gcount();
         _read_size += read_bytes;
+        if (left_size() == 0) {
+            _file.close();
+        }
         return read_bytes;
     } else {
         _file.close();

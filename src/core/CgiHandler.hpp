@@ -14,12 +14,11 @@
 
 #define CGI_READ_BUFFER_SIZE 1024
 
-static const int         env_arr_length = 19;
-static const std::string env_string[env_arr_length] = {
-    "AUTH_TYPE",       "CONTENT_LENGTH",  "CONTENT_TYPE",   "GATEWAY_INTERFACE", "HTTP_ACCEPT",
-    "HTTP_USER_AGENT", "PATH_INFO",       "QUERY_STRING",   "REMOTE_ADDR",       "REMOTE_HOST",
-    "REMOTE_IDENT",    "REMOTE_USER",     "REQUEST_METHOD", "SCRIPT_NAME",       "SERVER_NAME",
-    "SERVER_PORT",     "SERVER_PROTOCOL", "SERVER_SOFTWARE"};
+static const std::string env_string[] = {
+    "AUTH_TYPE",       "CONTENT_LENGTH",  "CONTENT_TYPE",    "GATEWAY_INTERFACE", "HTTP_ACCEPT",
+    "HTTP_USER_AGENT", "PATH_INFO",       "QUERY_STRING",    "REMOTE_ADDR",       "REMOTE_HOST",
+    "REMOTE_IDENT",    "REMOTE_USER",     "REQUEST_METHOD",  "SCRIPT_NAME",       "SERVER_NAME",
+    "SERVER_PORT",     "SERVER_PROTOCOL", "SERVER_SOFTWARE", "REDIRECT_STATUS"};
 
 namespace core {
 
@@ -51,6 +50,7 @@ class CgiHandler {
     pid_t  _pid;
     bool   _is_done;
     size_t _body_pos;
+    char  *_buf;
 
     void   _run_program(const std::string &cgi_path);
     char **_get_env(std::map<std::string, std::string> &env);

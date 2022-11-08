@@ -5,6 +5,7 @@
 #include "core/Webserver.hpp"
 #include "http/status_codes.hpp"
 #include "settings.hpp"
+#include "utils/color.hpp"
 #include "utils/timestamp.hpp"
 
 const std::map<int, std::string> http::g_m_status_codes = http::new_m_status_codes();
@@ -18,10 +19,13 @@ int main(int argc, char** argv) {
         std::vector<config::Server> v_server;
 
         config::Parser parser;
-        if (argc == 2)
-            parser.parse(argv[1], v_server);
-        else
-            parser.parse(DEFAULT_CONFIG_FILE, v_server);
+        const char*    config_file = argc == 2 ? argv[1] : DEFAULT_CONFIG_FILE;
+        parser.parse(config_file, v_server);
+
+#if PRINT_LEVEL > 0
+        std::cout << utils::COLOR_CY_1 << "Parsed config: " << utils::COLOR_NO << config_file
+                  << std::endl;
+#endif
 
         core::Webserver webserver(v_server);
         webserver.run();

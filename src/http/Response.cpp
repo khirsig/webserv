@@ -1,5 +1,6 @@
 #include "Response.hpp"
 
+#include "../utils/color.hpp"
 #include "../utils/num_to_str.hpp"
 #include "Request.hpp"
 #include "mime_types.hpp"
@@ -221,5 +222,45 @@ void Response::build_error(const Request &req, int error_code) {
 bool Response::need_cgi() const { return _body_type == BODY_CGI; }
 
 const config::CgiPass *Response::cgi_pass() const { return _cgi_pass; }
+
+void Response::print() const {
+    std::cout
+        << utils::COLOR_PL_1
+        << "--------------------------------------------------------------------------------\n"
+        << "RESPONSE: \n"
+        << utils::COLOR_NO;
+
+    std::cout << utils::COLOR_GR_1 << " STATUS:    " << utils::COLOR_NO;
+    for (size_t i = 9; i < _header.size(); i++) {
+        if (_header[i] == '\n')
+            break;
+        std::cout << _header[i];
+    }
+    std::cout << std::endl;
+    std::cout << utils::COLOR_BL_1 << " BODY_TYPE: " << utils::COLOR_NO;
+    switch (_body_type) {
+        case BODY_NONE:
+            std::cout << "NONE\n";
+            break;
+        case BODY_FILE:
+            std::cout << "FILE\n";
+            break;
+        case BODY_BUFFER:
+            std::cout << "BUFFER\n";
+            break;
+        case BODY_CGI:
+            std::cout << "CGI\n";
+            break;
+    }
+    if (_cgi_pass)
+        std::cout << utils::COLOR_CY_1 << " CGI_PASS:  " << utils::COLOR_NO << _cgi_pass->path
+                  << std::endl;
+    else
+        std::cout << utils::COLOR_CY_1 << " CGI_PASS:  " << utils::COLOR_NO << "NONE" << std::endl;
+    std::cout
+        << utils::COLOR_PL_1
+        << "--------------------------------------------------------------------------------\n"
+        << utils::COLOR_NO;
+}
 
 }  // namespace http

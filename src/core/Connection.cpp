@@ -45,7 +45,7 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _response.init();
     _cgi_handler.init(_fd);
 
-#ifdef DEBUG
+#if PRINT_LEVEL > 0
     std::cout << utils::COLOR_BL << "[Accepted]: " << utils::COLOR_NO
               << utils::addr_to_str(_client_addr) << std::endl;
 #endif
@@ -71,6 +71,10 @@ void Connection::receive(size_t data_len) {
     if (_buf_filled != to_recv_len) {
         throw std::runtime_error("recv: failed");
     }
+#if PRINT_LEVEL > 2
+    std::cout << utils::COLOR_BL << "[Received]: " << utils::COLOR_NO
+              << utils::num_to_str_dec(_buf_filled) << " bytes" << std::endl;
+#endif
 }
 
 void Connection::parse_request(const std::vector<config::Server>& v_server) {
@@ -103,6 +107,9 @@ void Connection::build_response(EventNotificationInterface& eni) {
     } else {
         _response.build_error(_request, _request_error);
     }
+#if PRINT_LEVEL > 1
+    _response.print();
+#endif
 }
 
 void Connection::send_response(EventNotificationInterface& eni, size_t max_len) {
@@ -228,8 +235,9 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                         (ssize_t)to_send_len)
                         throw std::runtime_error("send: failed");
                 }
-                if (_response.file_handler().left_size() == 0)
+                if (_response.file_handler().left_size() == 0) {
                     _response.set_state(http::Response::DONE);
+                }
                 break;
             }
             case http::Response::BODY_NONE:
@@ -247,7 +255,7 @@ void Connection::destroy() {
     close(_fd);
     _fd = -1;
 
-#ifdef DEBUG
+#if PRINT_LEVEL > 0
     std::cout << utils::COLOR_YE << "[Closed]: " << utils::COLOR_NO
               << utils::addr_to_str(_client_addr) << std::endl;
 #endif

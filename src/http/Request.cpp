@@ -118,7 +118,7 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _state = DONE;
     }
     if (_state == DONE) {
-#if DEBUG > 1
+#if PRINT_LEVEL > 1
         print();
 #endif
         return true;

@@ -1,7 +1,13 @@
 
 <?php
 
-echo "hello bytes"
+echo "hello bytes";
+
+phpinfo();
+
+// print argv[1] to stdout
+var_dump($argv);
+
 
 // while (list($var,$value) = each($_ENV)) {
 //     echo "$var $value <br />\n";
