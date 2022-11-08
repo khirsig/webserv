@@ -15,6 +15,8 @@ class Parser {
 
    private:
     std::string _file_to_string(std::string file_path);
+
+    bool _is_config_valid(const std::string &file_path, const std::vector<Server> &v_server);
 };
 
 }  // namespace config

@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/07 12:29:08 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/08 10:16:27 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ namespace config {
 
 void Interpreter::parse(const std::vector<Token> &v_token, std::vector<Server> &v_server) {
     for (std::vector<Token>::const_iterator it = v_token.begin(); it != v_token.end(); ++it) {
+        _last_directive = &(it->text);
         if (it->text == "server" && it->type == IDENTIFIER) {
             Server new_server = _parse_server(v_token, it);
             v_server.push_back(new_server);
@@ -31,11 +32,14 @@ void Interpreter::parse(const std::vector<Token> &v_token, std::vector<Server> &
 
 Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
                                   std::vector<Token>::const_iterator &it) {
-    ++it;
+    _increment_token(v_token, it);
+
     bool   client_max_size_set = false;
     Server new_server;
+
     if (it->text == "{" && it->type == OPERATOR) {
-        ++it;
+        _increment_token(v_token, it);
+
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "listen") {
@@ -52,7 +56,7 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
                 if (client_max_size_set) {
                     _directive_already_set(it);
                 } else {
-                    _parse_bytes(it, new_server.client_max_body_size);
+                    _parse_bytes(v_token, it, new_server.client_max_body_size);
                     client_max_size_set = true;
                 }
             } else if (*_last_directive == "location") {
@@ -74,12 +78,13 @@ Server Interpreter::_parse_server(const std::vector<Token>           &v_token,
 
 Location Interpreter::_parse_location(const std::vector<Token>           &v_token,
                                       std::vector<Token>::const_iterator &it) {
-    ++it;
+    _increment_token(v_token, it);
+
     Location new_location;
-    if (it->type == IDENTIFIER || it->text == "(") {
-        _parse_location_path(it, new_location.path);
+    if (it->type == IDENTIFIER) {
+        _parse_location_path(v_token, it, new_location.path);
     } else {
-        _missing_opening(it, '(');
+        _missing_opening(it, '{');
     }
 
     bool dir_listing_set = false;
@@ -87,7 +92,8 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
     bool client_max_size_set = false;
 
     if (it->text == "{" && it->type == OPERATOR) {
-        ++it;
+        _increment_token(v_token, it);
+
         for (; it != v_token.end() && it->text != "}"; ++it) {
             _last_directive = &(it->text);
             if (*_last_directive == "accepted_methods") {
@@ -105,25 +111,25 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
                 if (new_location.root.size() != 0)
                     _directive_already_set(it);
                 else
-                    _parse_string(it, new_location.root);
+                    _parse_string(v_token, it, new_location.root);
             } else if (*_last_directive == "index") {
                 _parse_string(v_token, it, new_location.v_index);
             } else if (*_last_directive == "cgi_pass") {
                 CgiPass new_pass;
-                _parse_cgi_pass(it, new_pass);
+                _parse_cgi_pass(v_token, it, new_pass);
                 new_location.v_cgi_pass.push_back(new_pass);
             } else if (*_last_directive == "directory_listing") {
                 if (dir_listing_set) {
                     _directive_already_set(it);
                 } else {
-                    _parse_bool(it, new_location.directory_listing);
+                    _parse_bool(v_token, it, new_location.directory_listing);
                     dir_listing_set = true;
                 }
             } else if (*_last_directive == "client_max_body_size") {
                 if (client_max_size_set) {
                     _directive_already_set(it);
                 } else {
-                    _parse_bytes(it, new_location.client_max_body_size);
+                    _parse_bytes(v_token, it, new_location.client_max_body_size);
                     client_max_size_set = true;
                 }
             } else {
@@ -148,7 +154,8 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
 void Interpreter::_parse_string(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it,
                                 std::vector<std::string>           &v_identifier) {
-    ++it;
+    _increment_token(v_token, it);
+
     for (; it != v_token.end(); ++it) {
         if (it->type == OPERATOR) {
             if (it->text == ";")
@@ -171,34 +178,42 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
     }
 }
 
-void Interpreter::_parse_string(std::vector<Token>::const_iterator &it, std::string &identifier) {
-    ++it;
+void Interpreter::_parse_string(const std::vector<Token>           &v_token,
+                                std::vector<Token>::const_iterator &it, std::string &identifier) {
+    _increment_token(v_token, it);
+
     identifier = it->text;
     if (*_last_directive == "root" && identifier.back() != '/')
         identifier += '/';
-    ++it;
+    _increment_token(v_token, it);
+
     if (it->text != ";") {
         _none_terminated_directive(it);
     }
 }
 
-void Interpreter::_parse_cgi_pass(std::vector<Token>::const_iterator &it, CgiPass &identifier) {
-    ++it;
+void Interpreter::_parse_cgi_pass(const std::vector<Token>           &v_token,
+                                  std::vector<Token>::const_iterator &it, CgiPass &identifier) {
+    _increment_token(v_token, it);
+
     if (it->type == OPERATOR)
         _unexpected_operator(it);
     identifier.type = it->text;
-    ++it;
+    _increment_token(v_token, it);
+
     if (it->type == OPERATOR)
         _unexpected_operator(it);
     identifier.path = it->text;
-    ++it;
+    _increment_token(v_token, it);
+
     if (it->text != ";") {
         _none_terminated_directive(it);
     }
 }
 bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it, core::Address &identifier) {
-    ++it;
+    _increment_token(v_token, it);
+
     bool default_server = false;
 
     std::size_t seperator_index = it->text.find_first_of(':');
@@ -220,7 +235,7 @@ bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
         identifier.addr = inet_addr(addr_str.c_str());
         _parse_port(it, port_str, identifier.port);
     }
-    ++it;
+    _increment_token(v_token, it);
 
     for (; it != v_token.end() && it->text != ";"; ++it) {
         if (it->text == "default_server") {
@@ -251,7 +266,8 @@ void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std:
 void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
                                     std::vector<Token>::const_iterator &it,
                                     std::map<int, http::error_page_t>  &m_error_page) {
-    ++it;
+    _increment_token(v_token, it);
+
     std::vector<std::uint32_t> v_code;
 
     for (; it != v_token.end() && it->text != ";"; ++it) {
@@ -294,16 +310,16 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
         m_error_page.insert(std::make_pair(v_code[i], new_error_page));
     }
 
-    ++it;
-    if (it == v_token.end())
-        _unexpected_file_ending(it);
+    _increment_token(v_token, it);
+
     if (it->text != ";")
         _none_terminated_directive(it);
 }
 
 void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
                                   std::vector<Token>::const_iterator &it, Redirect &identifier) {
-    ++it;
+    _increment_token(v_token, it);
+
     std::vector<Token>::const_iterator iter = it;
     std::uint32_t                      count = 0;
     for (; iter != v_token.end() && iter->text != ";"; ++iter) {
@@ -323,23 +339,22 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
     } else {
         _invalid_status_code(it, identifier.status_code);
     }
-    ++it;
-    if (it == v_token.end())
-        _unexpected_file_ending(it);
+    _increment_token(v_token, it);
+
     identifier.origin = it->text;
-    ++it;
-    if (it == v_token.end())
-        _unexpected_file_ending(it);
+    _increment_token(v_token, it);
+
     identifier.direction = it->text;
-    ++it;
-    if (it == v_token.end())
-        _unexpected_file_ending(it);
+    _increment_token(v_token, it);
+
     if (it->text != ";")
         _none_terminated_directive(it);
 }
 
-void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier) {
-    ++it;
+void Interpreter::_parse_bytes(const std::vector<Token>           &v_token,
+                               std::vector<Token>::const_iterator &it, std::uint64_t &identifier) {
+    _increment_token(v_token, it);
+
     std::string   num = it->text;
     std::uint64_t multiplier;
     char          byte_size = num[it->text.size() - 1];
@@ -378,13 +393,15 @@ void Interpreter::_parse_bytes(std::vector<Token>::const_iterator &it, std::uint
     if (identifier > CLIENT_MAX_BODY_SIZE)
         _numeric_overflow(it, num);
 
-    ++it;
+    _increment_token(v_token, it);
+
     if (it->text != ";") {
         _none_terminated_directive(it);
     }
 }
 
-void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
+void Interpreter::_parse_location_path(const std::vector<Token>           &v_token,
+                                       std::vector<Token>::const_iterator &it,
                                        std::string                        &location_path) {
     if (it->type == OPERATOR) {
         _unexpected_operator(it);
@@ -447,14 +464,17 @@ void Interpreter::_parse_location_path(std::vector<Token>::const_iterator &it,
     if (location_path.size() > 1 && location_path[location_path.size() - 1] == '/')
         location_path.erase(location_path.size() - 1);
 
-    ++it;
+    _increment_token(v_token, it);
+
     if (it->text != "{") {
         _missing_opening(it, '{');
     }
 }
 
-void Interpreter::_parse_bool(std::vector<Token>::const_iterator &it, bool &identifier) {
-    ++it;
+void Interpreter::_parse_bool(const std::vector<Token>           &v_token,
+                              std::vector<Token>::const_iterator &it, bool &identifier) {
+    _increment_token(v_token, it);
+
     if (it->text == "on") {
         identifier = true;
     } else if (it->text == "off") {
@@ -462,10 +482,18 @@ void Interpreter::_parse_bool(std::vector<Token>::const_iterator &it, bool &iden
     } else {
         _invalid_bool_argument(it);
     }
-    ++it;
+    _increment_token(v_token, it);
     if (it->text != ";") {
         _invalid_directive(it);
     }
+}
+
+// Function that increments the iterator and checks if it is at the end of the vector
+void Interpreter::_increment_token(const std::vector<Token>           &v_token,
+                                   std::vector<Token>::const_iterator &it) {
+    ++it;
+    if (it == v_token.end())
+        _unexpected_eof(it);
 }
 
 void Interpreter::_invalid_directive(std::vector<Token>::const_iterator &it) const {
@@ -486,6 +514,12 @@ void Interpreter::_unexpected_file_ending(std::vector<Token>::const_iterator &it
     utils::print_timestamp(std::cerr);
     std::cerr << " unexpected end of file, expecting \"}\" in " << _path << ":"
               << (it - 1)->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_unexpected_eof(std::vector<Token>::const_iterator &it) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << " unexpected end of file in " << _path << ":" << (it - 1)->line_number << "\n";
     exit(EXIT_FAILURE);
 }
 

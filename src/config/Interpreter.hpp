@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/07 12:25:32 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/08 09:22:59 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,8 +45,10 @@ class Interpreter {
                              std::vector<Token>::const_iterator &it);
     void _parse_string(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                        std::vector<std::string> &v_identifier);
-    void _parse_string(std::vector<Token>::const_iterator &it, std::string &identifier);
-    void _parse_cgi_pass(std::vector<Token>::const_iterator &it, CgiPass &identifier);
+    void _parse_string(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                       std::string &identifier);
+    void _parse_cgi_pass(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                         CgiPass &identifier);
     bool _parse_listen(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                        core::Address &identifier);
     void _parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
@@ -56,13 +58,20 @@ class Interpreter {
                            std::map<int, http::error_page_t>  &m_error_page);
     void _parse_redirect(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
                          Redirect &identifier);
-    void _parse_bytes(std::vector<Token>::const_iterator &it, std::uint64_t &identifier);
-    void _parse_location_path(std::vector<Token>::const_iterator &it, std::string &location_path);
-    void _parse_bool(std::vector<Token>::const_iterator &it, bool &identifier);
+    void _parse_bytes(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                      std::uint64_t &identifier);
+    void _parse_location_path(const std::vector<Token>           &v_token,
+                              std::vector<Token>::const_iterator &it, std::string &location_path);
+    void _parse_bool(const std::vector<Token> &v_token, std::vector<Token>::const_iterator &it,
+                     bool &identifier);
+
+    void _increment_token(const std::vector<Token>           &v_token,
+                          std::vector<Token>::const_iterator &it);
 
     void _invalid_directive(std::vector<Token>::const_iterator &it) const;
     void _directive_already_set(std::vector<Token>::const_iterator &it) const;
     void _unexpected_file_ending(std::vector<Token>::const_iterator &it) const;
+    void _unexpected_eof(std::vector<Token>::const_iterator &it) const;
     void _unexpected_operator(std::vector<Token>::const_iterator &it) const;
     void _none_terminated_directive(std::vector<Token>::const_iterator &it) const;
     void _invalid_bool_argument(std::vector<Token>::const_iterator &it) const;
