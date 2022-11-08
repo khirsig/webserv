@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/07 16:22:48 by khirsig           #+#    #+#             */
-/*   Updated: 2022/10/20 10:28:44 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/08 15:28:16 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@ void Tokenizer::parse(std::vector<Token> &v_token, const std::string &input_file
                 break;
 
             case '#':
+                _end_token(v_token, current_token);
                 current_token.type = COMMENT;
                 break;
 
