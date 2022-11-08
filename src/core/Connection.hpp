@@ -9,9 +9,6 @@
 
 namespace core {
 
-class EventNotificationInterface;
-class CgiHandler;
-
 class Connection {
    private:
     int            _fd;

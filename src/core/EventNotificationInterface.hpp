@@ -16,7 +16,6 @@
 namespace core {
 
 class CgiHandler;
-class Socket;
 
 class EventNotificationInterface {
    private:

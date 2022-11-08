@@ -4,7 +4,6 @@
 #include <sys/socket.h>
 
 #include "Address.hpp"
-#include "Connection.hpp"
 
 namespace core {
 

@@ -125,7 +125,7 @@ void CgiHandler::_run_program(const std::string &cgi_path) {
     std::map<std::string, std::string> m_header(_request.m_header());
 
     char **env = _get_env(m_header);
-    char **argv = _get_argv(cgi_path, _request.path_decoded());
+    char **argv = _get_argv(cgi_path, _request.relative_path());
 
     chdir(_request.location()->root.c_str());
     execve(cgi_path.c_str(), argv, env);

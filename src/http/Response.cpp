@@ -29,7 +29,6 @@ void Response::_construct_header_cgi(const Request &req) {
     _header.append(g_m_status_codes.find(200)->second.c_str());
     _header.append("\r\nServer: ");
     _header.append(SERVER_NAME);
-    _header.append("\r\nContent-Type: text/html; charset=UTF-8");
     _header.append("\r\nTransfer-Encoding: chunked");
     _header.append("\r\nConnection: ");
     if (req.connection_should_close())
@@ -164,9 +163,7 @@ void Response::build(const Request &req) {
         return;
     }
 
-    bool found_index = _find_index(req.location(), req.absolute_path());
-
-    if (directory && !found_index) {
+    if (directory && !_find_index(req.location(), req.absolute_path())) {
         if (req.location()->directory_listing) {
             std::cerr << "Directory listing\n";
             return;
@@ -222,5 +219,7 @@ void Response::build_error(const Request &req, int error_code) {
 }
 
 bool Response::need_cgi() const { return _body_type == BODY_CGI; }
+
+const config::CgiPass *Response::cgi_pass() const { return _cgi_pass; }
 
 }  // namespace http

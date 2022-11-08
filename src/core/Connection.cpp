@@ -129,35 +129,36 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             }
         }
     }
-    // if (_response.state() == http::Response::HEADER_CGI) {
-    //     char needle_1[] = "\r\n\r\n";
-    //     char needle_2[] = "\n\n";
+    if (_response.state() == http::Response::HEADER_CGI) {
+        char needle_1[] = "\r\n\r\n";
+        char needle_2[] = "\n\n";
 
-    //     core::ByteBuffer::const_iterator start_needle_1 = std::search(
-    //         _request.body().begin(), _request.body().end(), needle_1, needle_1 +
-    //         sizeof(needle_1));
-    //     core::ByteBuffer::const_iterator start_needle_2 = std::search(
-    //         _request.body().begin(), _request.body().end(), needle_2, needle_2 +
-    //         sizeof(needle_2));
-    //     core::ByteBuffer::const_iterator cgi_header_end;
-    //     if (start_needle_1 < start_needle_2)
-    //         cgi_header_end = start_needle_1 + sizeof(needle_1);
-    //     else if (start_needle_2 < start_needle_1)
-    //         cgi_header_end = start_needle_2 + sizeof(needle_2);
-    //     else
-    //         cgi_header_end = _request.body().end();
-    //     pos = _response.body().pos();
-    //     left_len = cgi_header_end - (_response.body().begin() + pos);
-    //     to_send_len = left_len < max_len ? left_len : max_len;
-    //     size_t sent_len = send(_fd, &(_response.body()[pos]), to_send_len, 0);
-    //     if (sent_len != to_send_len)
-    //         throw std::runtime_error("send: failed");
-    //     pos += sent_len;
-    //     _response.body().set_pos(pos);
-    //     max_len -= sent_len;
-    //     if (cgi_header_end != _request.body().end())
-    //         _response.set_state(http::Response::BODY);
-    // }
+        core::ByteBuffer::const_iterator start_needle_1 = std::search(
+            _request.body().begin(), _request.body().end(), needle_1, needle_1 + sizeof(needle_1));
+        core::ByteBuffer::const_iterator start_needle_2 = std::search(
+            _request.body().begin(), _request.body().end(), needle_2, needle_2 + sizeof(needle_2));
+        core::ByteBuffer::const_iterator cgi_header_end;
+        if (start_needle_1 < start_needle_2)
+            cgi_header_end = start_needle_1 + sizeof(needle_1);
+        else if (start_needle_2 < start_needle_1)
+            cgi_header_end = start_needle_2 + sizeof(needle_2);
+        else
+            cgi_header_end = _response.body().end();
+        pos = _response.body().pos();
+        left_len = cgi_header_end - (_response.body().begin() + pos);
+        std::cerr << "left_len: " << left_len << std::endl;
+        to_send_len = left_len < max_len ? left_len : max_len;
+        std::cerr << "pos: " << pos << std::endl;
+        std::cerr << "to_send_len: " << to_send_len << std::endl;
+        size_t sent_len = send(_fd, &(_response.body()[pos]), to_send_len, 0);
+        if (sent_len != to_send_len)
+            throw std::runtime_error("send: failed");
+        pos += to_send_len;
+        _response.body().set_pos(pos);
+        max_len -= to_send_len;
+        if (cgi_header_end != _request.body().end())
+            _response.set_state(http::Response::BODY);
+    }
     if (_response.state() == http::Response::BODY && max_len > 0) {
         switch (_response.body_type()) {
             case http::Response::BODY_BUFFER: {
@@ -175,37 +176,37 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                 break;
             }
             case http::Response::BODY_CGI: {
-                // if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
-                //     return;
-                // size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
-                // pos = _response.body().pos();
-                // left_len = _response.body().size() - pos;
-                // to_send_len = left_len < max_chunk_cont_len ? left_len : max_chunk_cont_len;
-                // if (to_send_len > 0) {
-                //     std::string chunk;
-                //     chunk.reserve(to_send_len + _max_pipe_size_str.size() + 4);
-                //     utils::num_to_str_hex(to_send_len, chunk);
-                //     chunk += "\r\n";
-                //     chunk.insert(chunk.end(), _response.body().begin() + pos,
-                //                  _response.body().begin() + to_send_len);
-                //     chunk += "\r\n";
-                //     if (send(_fd, chunk.c_str(), chunk.size(), 0) != chunk.size())
-                //         throw std::runtime_error("send: failed");
-                //     max_len -= chunk.size();
-                //     pos += to_send_len;
-                //     _response.body().set_pos(pos);
-                // }
-                // if (pos >= _response.body().size()) {
-                //     if (_cgi_handler.is_done()) {
-                //         if (max_len >= 5) {
-                //             if (send(_fd, "0\r\n\r\n", 5, 0) != 5)
-                //                 throw std::runtime_error("send: failed");
-                //             _response.set_state(http::Response::State::DONE);
-                //         }
-                //     } else {
-                //         eni.disable_event(_fd, EVFILT_WRITE);
-                //     }
-                // }
+                if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
+                    return;
+                size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
+                pos = _response.body().pos();
+                left_len = _response.body().size() - pos;
+                to_send_len = left_len < max_chunk_cont_len ? left_len : max_chunk_cont_len;
+                if (to_send_len > 0) {
+                    std::string chunk;
+                    chunk.reserve(to_send_len + _max_pipe_size_str.size() + 4);
+                    utils::num_to_str_hex(to_send_len, chunk);
+                    chunk += "\r\n";
+                    chunk.insert(chunk.end(), _response.body().begin() + pos,
+                                 _response.body().begin() + to_send_len);
+                    chunk += "\r\n";
+                    if (send(_fd, chunk.c_str(), chunk.size(), 0) != (ssize_t)chunk.size())
+                        throw std::runtime_error("send: failed");
+                    max_len -= chunk.size();
+                    pos += to_send_len;
+                    _response.body().set_pos(pos);
+                }
+                if (pos >= _response.body().size()) {
+                    if (_cgi_handler.is_done()) {
+                        if (max_len >= 5) {
+                            if (send(_fd, "0\r\n\r\n", 5, 0) != 5)
+                                throw std::runtime_error("send: failed");
+                            _response.set_state(http::Response::DONE);
+                        }
+                    } else {
+                        eni.disable_event(_fd, EVFILT_WRITE);
+                    }
+                }
                 break;
             }
             case http::Response::BODY_FILE: {

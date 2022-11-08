@@ -2,9 +2,11 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <cerrno>
 #include <stdexcept>
+#include <string>
 
 namespace core {
 
