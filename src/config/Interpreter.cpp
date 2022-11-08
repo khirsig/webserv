@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/08 11:17:18 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/08 11:41:37 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -328,6 +328,9 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
         if (iter->type == OPERATOR)
             _unexpected_operator(iter);
         count++;
+    }
+    if (iter == v_token.end()) {
+        _unexpected_eof(it);
     }
     if (count != 3)
         _invalid_directive_argument_amount(iter);
