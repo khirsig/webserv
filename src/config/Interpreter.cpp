@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/09 11:27:01 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/09 13:37:04 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -144,11 +144,6 @@ Location Interpreter::_parse_location(const std::vector<Token>           &v_toke
         }
     } else {
         _missing_opening(it, '{');
-    }
-
-    if (new_location.client_max_body_size == 0 ||
-        new_location.client_max_body_size > CLIENT_MAX_BODY_SIZE) {
-        new_location.client_max_body_size = CLIENT_MAX_BODY_SIZE;
     }
 
     return (new_location);

@@ -3,9 +3,12 @@
 import os
 from datetime import datetime, timezone
 # import sys
-# import cgi
-# import cgitb
-# cgitb.enable()
+import cgi
+import cgitb
+cgitb.enable()
+
+form = cgi.FieldStorage()
+form.getvalue('script_filename')
 
 print("Content-Type: text/html\r\n")
 
