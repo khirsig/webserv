@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/09 13:39:48 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/09 15:34:12 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ class ErrorPage {
 
 class Server {
    public:
-    Server() : client_max_body_size(CLIENT_MAX_BODY_SIZE) {}
+    Server() : client_max_body_size(SIZE_MAX) {}
     void print() const;
 
     std::vector<core::Address>        v_listen;

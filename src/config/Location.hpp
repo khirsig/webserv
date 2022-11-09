@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 14:10:30 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/09 13:40:30 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/09 15:34:44 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ class CgiPass {
 
 class Location {
    public:
-    Location() : client_max_body_size(CLIENT_MAX_BODY_SIZE) {}
+    Location() : client_max_body_size(SIZE_MAX) {}
     void print(std::string prefix) const;
 
     std::string              path;
