@@ -33,6 +33,7 @@ class Response {
     bool _find_index(const config::Location *location, const std::string &absolute_path);
     const config::CgiPass *_find_cgi_pass(const config::Location *location,
                                           const std::string      &path);
+    void                   _build_redir_dir(const Request &req);
     void                   _build_redir(const Request &req, const config::Redirect &redir);
 
    public:

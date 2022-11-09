@@ -132,6 +132,31 @@ const config::CgiPass *Response::_find_cgi_pass(const config::Location *location
     return NULL;
 }
 
+void Response::_build_redir_dir(const Request &req) {
+    _body_type = BODY_BUFFER;
+    const std::string &status_code_msg = g_m_status_codes.find(301)->second;
+    _body.append("<html>\r\n<head><title>");
+    _body.append(status_code_msg.c_str());
+    _body.append("</title></head>\r\n<body>\r\n<center><h1>");
+    _body.append(status_code_msg.c_str());
+    _body.append("</h1></center>\r\n<hr><center>webserv</center>\r\n</body>\r\n</html>\r\n");
+    _header.append("HTTP/1.1 ");
+    _header.append(status_code_msg.c_str());
+    _header.append("\r\nServer: ");
+    _header.append(SERVER_NAME);
+    _header.append("\r\nContent-Type: text/html");
+    _header.append("\r\nContent-Length: ");
+    _header.append(utils::num_to_str_dec(_body.size()).c_str());
+    _header.append("\r\nConnection: ");
+    if (req.connection_should_close())
+        _header.append("close");
+    else
+        _header.append("keep-alive");
+    _header.append("\r\nLocation: ");
+    _header.append((req.path_decoded() + "/").c_str());
+    _header.append("\r\n\r\n");
+}
+
 void Response::_build_redir(const Request &req, const config::Redirect &redir) {
     _body_type = BODY_BUFFER;
     const std::string &status_code_msg = g_m_status_codes.find(redir.status_code)->second;
@@ -158,7 +183,16 @@ void Response::_build_redir(const Request &req, const config::Redirect &redir) {
 }
 
 void Response::build(const Request &req) {
-    bool directory = !_file_handler.init(req.absolute_path());
+    bool directory;
+    if (req.path_decoded()[req.path_decoded().size() - 1] == '/')
+        directory = true;
+    else
+        directory = !_file_handler.init(req.absolute_path());
+
+    if (directory && req.path_decoded()[req.path_decoded().size() - 1] != '/') {
+        _build_redir_dir(req);
+        return;
+    }
 
     const config::Redirect *redir = _find_redir(req.location(), req.relative_path(), directory);
     if (redir) {
