@@ -238,7 +238,9 @@ void Webserver::_send(int fd, size_t max_len) {
 void Webserver::_close_connection(int fd) {
     std::vector<Connection>::iterator it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
-    _close_connection(it);
+    if (it != _v_connection.end()) {
+        _close_connection(it);
+    }
 }
 
 void Webserver::_close_connection(std::vector<Connection>::iterator it) {

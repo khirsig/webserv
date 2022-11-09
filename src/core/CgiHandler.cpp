@@ -203,6 +203,13 @@ void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
     if (it != env.end()) {
         it->second = _request.relative_path();
     }
+    it = env.find("CONTENT_TYPE");
+    if (it != env.end()) {
+        std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
+        if (it_tmp != env.end()) {
+            it->second = it_tmp->second;
+        }
+    }
     // TODO: Add all the other env variables
 }
 
