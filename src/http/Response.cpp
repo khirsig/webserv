@@ -61,7 +61,8 @@ static std::map<int, error_page_t> new_error_page_default() {
 
 const std::map<int, error_page_t> Response::_m_error_page = new_error_page_default();
 
-Response::Response() : _body_type(BODY_NONE), _state(HEADER), _cgi_pass(NULL) {
+Response::Response()
+    : _body_type(BODY_NONE), _state(HEADER), _cgi_pass(NULL), _is_dir_listing(false) {
     _header.reserve(MAX_INFO_LEN);
 }
 
@@ -87,6 +88,7 @@ void Response::init() {
     _body.clear();
     _body.set_pos(0);
     _cgi_pass = NULL;
+    _is_dir_listing = false;
 }
 
 const config::Redirect *Response::_find_redir(const config::Location *location,
@@ -166,7 +168,9 @@ void Response::build(const Request &req) {
 
     if (directory && !_find_index(req.location(), req.absolute_path())) {
         if (req.location()->directory_listing) {
-            std::cerr << "Directory listing\n";
+            _body_type = BODY_CGI;
+            _construct_header_cgi(req);
+            _is_dir_listing = true;
             return;
         }
         throw HTTP_NOT_FOUND;
@@ -218,6 +222,8 @@ void Response::build_error(const Request &req, int error_code) {
     _header.append(utils::num_to_str_dec(_body.size()).c_str());
     _header.append("\r\nConnection: close\r\n\r\n");
 }
+
+bool Response::is_dir_listing() const { return _is_dir_listing; }
 
 bool Response::need_cgi() const { return _body_type == BODY_CGI; }
 

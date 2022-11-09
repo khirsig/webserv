@@ -25,7 +25,8 @@ void CgiHandler::init(int connection_fd) {
     _connection_fd = connection_fd;
 }
 
-void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi_path) {
+void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi_path,
+                         const std::string &script_path) {
     reset(eni);
 
     int read_fd[2];
@@ -61,7 +62,7 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
         close(write_fd[0]);
         dup2(read_fd[1], STDOUT_FILENO);
         close(read_fd[1]);
-        _run_program(cgi_path);
+        _run_program(cgi_path, script_path);
     } else {
         _read_fd = read_fd[0];
         _write_fd = write_fd[1];
@@ -145,11 +146,11 @@ int32_t CgiHandler::get_read_fd() const { return _read_fd; }
 
 int32_t CgiHandler::get_write_fd() const { return _write_fd; }
 
-void CgiHandler::_run_program(const std::string &cgi_path) {
+void CgiHandler::_run_program(const std::string &cgi_path, const std::string &script_path) {
     std::map<std::string, std::string> m_header(_request.m_header());
 
     char **env = _get_env(m_header);
-    char **argv = _get_argv(cgi_path, _request.relative_path());
+    char **argv = _get_argv(cgi_path, script_path);
 
     chdir(_request.location()->root.c_str());
     execve(cgi_path.c_str(), argv, env);

@@ -11,6 +11,11 @@ try/catches check ob alle richtig sind und das richtige abfangen
 CGI error catchen und reset und init....
 siege -b -c50 -r 1 http://localhost:80/hello.py -> liefert mal 4 bytes mal 0
 echo -ne '' | nc localhost ===> EOF stuff handling
+cgi kill(pid)
+
+/Applications/Xcode.app/Contents/Developer/usr/bin/python3 fewfew not ending respons
+
+
 
 siege -b -c100 -r 100 http://localhost:800
 

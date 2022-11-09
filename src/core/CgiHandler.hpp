@@ -31,7 +31,8 @@ class CgiHandler {
     ~CgiHandler();
 
     void init(int connection_fd);
-    void execute(EventNotificationInterface &eni, const std::string &cgi_path);
+    void execute(EventNotificationInterface &eni, const std::string &cgi_path,
+                 const std::string &script_path);
     void reset(EventNotificationInterface &eni);
     void stop(EventNotificationInterface &eni);
     void read(EventNotificationInterface &eni, bool eof);
@@ -54,7 +55,7 @@ class CgiHandler {
     size_t _body_pos;
     char  *_buf;
 
-    void   _run_program(const std::string &cgi_path);
+    void   _run_program(const std::string &cgi_path, const std::string &script_path);
     char **_get_env(std::map<std::string, std::string> &env);
     void   _update_env(std::map<std::string, std::string> &env);
     char **_get_argv(const std::string &path, const std::string &body);

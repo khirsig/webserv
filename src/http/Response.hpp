@@ -21,6 +21,7 @@ class Response {
     core::ByteBuffer       _header;
     core::ByteBuffer       _body;
     const config::CgiPass *_cgi_pass;
+    bool                   _is_dir_listing;
 
     static const std::map<int, error_page_t> _m_error_page;
 
@@ -51,6 +52,7 @@ class Response {
     void build(const Request &req);
     void build_error(const Request &req, int error_code);
 
+    bool                   is_dir_listing() const;
     bool                   need_cgi() const;
     const config::CgiPass *cgi_pass() const;
 
