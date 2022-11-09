@@ -12,8 +12,6 @@
 #include "ByteBuffer.hpp"
 #include "EventNotificationInterface.hpp"
 
-#define CGI_READ_BUFFER_SIZE 1024
-
 static const std::string env_string[] = {
     "AUTH_TYPE",       "CONTENT_LENGTH",  "CONTENT_TYPE",    "GATEWAY_INTERFACE", "HTTP_ACCEPT",
     "HTTP_USER_AGENT", "PATH_INFO",       "QUERY_STRING",    "REMOTE_ADDR",       "REMOTE_HOST",
@@ -34,8 +32,9 @@ class CgiHandler {
     void execute(EventNotificationInterface &eni, const std::string &cgi_path,
                  const std::string &script_path);
     void reset(EventNotificationInterface &eni);
+    void eof_read_write(EventNotificationInterface &eni);
     void stop(EventNotificationInterface &eni);
-    void read(EventNotificationInterface &eni, bool eof);
+    void read(EventNotificationInterface &eni, size_t data_len);
     void write(EventNotificationInterface &eni, std::size_t max_size);
 
     bool is_done() const;

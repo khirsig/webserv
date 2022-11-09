@@ -6,7 +6,7 @@ namespace core {
 
 CgiHandler::CgiHandler(const http::Request &request, http::Response &response)
     : _request(request), _response(response), _read_fd(-1), _write_fd(-1), _is_done(true) {
-    _buf = new char[CGI_READ_BUFFER_SIZE];
+    _buf = new char[CGI_BUF_SIZE];
 }
 
 CgiHandler::~CgiHandler() {
@@ -87,36 +87,31 @@ void CgiHandler::reset(EventNotificationInterface &eni) {
     _body_pos = 0;
     if (_read_fd != -1) {
         eni.delete_event(_read_fd, EVFILT_READ);
+        eni.remove_cgi_fd(_read_fd);
         close(_read_fd);
         _read_fd = -1;
     }
     if (_write_fd != -1) {
         eni.delete_event(_write_fd, EVFILT_WRITE);
+        eni.remove_cgi_fd(_write_fd);
         close(_write_fd);
         _write_fd = -1;
     }
 }
 
-void CgiHandler::read(EventNotificationInterface &eni, bool eof) {
-    std::string temp_buf;
-    int         chars_read = 0;
+void CgiHandler::eof_read_write(EventNotificationInterface &eni) {
+    reset(eni);
+    eni.enable_event(_connection_fd, EVFILT_WRITE);
+}
 
-    chars_read = ::read(_read_fd, _buf, CGI_READ_BUFFER_SIZE);  // write in global buff
-    if (chars_read == -1) {
-        eni.delete_event(_read_fd, EVFILT_READ);
-        eni.remove_cgi_fd(_read_fd);
-        close(_read_fd);  // destructor?
+void CgiHandler::read(EventNotificationInterface &eni, size_t data_len) {
+    size_t to_read_len = data_len < CGI_BUF_SIZE ? data_len : CGI_BUF_SIZE;
+    int    read_len = ::read(_read_fd, _buf, to_read_len);
+    if (read_len == -1) {
         reset(eni);
         throw std::runtime_error("Error reading from CGI");
     }
-    _response.body().append(_buf, chars_read);  // write in response body
-    if (eof && chars_read < CGI_READ_BUFFER_SIZE) {
-        eni.delete_event(_read_fd, EVFILT_READ);
-        eni.remove_cgi_fd(_read_fd);
-        close(_read_fd);  // destructor?
-        _read_fd = -1;
-        _is_done = true;
-    }
+    _response.body().append(_buf, read_len);
     eni.enable_event(_connection_fd, EVFILT_WRITE);
 }
 

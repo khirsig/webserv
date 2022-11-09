@@ -67,36 +67,45 @@ void Webserver::run() {
                     // New event on cgi fd
                     core::CgiHandler *cgi = _eni.find_cgi(_eni.events[i].ident);
                     if (cgi) {
-                        if (_eni.events[i].filter == EVFILT_READ)
-                            cgi->read(_eni, _eni.events[i].flags & EV_EOF);
-                        else if (_eni.events[i].filter == EVFILT_WRITE)
-                            cgi->write(_eni, _eni.events[i].data);
+                        if (_eni.events[i].filter == EVFILT_READ) {
+                            if (_eni.events[i].data <= 0 && _eni.events[i].flags & EV_EOF) {
+                                cgi->eof_read_write(_eni);
+                            } else if (_eni.events[i].data > 0)
+                                cgi->read(_eni, _eni.events[i].data);
+                        } else if (_eni.events[i].filter == EVFILT_WRITE) {
+                            if (_eni.events[i].flags & EV_EOF)
+                                cgi->eof_read_write(_eni);
+                            else if (_eni.events[i].data > 0)
+                                cgi->write(_eni, _eni.events[i].data);
+                        }
                         continue;
                     }
 
                     // Event on established connection
                     if (_eni.events[i].filter == EVFILT_TIMER) {
                         _timeout_connection(_eni.events[i].ident);
-                    } else if (_eni.events[i].flags & EV_EOF) {
-                        // do something
-                        // std::cerr << "EOF" << std::endl;
-                        _close_connection(_eni.events[i].ident);
                     } else if (_eni.events[i].filter == EVFILT_READ) {
-                        _receive(_eni.events[i].ident, _eni.events[i].data);
+                        if (_eni.events[i].data <= 0 && _eni.events[i].flags & EV_EOF)
+                            _close_connection(_eni.events[i].ident);
+                        else if (_eni.events[i].data > 0)
+                            _receive(_eni.events[i].ident, _eni.events[i].data);
                     } else if (_eni.events[i].filter == EVFILT_WRITE) {
-                        _send(_eni.events[i].ident, _eni.events[i].data);
+                        if (_eni.events[i].flags & EV_EOF)
+                            _close_connection(_eni.events[i].ident);
+                        else if (_eni.events[i].data > 0)
+                            _send(_eni.events[i].ident, _eni.events[i].data);
                     }
                 } catch (const std::exception &e) {
                     std::cerr << "[";
                     utils::print_timestamp(std::cerr);
                     std::cerr << "]: " << e.what() << '\n';
-                    _close_connection(_eni.events[i].ident);
+                    // _close_connection(_eni.events[i].ident);
                 } catch (...) {
                     std::cerr << "[";
                     utils::print_timestamp(std::cerr);
                     std::cerr << "]: "
                               << "Unknown error\n";
-                    _close_connection(_eni.events[i].ident);
+                    // _close_connection(_eni.events[i].ident);
                 }
             }
         } catch (const std::exception &e) {
@@ -155,6 +164,7 @@ void Webserver::_accept_connection(const Socket &socket) {
         _eni.delete_event(accept_fd, EVFILT_READ);
         _eni.delete_event(accept_fd, EVFILT_WRITE);
         close(accept_fd);
+        std::cerr << "connection limit reached\n";
         return;
     } else {
         std::vector<Connection>::iterator it =
@@ -165,7 +175,7 @@ void Webserver::_accept_connection(const Socket &socket) {
 }
 
 void Webserver::_receive(int fd, size_t data_len) {
-    if (data_len <= 0) {
+    if (data_len < 0) {
         throw std::runtime_error("unexpected kqueue data size");
         return;
     }

@@ -100,7 +100,7 @@ void Connection::build_response(EventNotificationInterface& eni) {
         try {
             _response.build(_request);
             if (_response.is_dir_listing())
-                _cgi_handler.execute(eni, DIR_LISTING_CGI_PATH,
+                _cgi_handler.execute(eni, utils::get_absolute_path(DIR_LISTING_CGI_PATH),
                                      utils::get_absolute_path(DIR_LISTING_CGI_SCRIPT_PATH));
             else if (_response.need_cgi())
                 _cgi_handler.execute(eni, _response.cgi_pass()->path, _request.relative_path());
