@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tjensen <tjensen@student.42.fr>            +#+  +:+       +#+        */
+/*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:14 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/03 13:04:21 by tjensen          ###   ########.fr       */
+/*   Updated: 2022/11/09 15:36:10 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,5 +46,7 @@ void Server::print() const {
         std::cout << "}\n";
     }
 }
+
+
 
 }  // namespace config
