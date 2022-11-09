@@ -10,6 +10,7 @@ Seqfault Respone::State()
 try/catches check ob alle richtig sind und das richtige abfangen
 CGI error catchen und reset und init....
 cgi kill(pid)
+client_body_size should inherit in config
 
 
 /////////////
