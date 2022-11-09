@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/08 11:41:37 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/09 11:27:01 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include "../core/ByteBuffer.hpp"
 #include "../settings.hpp"
+#include "../utils/get_cwd.hpp"
 #include "../utils/timestamp.hpp"
 
 namespace config {
@@ -205,7 +206,7 @@ void Interpreter::_parse_cgi_pass(const std::vector<Token>           &v_token,
 
     if (it->type == OPERATOR)
         _unexpected_operator(it);
-    identifier.path = it->text;
+    identifier.path = utils::get_absolute_path(it->text);
     _increment_token(v_token, it);
 
     if (it->text != ";") {
