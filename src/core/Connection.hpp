@@ -46,7 +46,7 @@ class Connection {
     void parse_request(const std::vector<config::Server>& v_server);
     void build_response(EventNotificationInterface& eni);
     void send_response(EventNotificationInterface& eni, size_t max_len);
-    void destroy();
+    void destroy(EventNotificationInterface& eni);
 };
 
 bool operator==(const Connection& lhs, int fd);

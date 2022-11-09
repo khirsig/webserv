@@ -235,7 +235,7 @@ void Webserver::_close_connection(std::vector<Connection>::iterator it) {
     _eni.delete_event(it->fd(), EVFILT_TIMER);
     _eni.delete_event(it->fd(), EVFILT_READ);
     _eni.delete_event(it->fd(), EVFILT_WRITE);
-    it->destroy();
+    it->destroy(_eni);
     _used_connections--;
 }
 

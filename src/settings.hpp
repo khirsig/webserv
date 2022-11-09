@@ -1,6 +1,6 @@
 #pragma once
 
-#define PRINT_LEVEL 1
+#define PRINT_LEVEL 3
 
 #define MAX_CONNECTIONS 1024
 #define TIMEOUT_TIME 20000

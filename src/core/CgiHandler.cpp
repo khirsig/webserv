@@ -10,27 +10,35 @@ CgiHandler::CgiHandler(const http::Request &request, http::Response &response)
 }
 
 CgiHandler::~CgiHandler() {
-    close(_read_fd);  // delete events
+    if (_read_fd != -1)
+        close(_read_fd);
+    if (_write_fd != -1)
+        close(_write_fd);
     delete[] _buf;
 }
 
 void CgiHandler::init(int connection_fd) {
-    reset();
+    if (_read_fd != -1)
+        close(_read_fd);
+    if (_write_fd != -1)
+        close(_write_fd);
     _connection_fd = connection_fd;
 }
 
 void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi_path) {
-    reset();
+    reset(eni);
 
     int read_fd[2];
     int write_fd[2];
 
     if (pipe(read_fd) == -1) {
-        reset();
+        reset(eni);
         throw HTTP_INTERNAL_SERVER_ERROR;
     }
     if (pipe(write_fd) == -1) {
-        reset();
+        close(read_fd[0]);
+        close(read_fd[1]);
+        reset(eni);
         throw HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -42,7 +50,7 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
         close(read_fd[1]);
         close(write_fd[0]);
         close(write_fd[1]);
-        reset();
+        reset(eni);
         throw HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -72,15 +80,17 @@ void CgiHandler::execute(EventNotificationInterface &eni, const std::string &cgi
     }
 }
 
-void CgiHandler::reset() {
+void CgiHandler::reset(EventNotificationInterface &eni) {
     _is_done = true;
     _pid = -1;
     _body_pos = 0;
     if (_read_fd != -1) {
+        eni.delete_event(_read_fd, EVFILT_READ);
         close(_read_fd);
         _read_fd = -1;
     }
     if (_write_fd != -1) {
+        eni.delete_event(_write_fd, EVFILT_WRITE);
         close(_write_fd);
         _write_fd = -1;
     }
@@ -95,7 +105,7 @@ void CgiHandler::read(EventNotificationInterface &eni, bool eof) {
         eni.delete_event(_read_fd, EVFILT_READ);
         eni.remove_cgi_fd(_read_fd);
         close(_read_fd);  // destructor?
-        reset();
+        reset(eni);
         throw std::runtime_error("Error reading from CGI");
     }
     _response.body().append(_buf, chars_read);  // write in response body
@@ -186,6 +196,14 @@ void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
         it->second = _request.method_str();
     }
     it = env.find("PATH_INFO");
+    if (it != env.end()) {
+        it->second = _request.relative_path();
+    }
+    it = env.find("DOCUMENT_ROOT");
+    if (it != env.end()) {
+        it->second = _request.location()->root;
+    }
+    it = env.find("SCRIPT_FILENAME");
     if (it != env.end()) {
         it->second = _request.relative_path();
     }

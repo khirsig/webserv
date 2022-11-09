@@ -18,7 +18,8 @@ static const std::string env_string[] = {
     "AUTH_TYPE",       "CONTENT_LENGTH",  "CONTENT_TYPE",    "GATEWAY_INTERFACE", "HTTP_ACCEPT",
     "HTTP_USER_AGENT", "PATH_INFO",       "QUERY_STRING",    "REMOTE_ADDR",       "REMOTE_HOST",
     "REMOTE_IDENT",    "REMOTE_USER",     "REQUEST_METHOD",  "SCRIPT_NAME",       "SERVER_NAME",
-    "SERVER_PORT",     "SERVER_PROTOCOL", "SERVER_SOFTWARE", "REDIRECT_STATUS"};
+    "SERVER_PORT",     "SERVER_PROTOCOL", "SERVER_SOFTWARE", "REDIRECT_STATUS",   "SCRIPT_FILENAME",
+    "DOCUMENT_ROOT"};
 
 namespace core {
 
@@ -31,7 +32,8 @@ class CgiHandler {
 
     void init(int connection_fd);
     void execute(EventNotificationInterface &eni, const std::string &cgi_path);
-    void reset();
+    void reset(EventNotificationInterface &eni);
+    void stop(EventNotificationInterface &eni);
     void read(EventNotificationInterface &eni, bool eof);
     void write(EventNotificationInterface &eni, std::size_t max_size);
 

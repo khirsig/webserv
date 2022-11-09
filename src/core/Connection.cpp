@@ -150,12 +150,17 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             std::search(_response.body().begin(), _response.body().end(), needle_2,
                         needle_2 + sizeof(needle_2) - 1);
         core::ByteBuffer::const_iterator cgi_header_end;
-        if (start_needle_1 < start_needle_2)
+        bool                             found_needle = false;
+        if (start_needle_1 < start_needle_2) {
             cgi_header_end = start_needle_1 + sizeof(needle_1) - 1;
-        else if (start_needle_2 < start_needle_1)
+            found_needle = true;
+        } else if (start_needle_2 < start_needle_1) {
             cgi_header_end = start_needle_2 + sizeof(needle_2) - 1;
-        else
+            found_needle = true;
+        } else {
             cgi_header_end = _response.body().end();
+            found_needle = false;
+        }
         pos = _response.body().pos();
         left_len = cgi_header_end - (_response.body().begin() + pos);
         to_send_len = left_len < max_len ? left_len : max_len;
@@ -165,7 +170,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         pos += sent_len;
         _response.body().set_pos(pos);
         max_len -= sent_len;
-        if (sent_len == left_len) {
+        if (sent_len == left_len && found_needle) {
             _response.set_state(http::Response::BODY);
             if (_cgi_handler.is_done()) {
                 if (max_len >= 5) {
@@ -251,9 +256,12 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
     }
 }
 
-void Connection::destroy() {
+void Connection::destroy(EventNotificationInterface& eni) {
     close(_fd);
     _fd = -1;
+    if (!_cgi_handler.is_done()) {
+        _cgi_handler.reset(eni);
+    }
 
 #if PRINT_LEVEL > 0
     std::cout << utils::COLOR_YE << "[Closed]: " << utils::COLOR_NO
