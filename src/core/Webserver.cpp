@@ -51,6 +51,9 @@ void Webserver::run() {
             if (num_events == -1)
                 throw std::runtime_error("poll_events: " + std::string(strerror(errno)));
             for (int i = 0; i < num_events; i++) {
+                // std::cerr << "_eni.events[i].ident: " << _eni.events[i].ident << std::endl;
+                // std::cerr << "_eni.events[i].flags: " << _eni.events[i].flags << std::endl;
+                // std::cerr << "_eni.events[i].filter: " << _eni.events[i].filter << std::endl;
                 try {
                     // Kevent error
                     if (_eni.events[i].flags & EV_ERROR) {
@@ -85,17 +88,15 @@ void Webserver::run() {
                     if (_eni.events[i].filter == EVFILT_TIMER) {
                         _timeout_connection(_eni.events[i].ident);
                     } else if (_eni.events[i].filter == EVFILT_READ) {
-                        if (_eni.events[i].data <= 0 && _eni.events[i].flags & EV_EOF)
+                        if (_eni.events[i].data <= 0 && _eni.events[i].flags & EV_EOF) {
                             _close_connection(_eni.events[i].ident);
-                        else if (_eni.events[i].data > 0) {
-                            // std::cerr << "received: " << _eni.events[i].data << std::endl;
+                        } else if (_eni.events[i].data > 0) {
                             _receive(_eni.events[i].ident, _eni.events[i].data);
                         }
                     } else if (_eni.events[i].filter == EVFILT_WRITE) {
-                        if (_eni.events[i].flags & EV_EOF)
+                        if (_eni.events[i].flags & EV_EOF) {
                             _close_connection(_eni.events[i].ident);
-                        else if (_eni.events[i].data > 0) {
-                            // std::cerr << "send: " << _eni.events[i].data << std::endl;
+                        } else if (_eni.events[i].data > 0) {
                             _send(_eni.events[i].ident, _eni.events[i].data);
                         }
                     }
@@ -138,6 +139,12 @@ void Webserver::_accept_connection(const Socket &socket) {
     if (fcntl(accept_fd, F_SETFL, O_NONBLOCK) == -1) {
         close(accept_fd);
         throw std::runtime_error("fcntl: " + std::string(strerror(errno)));
+    }
+
+    int optval = 1;
+    if (setsockopt(accept_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(optval)) < 0) {
+        close(accept_fd);
+        throw std::runtime_error("setsockopt: " + std::string(strerror(errno)));
     }
 
     client_addr.addr = accept_addr.sin_addr.s_addr;
@@ -253,6 +260,11 @@ void Webserver::_close_connection(int fd) {
 }
 
 void Webserver::_close_connection(std::vector<Connection>::iterator it) {
+    // for (size_t i = 0; i < 10000000; i++) {
+    //     write(it->fd(), "HTTP/1.1 408 Request Timeout\r\n", 30);
+    // }
+    // std::cerr << "errno: " << errno << std::endl;
+    // std::cerr << "send: " << strerror(errno) << '\n';
     _eni.delete_event(it->fd(), EVFILT_TIMER);
     _eni.delete_event(it->fd(), EVFILT_READ);
     _eni.delete_event(it->fd(), EVFILT_WRITE);

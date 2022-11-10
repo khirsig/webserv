@@ -8,6 +8,7 @@ CGI error catchen und reset und init....
 cgi kill(pid)
 broken piped
 time out when request done
+body ignorieren bei GET Request
 
 /////////////
 /// FIXED ///

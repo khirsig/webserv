@@ -15,8 +15,10 @@ print("Content-Type: text/html\r\n\r\n", end = '')
 
 print("1234", end = '')
 
-# import time
-# time.sleep(5)
+import time
+time.sleep(5)
+
+print("5678")
 
 # print("<html>")
 # print("<head>")

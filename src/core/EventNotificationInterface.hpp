@@ -11,7 +11,7 @@
 #include "CgiHandler.hpp"
 #include "Socket.hpp"
 
-#define MAX_POLLED_EVENTS 16
+#define MAX_POLLED_EVENTS 1
 
 namespace core {
 

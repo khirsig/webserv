@@ -176,10 +176,10 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             found_needle = false;
         }
 
-        std::cerr << "found needle: " << found_needle << std::endl;
-        std::cerr << "cgi done: " << _cgi_handler.is_done() << std::endl;
-        std::cerr << "body size: " << _response.body().size() << std::endl;
-        std::cerr << "body: \'" << _response.body() << "\'" << std::endl;
+        // std::cerr << "found needle: " << found_needle << std::endl;
+        // std::cerr << "cgi done: " << _cgi_handler.is_done() << std::endl;
+        // std::cerr << "body size: " << _response.body().size() << std::endl;
+        // std::cerr << "body: \'" << _response.body() << "\'" << std::endl;
         if (!found_needle) {
             eni.disable_event(_fd, EVFILT_WRITE);
             eni.delete_event(_fd, EVFILT_TIMER);
@@ -209,7 +209,6 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             eni.delete_event(_fd, EVFILT_TIMER);
             return false;
         }
-        std::cerr << "sent cgi header: " << sent_len << std::endl;
     }
     if (_response.state() == http::Response::BODY && max_len > 0) {
         switch (_response.body_type()) {
@@ -230,7 +229,6 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             case http::Response::BODY_CGI: {
                 if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
                     return true;
-                std::cerr << "send cgi body" << std::endl;
                 size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
                 pos = _response.body().pos();
                 left_len = _response.body().size() - pos;
@@ -291,9 +289,7 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
 void Connection::destroy(EventNotificationInterface& eni) {
     close(_fd);
     _fd = -1;
-    if (!_cgi_handler.is_done()) {
-        _cgi_handler.reset(eni);
-    }
+    _cgi_handler.reset(eni);
 
 #if PRINT_LEVEL > 0
     std::cout << utils::COLOR_YE << "[Closed]: " << utils::COLOR_NO
