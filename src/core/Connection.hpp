@@ -45,7 +45,7 @@ class Connection {
     void receive(size_t data_len);
     void parse_request(const std::vector<config::Server>& v_server);
     void build_response(EventNotificationInterface& eni);
-    void send_response(EventNotificationInterface& eni, size_t max_len);
+    bool send_response(EventNotificationInterface& eni, size_t max_len);
     void destroy(EventNotificationInterface& eni);
 };
 

@@ -1,5 +1,6 @@
 #include "Connection.hpp"
 
+#include "../http/status_codes.hpp"
 #include "../utils/addr_to_str.hpp"
 #include "../utils/color.hpp"
 #include "../utils/get_cwd.hpp"
@@ -105,10 +106,17 @@ void Connection::build_response(EventNotificationInterface& eni) {
             else if (_response.need_cgi())
                 _cgi_handler.execute(eni, _response.cgi_pass()->path, _request.relative_path());
         } catch (int error) {
+            if (error == HTTP_NOT_FOUND || error == HTTP_FORBIDDEN)
+                _should_close = false;
+            else
+                _should_close = true;
             _response.build_error(_request, error);
-            return;
         }
     } else {
+        if (_request_error == HTTP_NOT_FOUND || _request_error == HTTP_FORBIDDEN)
+            _should_close = false;
+        else
+            _should_close = true;
         _response.build_error(_request, _request_error);
     }
 #if PRINT_LEVEL > 1
@@ -116,7 +124,7 @@ void Connection::build_response(EventNotificationInterface& eni) {
 #endif
 }
 
-void Connection::send_response(EventNotificationInterface& eni, size_t max_len) {
+bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) {
     size_t left_len;
     size_t to_send_len;
     size_t pos;
@@ -141,8 +149,10 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         }
     }
     if (_response.state() == http::Response::HEADER_CGI && max_len > 0) {
-        if (_response.body().size() < 2)
-            return;
+        // if (_response.body().size() < 2) {
+        //     eni.disable_event(_fd, EVFILT_WRITE);
+        //     return;
+        // }
 
         char needle_1[] = "\r\n\r\n";
         char needle_2[] = "\n\n";
@@ -165,6 +175,17 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             cgi_header_end = _response.body().end();
             found_needle = false;
         }
+
+        std::cerr << "found needle: " << found_needle << std::endl;
+        std::cerr << "cgi done: " << _cgi_handler.is_done() << std::endl;
+        std::cerr << "body size: " << _response.body().size() << std::endl;
+        std::cerr << "body: \'" << _response.body() << "\'" << std::endl;
+        if (!found_needle) {
+            eni.disable_event(_fd, EVFILT_WRITE);
+            eni.delete_event(_fd, EVFILT_TIMER);
+            return false;
+        }
+
         pos = _response.body().pos();
         left_len = cgi_header_end - (_response.body().begin() + pos);
         to_send_len = left_len < max_len ? left_len : max_len;
@@ -176,7 +197,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         max_len -= sent_len;
         if (sent_len == left_len && found_needle) {
             _response.set_state(http::Response::BODY);
-            if (_cgi_handler.is_done()) {
+            if (_cgi_handler.is_done() && pos >= _response.body().size()) {
                 if (max_len >= 5) {
                     if (send(_fd, "0\r\n\r\n", 5, 0) != 5)
                         throw std::runtime_error("send: failed");
@@ -185,7 +206,10 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             }
         } else if (pos >= _response.body().size()) {
             eni.disable_event(_fd, EVFILT_WRITE);
+            eni.delete_event(_fd, EVFILT_TIMER);
+            return false;
         }
+        std::cerr << "sent cgi header: " << sent_len << std::endl;
     }
     if (_response.state() == http::Response::BODY && max_len > 0) {
         switch (_response.body_type()) {
@@ -205,7 +229,8 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             }
             case http::Response::BODY_CGI: {
                 if (max_len < _max_pipe_size_str.size() + 4)  // \r\n\r\n
-                    return;
+                    return true;
+                std::cerr << "send cgi body" << std::endl;
                 size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
                 pos = _response.body().pos();
                 left_len = _response.body().size() - pos;
@@ -233,6 +258,8 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
                         }
                     } else {
                         eni.disable_event(_fd, EVFILT_WRITE);
+                        eni.delete_event(_fd, EVFILT_TIMER);
+                        return false;
                     }
                 }
                 break;
@@ -258,6 +285,7 @@ void Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         _is_active = false;
         _request.init();
     }
+    return true;
 }
 
 void Connection::destroy(EventNotificationInterface& eni) {

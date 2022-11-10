@@ -254,7 +254,10 @@ void Response::build_error(const Request &req, int error_code) {
     _header.append(error_page->content_type.c_str());
     _header.append("\r\nContent-Length: ");
     _header.append(utils::num_to_str_dec(_body.size()).c_str());
-    _header.append("\r\nConnection: close\r\n\r\n");
+    if (error_code == HTTP_NOT_FOUND || error_code == HTTP_FORBIDDEN)
+        _header.append("\r\nConnection: keep-alive\r\n\r\n");
+    else
+        _header.append("\r\nConnection: close\r\n\r\n");
 }
 
 bool Response::is_dir_listing() const { return _is_dir_listing; }

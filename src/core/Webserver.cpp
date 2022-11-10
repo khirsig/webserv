@@ -87,13 +87,17 @@ void Webserver::run() {
                     } else if (_eni.events[i].filter == EVFILT_READ) {
                         if (_eni.events[i].data <= 0 && _eni.events[i].flags & EV_EOF)
                             _close_connection(_eni.events[i].ident);
-                        else if (_eni.events[i].data > 0)
+                        else if (_eni.events[i].data > 0) {
+                            // std::cerr << "received: " << _eni.events[i].data << std::endl;
                             _receive(_eni.events[i].ident, _eni.events[i].data);
+                        }
                     } else if (_eni.events[i].filter == EVFILT_WRITE) {
                         if (_eni.events[i].flags & EV_EOF)
                             _close_connection(_eni.events[i].ident);
-                        else if (_eni.events[i].data > 0)
+                        else if (_eni.events[i].data > 0) {
+                            // std::cerr << "send: " << _eni.events[i].data << std::endl;
                             _send(_eni.events[i].ident, _eni.events[i].data);
+                        }
                     }
                 } catch (const std::exception &e) {
                     std::cerr << "[";
@@ -185,6 +189,8 @@ void Webserver::_receive(int fd, size_t data_len) {
 
     try {
         conn_it->receive(data_len);
+        if (_eni.add_timer(fd, TIMEOUT_TIME))
+            throw std::runtime_error("eni: " + std::string(strerror(errno)));
     } catch (...) {
         _close_connection(conn_it);
         throw;
@@ -211,7 +217,10 @@ void Webserver::_send(int fd, size_t max_len) {
     std::vector<Connection>::iterator it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
     try {
-        it->send_response(_eni, max_len);
+        if (it->send_response(_eni, max_len)) {
+            if (_eni.add_timer(fd, TIMEOUT_TIME))
+                throw std::runtime_error("eni: " + std::string(strerror(errno)));
+        }
         if (it->is_response_done()) {
             if (it->should_close()) {
                 _close_connection(it);
@@ -224,7 +233,7 @@ void Webserver::_send(int fd, size_t max_len) {
                 return;
             }
 
-            if (_eni.add_timer(fd, TIMEOUT_TIME) || _eni.disable_event(it->fd(), EVFILT_WRITE) ||
+            if (_eni.disable_event(it->fd(), EVFILT_WRITE) ||
                 _eni.enable_event(it->fd(), EVFILT_READ)) {
                 throw std::runtime_error("eni: " + std::string(strerror(errno)));
             }
@@ -253,7 +262,7 @@ void Webserver::_close_connection(std::vector<Connection>::iterator it) {
 
 void Webserver::_timeout_connection(int fd) {
 #if PRINT_LEVEL > 0
-    std::cerr << utils::COLOR_CY << "[Timeout] " << utils::COLOR_NO;
+    std::cout << utils::COLOR_CY << "[Timeout] " << utils::COLOR_NO;
 #endif
     _close_connection(fd);
 }
