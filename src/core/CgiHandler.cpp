@@ -207,9 +207,16 @@ void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
     }
     it = env.find("SCRIPT_FILENAME");
     if (it != env.end()) {
-        it->second = _request.relative_path();
+        it->second = _response.cgi_script_path();
     }
     it = env.find("CONTENT_TYPE");
+    if (it != env.end()) {
+        std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
+        if (it_tmp != env.end()) {
+            it->second = it_tmp->second;
+        }
+    }
+    it = env.find("HTTP_CONTENT_TYPE");
     if (it != env.end()) {
         std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
         if (it_tmp != env.end()) {

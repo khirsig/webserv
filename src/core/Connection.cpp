@@ -104,7 +104,7 @@ void Connection::build_response(EventNotificationInterface& eni) {
                 _cgi_handler.execute(eni, utils::get_absolute_path(DIR_LISTING_CGI_PATH),
                                      utils::get_absolute_path(DIR_LISTING_CGI_SCRIPT_PATH));
             else if (_response.need_cgi())
-                _cgi_handler.execute(eni, _response.cgi_pass()->path, _request.relative_path());
+                _cgi_handler.execute(eni, _response.cgi_pass()->path, _response.cgi_script_path());
         } catch (int error) {
             if (error == HTTP_NOT_FOUND || error == HTTP_FORBIDDEN)
                 _should_close = false;

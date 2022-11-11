@@ -62,7 +62,11 @@ static std::map<int, error_page_t> new_error_page_default() {
 const std::map<int, error_page_t> Response::_m_error_page = new_error_page_default();
 
 Response::Response()
-    : _body_type(BODY_NONE), _state(HEADER), _cgi_pass(NULL), _is_dir_listing(false) {
+    : _body_type(BODY_NONE),
+      _state(HEADER),
+      _cgi_pass(NULL),
+      _is_dir_listing(false),
+      _index_file(NULL) {
     _header.reserve(MAX_INFO_LEN);
 }
 
@@ -89,6 +93,7 @@ void Response::init() {
     _body.set_pos(0);
     _cgi_pass = NULL;
     _is_dir_listing = false;
+    _index_file = NULL;
 }
 
 const config::Redirect *Response::_find_redir(const config::Location *location,
@@ -111,6 +116,7 @@ bool Response::_find_index(const config::Location *location, const std::string &
     for (size_t i = 0; i < location->v_index.size(); i++) {
         try {
             _file_handler.init(absolute_path + "/" + location->v_index[i]);
+            _index_file = &location->v_index[i];
             return true;
         } catch (...) {
         }
@@ -214,6 +220,10 @@ void Response::build(const Request &req) {
     if (_cgi_pass) {
         _body_type = BODY_CGI;
         _file_handler.close();
+        if (_index_file)
+            _cgi_script_path = req.relative_path() + *_index_file;
+        else
+            _cgi_script_path = req.relative_path();
         _construct_header_cgi(req);
         return;
     }
@@ -265,6 +275,8 @@ bool Response::is_dir_listing() const { return _is_dir_listing; }
 bool Response::need_cgi() const { return _body_type == BODY_CGI; }
 
 const config::CgiPass *Response::cgi_pass() const { return _cgi_pass; }
+
+const std::string &Response::cgi_script_path() const { return _cgi_script_path; }
 
 void Response::print() const {
     std::cout
