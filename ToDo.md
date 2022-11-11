@@ -1,19 +1,21 @@
 // TODO: CGIs needed:
 Config Parser testen
 Cookie Management & Session Management,
-Delete,
-Directory Listing
 try/catches check ob alle richtig sind und das richtige abfangen
 CGI error catchen und reset und init....
-cgi kill(pid)
-broken piped
-time out when request done
 body ignorieren bei GET Request
+server restart
+server shutdown
 
 /////////////
 /// FIXED ///
 /////////////
 
+broken piped
+time out when request done
+Delete,
+Directory Listing
+cgi kill(pid)
 client_body_size should inherit in config
 siege -b -c50 -r 1 http://localhost:80/hello.py -> liefert mal 4 bytes mal 0
 echo -ne '' | nc localhost ===> EOF stuff handling

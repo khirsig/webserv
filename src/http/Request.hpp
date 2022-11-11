@@ -99,9 +99,9 @@ class Request {
     std::map<std::string, std::string> _m_header;
 
     // Body
-    BodyContentType  _body_content_type;
-    size_t           _content_len;
-    core::ByteBuffer _body;
+    BodyContentType   _body_content_type;
+    size_t            _content_len;
+    core::ByteBuffer *_body;
 
     // Other
     Connection              _connection;  // naming ??! same as connection from webserver

@@ -32,6 +32,7 @@ Request::Request()
       _method(NONE),
       _body_content_type(CONT_NONE),
       _content_len(0),
+      _body(NULL),
       _connection(CONN_KEEP_ALIVE),
       _server(NULL),
       _location(NULL),
@@ -46,7 +47,7 @@ Request::Request()
     _value.reserve(MAX_INFO_LEN / 4);
 }
 
-Request::~Request() {}
+Request::~Request() { delete _body; }
 
 void Request::init() {
     _state = REQUEST_LINE;
@@ -70,7 +71,8 @@ void Request::init() {
     _key.clear();
     _value.clear();
     _m_header.clear();
-    _body.clear();
+    delete _body;
+    _body = new core::ByteBuffer(1024);
 }
 
 bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
@@ -88,11 +90,11 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _find_server(v_server, socket_addr);
         _find_location();
         _process_path();
-        if (_body_content_type == CONT_LENGTH && _location->client_max_body_size < _content_len)
+        if (_location->client_max_body_size < _content_len)
             throw HTTP_CONTENT_TOO_LARGE;
-        _body.reserve(_content_len);
         switch (_body_content_type) {
             case CONT_LENGTH:
+                _body->reserve(_content_len);
                 _state = BODY;
                 break;
             case CONT_CHUNKED:
@@ -104,11 +106,11 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         }
     }
     if (_state == BODY) {
-        size_t left_len = _content_len - _body.size();
+        size_t left_len = _content_len - _body->size();
         if (left_len > buf_len - buf_pos)
             left_len = buf_len - buf_pos;
-        _body.append(buf + buf_pos, left_len);
-        if (_body.size() != _content_len)
+        _body->append(buf + buf_pos, left_len);
+        if (_body->size() != _content_len)
             return false;
         _state = DONE;
     }
@@ -118,6 +120,10 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _state = DONE;
     }
     if (_state == DONE) {
+        if (_method == GET || _method == HEAD) {
+            _body->clear();
+            _body_content_type = CONT_NONE;
+        }
 #if PRINT_LEVEL > 1
         print();
 #endif
@@ -821,7 +827,7 @@ bool Request::_parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_p
                         if (!isxdigit(c))
                             throw HTTP_BAD_REQUEST;
                         _chunk_len = _chunk_len * 16 + HEX_CHAR_TO_INT(c);
-                        if (_body.size() + _chunk_len > _location->client_max_body_size)
+                        if (_body->size() + _chunk_len > _location->client_max_body_size)
                             throw HTTP_CONTENT_TOO_LARGE;
                         break;
                 }
@@ -928,13 +934,13 @@ void Request::print() const {
     for (const_header_it it = _m_header.begin(); it != _m_header.end(); it++)
         std::cout << utils::COLOR_BL << "  - " << it->first << ": " << utils::COLOR_NO << it->second
                   << "\n";
-    std::cout << utils::COLOR_CY_1 << " BODY (" << utils::COLOR_NO << _body.size()
+    std::cout << utils::COLOR_CY_1 << " BODY (" << utils::COLOR_NO << _body->size()
               << utils::COLOR_CY_1 << "):" << utils::COLOR_NO << "\n";
     std::cout << utils::COLOR_CY << "  \'" << utils::COLOR_NO;
-    for (size_t i = 0; i < _body.size(); i++) {
+    for (size_t i = 0; i < _body->size(); i++) {
         if (i > 0 && i % 75 == 0)
             std::cout << "\n   ";
-        std::cout << _body[i];
+        std::cout << (*_body)[i];
     }
     std::cout << utils::COLOR_CY << "\'\n" << utils::COLOR_NO;
     std::cout
@@ -965,7 +971,7 @@ const config::Server *Request::server() const { return _server; }
 
 const config::Location *Request::location() const { return _location; }
 
-const core::ByteBuffer &Request::body() const { return _body; }
+const core::ByteBuffer &Request::body() const { return *_body; }
 
 const std::string &Request::relative_path() const { return _relative_path; }
 
