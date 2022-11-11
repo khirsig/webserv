@@ -3,7 +3,6 @@ Config Parser testen
 Cookie Management & Session Management,
 try/catches check ob alle richtig sind und das richtige abfangen
 CGI error catchen und reset und init....
-body ignorieren bei GET Request
 server restart
 server shutdown
 
@@ -11,6 +10,7 @@ server shutdown
 /// FIXED ///
 /////////////
 
+body ignorieren bei GET Request
 broken piped
 time out when request done
 Delete,
