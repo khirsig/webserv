@@ -145,6 +145,7 @@ class Request {
     const std::string                        &query_string() const;
     const std::string                        &host_encoded() const;
     const std::string                        &host_decoded() const;
+    std::map<std::string, std::string>       &m_header();
     const std::map<std::string, std::string> &m_header() const;
     const config::Server                     *server() const;
     const config::Location                   *location() const;

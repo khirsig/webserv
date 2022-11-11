@@ -161,14 +161,6 @@ void CgiHandler::_run_program(const std::string &cgi_path, const std::string &sc
 }
 
 char **CgiHandler::_get_env(std::map<std::string, std::string> &env) {
-    for (uint32_t i = 0; i < sizeof(env_string) / sizeof(env_string[0]); ++i) {
-        if (env.find(env_string[i]) == env.end()) {
-            env.insert(std::make_pair(env_string[i], ""));
-        }
-    }
-
-    _update_env(env);
-
     char   **ret = new char *[env.size() + 1];
     uint32_t i = 0;
     for (std::map<std::string, std::string>::iterator it = env.begin(); it != env.end(); ++it) {
@@ -189,42 +181,81 @@ char **CgiHandler::_get_env(std::map<std::string, std::string> &env) {
     return ret;
 }
 
-void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
-    std::map<std::string, std::string>::iterator it = env.find("QUERY_STRING");
-    if (it != env.end())
-        it->second = _request.query_string();
-    it = env.find("REQUEST_METHOD");
-    if (it != env.end()) {
-        it->second = _request.method_str();
-    }
-    it = env.find("PATH_INFO");
-    if (it != env.end()) {
-        it->second = _request.relative_path();
-    }
-    it = env.find("DOCUMENT_ROOT");
-    if (it != env.end()) {
-        it->second = _request.location()->root;
-    }
-    it = env.find("SCRIPT_FILENAME");
-    if (it != env.end()) {
-        it->second = _response.cgi_script_path();
-    }
-    it = env.find("CONTENT_TYPE");
-    if (it != env.end()) {
-        std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
-        if (it_tmp != env.end()) {
-            it->second = it_tmp->second;
-        }
-    }
-    it = env.find("HTTP_CONTENT_TYPE");
-    if (it != env.end()) {
-        std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
-        if (it_tmp != env.end()) {
-            it->second = it_tmp->second;
-        }
-    }
-    // TODO: Add all the other env variables
-}
+// void CgiHandler::_update_env(std::map<std::string, std::string> &env) {
+//     std::map<std::string, std::string>::iterator it = env.find("QUERY_STRING");
+//     if (it != env.end())
+//         it->second = _request.query_string();
+//     it = env.find("CONTENT_TYPE");
+//     if (it != env.end()) {
+//         std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
+//         if (it_tmp != env.end()) {
+//             it->second = it_tmp->second;
+//         }
+//     }
+//     it = env.find("GATEWAY_INTERFACE");
+//     if (it != env.end()) {
+//         it->second = "CGI/1.1";
+//     }
+//     // //
+//     // it = env.find("REMOTE_ADDR");
+//     // if (it != env.end()) {
+//     //     it->second = ;
+//     // }
+//     // //
+//     // it = env.find("REMOTE_HOST");
+//     // if (it != env.end()) {
+//     //     it->second = ;
+//     // }
+
+//     it = env.find("REQUEST_METHOD");
+//     if (it != env.end()) {
+//         it->second = _request.method_str();
+//     }
+//     it = env.find("SCRIPT_NAME");
+//     if (it != env.end()) {
+//         size_t pos = _response.cgi_script_path().rfind('/');
+//         if (pos != std::string::npos) {
+//             it->second = _response.cgi_script_path().substr(pos);
+//         } else {
+//             it->second = _response.cgi_script_path().substr(0);
+//         }
+//     }
+//     // it = env.find("SERVER_NAME");
+//     // if (it != env.end()) {
+//     //     it->second = ;
+//     // }
+//     // it = env.find("SERVER_PORT");
+//     // if (it != env.end()) {
+//     //     it->second = ;
+//     // }
+//     it = env.find("SERVER_PROTOCOL");
+//     if (it != env.end()) {
+//         it->second = "HTTP/1.1";
+//     }
+//     it = env.find("SERVER_SOFTWARE");
+//     if (it != env.end()) {
+//         it->second = SERVER_NAME;
+//     }
+
+//     ////////////////////////////////////
+
+//     it = env.find("DOCUMENT_ROOT");
+//     if (it != env.end()) {
+//         it->second = _request.location()->root;
+//     }
+//     it = env.find("SCRIPT_FILENAME");
+//     if (it != env.end()) {
+//         it->second = _response.cgi_script_path();
+//     }
+//     it = env.find("HTTP_CONTENT_TYPE");
+//     if (it != env.end()) {
+//         std::map<std::string, std::string>::iterator it_tmp = env.find("CONTENT-TYPE");
+//         if (it_tmp != env.end()) {
+//             it->second = it_tmp->second;
+//         }
+//     }
+//     // TODO: Add all the other env variables
+// }
 
 char **CgiHandler::_get_argv(const std::string &cgi_path, const std::string &script_path) {
     char **argv = new char *[3];

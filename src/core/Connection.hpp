@@ -29,6 +29,8 @@ class Connection {
     const size_t             BUF_SIZE;
     static const std::string _max_pipe_size_str;
 
+    void _build_cgi_env();
+
    public:
     Connection();
     ~Connection();

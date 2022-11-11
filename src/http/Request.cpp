@@ -965,6 +965,8 @@ const std::string &Request::host_encoded() const { return _host_encoded; }
 
 const std::string &Request::host_decoded() const { return _host_decoded; }
 
+std::map<std::string, std::string> &Request::m_header() { return _m_header; }
+
 const std::map<std::string, std::string> &Request::m_header() const { return _m_header; }
 
 const config::Server *Request::server() const { return _server; }

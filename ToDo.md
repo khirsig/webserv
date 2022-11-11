@@ -5,6 +5,8 @@ try/catches check ob alle richtig sind und das richtige abfangen
 CGI error catchen und reset und init....
 server restart
 server shutdown
+Index CGI
+CGI Variables
 
 /////////////
 /// FIXED ///

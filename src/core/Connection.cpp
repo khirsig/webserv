@@ -9,6 +9,34 @@
 
 namespace core {
 
+void Connection::_build_cgi_env() {
+    typedef std::map<std::string, std::string>::iterator map_it;
+
+    _request.m_header().insert(std::make_pair("AUTH_TYPE", ""));
+    map_it it = _request.m_header().find("CONTENT-LENGTH");
+    if (it != _request.m_header().end())
+        _request.m_header().insert(std::make_pair("CONTENT_LENGTH", it->second));
+    it = _request.m_header().find("CONTENT-TYPE");
+    if (it != _request.m_header().end())
+        _request.m_header().insert(std::make_pair("CONTENT_TYPE", it->second));
+    _request.m_header().insert(std::make_pair("GATEWAY_INTERFACE", "CGI/1.1"));
+    _request.m_header().insert(std::make_pair("PATH_INFO", ""));
+    _request.m_header().insert(std::make_pair("QUERY_STRING", _request.query_string()));
+    _request.m_header().insert(std::make_pair("REMOTE_ADDR", utils::addr_to_str(_client_addr)));
+    _request.m_header().insert(std::make_pair("REMOTE_HOST", utils::addr_to_str(_client_addr)));
+    _request.m_header().insert(std::make_pair("REQUEST_METHOD", _request.method_str()));
+    _request.m_header().insert(std::make_pair("SCRIPT_NAME", _response.cgi_script_path()));
+    _request.m_header().insert(std::make_pair("SERVER_NAME", ""));
+    _request.m_header().insert(
+        std::make_pair("SERVER_PORT", utils::num_to_str_dec(ntohs(_socket_addr.port))));
+    _request.m_header().insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
+    _request.m_header().insert(std::make_pair("SERVER_SOFTWARE", SERVER_NAME));
+    // PHP specific
+    _request.m_header().insert(std::make_pair("REDIRECT_STATUS", "200"));
+    _request.m_header().insert(std::make_pair("SCRIPT_FILENAME", _response.cgi_script_path()));
+    _request.m_header().insert(std::make_pair("DOCUMENT_ROOT", _request.location()->root));
+}
+
 const std::string Connection::_max_pipe_size_str = utils::num_to_str_hex(MAX_PIPE_SIZE);
 
 Connection::Connection()
@@ -103,8 +131,10 @@ void Connection::build_response(EventNotificationInterface& eni) {
             if (_response.is_dir_listing())
                 _cgi_handler.execute(eni, utils::get_absolute_path(DIR_LISTING_CGI_PATH),
                                      utils::get_absolute_path(DIR_LISTING_CGI_SCRIPT_PATH));
-            else if (_response.need_cgi())
+            else if (_response.need_cgi()) {
+                _build_cgi_env();
                 _cgi_handler.execute(eni, _response.cgi_pass()->path, _response.cgi_script_path());
+            }
         } catch (int error) {
             if (error == HTTP_NOT_FOUND || error == HTTP_FORBIDDEN)
                 _should_close = false;
