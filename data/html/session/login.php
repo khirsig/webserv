@@ -9,7 +9,8 @@ echo "<body>";
 echo "<h1>login.php</h1>";
 
 if (isset($_SESSION['username'])) {
-    echo "You are logged in as " . $_SESSION['username'] . ". Click <a href='logout.php'>here</a> to log out.";
+    echo "You are logged in as '" . $_SESSION['username'] . "'";
+    echo "<a href='logout.php'>Logout</a>";
 } else {
     echo "<form enctype=\"multipart/form-data\" action=\"create_session.php\" method=\"post\">
 		<p>Username: <input type=\"text\" name=\"username\" /></p>

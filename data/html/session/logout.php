@@ -10,10 +10,13 @@ echo "<h1>logout.php</h1>";
 
 if (isset($_SESSION['username'])) {
 	session_destroy();
-	echo "You have been logged out. Click <a href='login.php'>here</a> to log back in.";
+	echo "You have been logged out.<br>";
 } else {
-	echo "You are not logged in. Click <a href='login.php'>here</a> to log in.";
+    echo "You are not logged in.<br>";
 }
+echo "<h4><a href='page.php'>Page</a></h4>";
+echo "<h4><a href='login.php'>Login</a></h4>";
+
 echo "</body>";
 echo "</html>";
 ?>

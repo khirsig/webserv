@@ -1,17 +1,16 @@
 // TODO: CGIs needed:
 Config Parser testen
-Cookie Management & Session Management,
 try/catches check ob alle richtig sind und das richtige abfangen
 CGI error catchen und reset und init....
 server restart
 server shutdown
-Index CGI
-CGI Variables
 
 /////////////
 /// FIXED ///
 /////////////
 
+Index CGI
+CGI Variables
 body ignorieren bei GET Request
 broken piped
 time out when request done
@@ -27,3 +26,4 @@ siege -b -c100 -r 100 http://localhost:800
 File Upload,
 Seqfault Respone::State()
 Config parsing default values
+Cookie Management & Session Management,
