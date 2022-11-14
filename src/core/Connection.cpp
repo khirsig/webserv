@@ -40,8 +40,6 @@ void Connection::_build_cgi_env() {
         "SCRIPT_FILENAME", utils::get_absolute_path(_request.location()->root +
                                                     _response.cgi_script_relative_path())));
     _request.m_header().insert(std::make_pair("DOCUMENT_ROOT", _request.location()->root));
-    std::cerr << "Script filename: " << _request.m_header().find("SCRIPT_FILENAME")->second
-              << std::endl;
 }
 
 const std::string Connection::_max_pipe_size_str = utils::num_to_str_hex(MAX_PIPE_SIZE);

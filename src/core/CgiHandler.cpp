@@ -123,8 +123,6 @@ void CgiHandler::write(EventNotificationInterface &eni, std::size_t max_size) {
     std::size_t left_bytes;
     std::size_t send_bytes;
 
-    std::cerr << "CGI write" << std::endl;
-
     left_bytes = _request.body().size() - _body_pos;
     if (left_bytes > max_size)
         send_bytes = max_size;
