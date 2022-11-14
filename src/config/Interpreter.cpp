@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/14 14:17:49 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/14 14:19:22 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -257,7 +257,7 @@ void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std:
     // if (str.find_first_not_of("0123456789") != std::string::npos) {
     //     _invalid_port(it, str);
     // }
-    size_t i;
+    size_t i = 0;
     if (str.empty() || !utils ::str_to_num_dec(str, i) || i > 65535)
         _invalid_port(it, str);
     port = htons(i);
