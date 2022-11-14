@@ -39,25 +39,25 @@ std::string Parser::_file_to_string(std::string file_path) {
 bool Parser::_is_config_valid(const std::string &file_path, const std::vector<Server> &v_server) {
     if (v_server.empty()) {
         utils::print_timestamp(std::cerr);
-        std::cerr << " atleast one server required in config in " << file_path << std::endl;
+        std::cerr << " at least one server required in config in " << file_path << std::endl;
         return (false);
     }
     for (std::vector<Server>::const_iterator it = v_server.begin(); it != v_server.end(); ++it) {
         if (it->v_listen.empty()) {
             utils::print_timestamp(std::cerr);
-            std::cerr << " atleast one listen per server required in " << file_path << std::endl;
+            std::cerr << " at least one listen per server required in " << file_path << std::endl;
             return (false);
         }
         if (it->v_location.empty()) {
             utils::print_timestamp(std::cerr);
-            std::cerr << " atleast one location per server required in " << file_path << std::endl;
+            std::cerr << " at least one location per server required in " << file_path << std::endl;
             return (false);
         }
         for (std::vector<Location>::const_iterator it2 = it->v_location.begin();
              it2 != it->v_location.end(); ++it2) {
             if (it2->root.empty()) {
                 utils::print_timestamp(std::cerr);
-                std::cerr << " atleast one root per location required in " << file_path
+                std::cerr << " at least one root per location required in " << file_path
                           << std::endl;
                 return (false);
             }
