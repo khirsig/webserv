@@ -8,6 +8,9 @@ cgitb.enable()
 
 form = cgi.FieldStorage()
 
+# Subdirectory to delete files from with relative paths
+delete_prefix_path = "./upload/uploads/"
+
 method = os.environ.get('REQUEST_METHOD')
 
 if method != 'DELETE' and method != 'POST':
@@ -20,8 +23,9 @@ else:
             message = 'Can not delete itself'
         else:
             fn = os.path.basename(file_item.replace("\"", " /"))
-            if (os.path.isfile(fn)):
-                os.remove(fn)
+            path = delete_prefix_path + fn
+            if (os.path.isfile(path)):
+                os.remove(path)
                 message = 'The file "' + file_item + '" was deleted successfully'
             else:
                 message = 'The file "' + file_item + '" does not exist'
