@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/14 14:40:09 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/14 14:55:40 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,7 +157,7 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
 
     for (; it != v_token.end(); ++it) {
         if (it->type == OPERATOR) {
-            if (it->text == ";")
+            if (it->text == ";" && !v_identifier.empty())
                 break;
             else {
                 _unexpected_operator(it);
@@ -214,6 +214,8 @@ void Interpreter::_parse_cgi_pass(const std::vector<Token>           &v_token,
 bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it, core::Address &identifier) {
     _increment_token(v_token, it);
+    if (it->type == OPERATOR)
+        _unexpected_operator(it);
 
     bool default_server = false;
 
@@ -256,9 +258,6 @@ bool Interpreter::_parse_listen(const std::vector<Token>           &v_token,
 
 void Interpreter::_parse_port(std::vector<Token>::const_iterator &it, const std::string &str,
                               in_port_t &port) {
-    // if (str.find_first_not_of("0123456789") != std::string::npos) {
-    //     _invalid_port(it, str);
-    // }
     size_t i = 0;
     if (str.empty() || !utils ::str_to_num_dec(str, i) || i > 65535)
         _invalid_port(it, str);
