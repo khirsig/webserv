@@ -16,6 +16,9 @@ void Connection::_build_cgi_env() {
     map_it it = _request.m_header().find("CONTENT-LENGTH");
     if (it != _request.m_header().end())
         _request.m_header().insert(std::make_pair("CONTENT_LENGTH", it->second));
+    it = _request.m_header().find("COOKIE");
+    if (it != _request.m_header().end())
+        _request.m_header().insert(std::make_pair("HTTP_COOKIE", it->second));
     it = _request.m_header().find("CONTENT-TYPE");
     if (it != _request.m_header().end())
         _request.m_header().insert(std::make_pair("CONTENT_TYPE", it->second));
