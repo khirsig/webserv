@@ -211,6 +211,7 @@ void Response::build(const Request &req) {
             _body_type = BODY_CGI;
             _construct_header_cgi(req);
             _is_dir_listing = true;
+            _cgi_script_relative_path = req.relative_path();
             return;
         }
         throw HTTP_NOT_FOUND;
@@ -221,9 +222,9 @@ void Response::build(const Request &req) {
         _body_type = BODY_CGI;
         _file_handler.close();
         if (_index_file)
-            _cgi_script_path = req.relative_path() + *_index_file;
+            _cgi_script_relative_path = req.relative_path() + *_index_file;
         else
-            _cgi_script_path = req.relative_path();
+            _cgi_script_relative_path = req.relative_path();
         _construct_header_cgi(req);
         return;
     }
@@ -276,7 +277,7 @@ bool Response::need_cgi() const { return _body_type == BODY_CGI; }
 
 const config::CgiPass *Response::cgi_pass() const { return _cgi_pass; }
 
-const std::string &Response::cgi_script_path() const { return _cgi_script_path; }
+const std::string &Response::cgi_script_relative_path() const { return _cgi_script_relative_path; }
 
 void Response::print() const {
     std::cout

@@ -28,7 +28,7 @@ void Connection::_build_cgi_env() {
     _request.m_header().insert(std::make_pair("REMOTE_ADDR", utils::addr_to_str(_client_addr)));
     _request.m_header().insert(std::make_pair("REMOTE_HOST", utils::addr_to_str(_client_addr)));
     _request.m_header().insert(std::make_pair("REQUEST_METHOD", _request.method_str()));
-    _request.m_header().insert(std::make_pair("SCRIPT_NAME", _response.cgi_script_path()));
+    _request.m_header().insert(std::make_pair("SCRIPT_NAME", _response.cgi_script_relative_path()));
     _request.m_header().insert(std::make_pair("SERVER_NAME", ""));
     _request.m_header().insert(
         std::make_pair("SERVER_PORT", utils::num_to_str_dec(ntohs(_socket_addr.port))));
@@ -36,8 +36,12 @@ void Connection::_build_cgi_env() {
     _request.m_header().insert(std::make_pair("SERVER_SOFTWARE", SERVER_NAME));
     // PHP specific
     _request.m_header().insert(std::make_pair("REDIRECT_STATUS", "200"));
-    _request.m_header().insert(std::make_pair("SCRIPT_FILENAME", _response.cgi_script_path()));
+    _request.m_header().insert(std::make_pair(
+        "SCRIPT_FILENAME", utils::get_absolute_path(_request.location()->root +
+                                                    _response.cgi_script_relative_path())));
     _request.m_header().insert(std::make_pair("DOCUMENT_ROOT", _request.location()->root));
+    std::cerr << "Script filename: " << _request.m_header().find("SCRIPT_FILENAME")->second
+              << std::endl;
 }
 
 const std::string Connection::_max_pipe_size_str = utils::num_to_str_hex(MAX_PIPE_SIZE);
@@ -131,12 +135,15 @@ void Connection::build_response(EventNotificationInterface& eni) {
     if (!_request_error) {
         try {
             _response.build(_request);
-            if (_response.is_dir_listing())
-                _cgi_handler.execute(eni, utils::get_absolute_path(DIR_LISTING_CGI_PATH),
-                                     utils::get_absolute_path(DIR_LISTING_CGI_SCRIPT_PATH));
-            else if (_response.need_cgi()) {
+            if (_response.need_cgi() || _response.is_dir_listing()) {
                 _build_cgi_env();
-                _cgi_handler.execute(eni, _response.cgi_pass()->path, _response.cgi_script_path());
+                if (_response.is_dir_listing()) {
+                    _cgi_handler.execute(eni, utils::get_absolute_path(DIR_LISTING_CGI_PATH),
+                                         utils::get_absolute_path(DIR_LISTING_CGI_SCRIPT_PATH));
+                } else {
+                    _cgi_handler.execute(eni, _response.cgi_pass()->path,
+                                         _response.cgi_script_relative_path());
+                }
             }
         } catch (int error) {
             if (error == HTTP_NOT_FOUND || error == HTTP_FORBIDDEN)
@@ -182,11 +189,6 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         }
     }
     if (_response.state() == http::Response::HEADER_CGI && max_len > 0) {
-        // if (_response.body().size() < 2) {
-        //     eni.disable_event(_fd, EVFILT_WRITE);
-        //     return;
-        // }
-
         char needle_1[] = "\r\n\r\n";
         char needle_2[] = "\n\n";
 
@@ -209,10 +211,6 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
             found_needle = false;
         }
 
-        // std::cerr << "found needle: " << found_needle << std::endl;
-        // std::cerr << "cgi done: " << _cgi_handler.is_done() << std::endl;
-        // std::cerr << "body size: " << _response.body().size() << std::endl;
-        // std::cerr << "body: \'" << _response.body() << "\'" << std::endl;
         if (!found_needle) {
             eni.disable_event(_fd, EVFILT_WRITE);
             eni.delete_event(_fd, EVFILT_TIMER);

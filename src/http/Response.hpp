@@ -21,7 +21,7 @@ class Response {
     core::ByteBuffer       _header;
     core::ByteBuffer       _body;
     const config::CgiPass *_cgi_pass;
-    std::string            _cgi_script_path;
+    std::string            _cgi_script_relative_path;
     bool                   _is_dir_listing;
     const std::string     *_index_file;
 
@@ -58,7 +58,7 @@ class Response {
     bool                   is_dir_listing() const;
     bool                   need_cgi() const;
     const config::CgiPass *cgi_pass() const;
-    const std::string     &cgi_script_path() const;
+    const std::string     &cgi_script_relative_path() const;
 
     void print() const;
 };

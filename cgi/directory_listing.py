@@ -17,11 +17,10 @@ def human_readable_size(size, decimal_places=2):
 
 
 form = cgi.FieldStorage()
-dir = "."
+dir = "./"
 dir_suffix = os.environ['SCRIPT_FILENAME']
-if (dir_suffix != None):
-    dir += "/" + dir_suffix
-
+if (dir_suffix != None and dir_suffix != ""):
+    dir = dir_suffix
 
 print("Content-Type: text/html\r\n")
 
@@ -33,8 +32,8 @@ print("<body>")
 print("<h2>Directory Listing</h2>")
 print("<table border='2'>")
 print("<tr><th>Type</th><th>Name</th><th>Size</th><th>Last Modified</th></tr>")
-if (dir != "./"):
-    print("<tr><td>Directory</td><td><a href='..'>..</a></td><td></td><td></td></tr>")
+print("<tr><td>Directory</td><td><a href='..'>..</a></td><td></td><td></td></tr>")
+
 for file in os.listdir(dir):
     full_path = dir + file
     print("<tr>")
