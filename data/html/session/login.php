@@ -1,12 +1,13 @@
 <?php
-session_save_path('/Users/khirsig/Documents');
 session_start();
 
 echo "<html>";
+echo "<head>";
+echo "<title>login.php</title>";
+echo "</head>";
 echo "<body>";
+echo "<h1>login.php</h1>";
 
-// If user is logged in with session, greet user and provide logout link
-// else provide form with username and password that posts to create_session.php
 if (isset($_SESSION['username'])) {
     echo "You are logged in as " . $_SESSION['username'] . ". Click <a href='logout.php'>here</a> to log out.";
 } else {
