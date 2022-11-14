@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/14 14:19:22 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/14 14:40:09 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -181,6 +181,8 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it, std::string &identifier) {
     _increment_token(v_token, it);
 
+    if (it->type == OPERATOR)
+        _unexpected_operator(it);
     identifier = it->text;
     if (*_last_directive == "root" && identifier.back() != '/')
         identifier += '/';
