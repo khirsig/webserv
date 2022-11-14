@@ -1,0 +1,38 @@
+# The default server is the first one listed in the nginx.conf file,
+# unless the default_server parameter explicitly designate a server as default
+
+server {
+    listen 80;
+
+    error_page 404 ./data/error_page/404.html;
+    error_page 500 ./data/error_page/500.html;
+
+    location / {
+        root ./data/html;
+        index index.html;
+        cgi_pass py /usr/bin/python3;
+    }
+
+    location /php {
+        root ./data/html/php;
+        index index.php;
+        cgi_pass php ./cgi/php-cgi;
+    }
+
+    location /session {
+        root ./data/html/session;
+        index page.php;
+        cgi_pass php ./cgi/php-cgi;
+    }
+
+    location /upload {
+        root ./data/html/upload;
+        index index.html;
+        cgi_pass py /usr/bin/python3;
+    }
+
+    location /upload/uploads {
+        root ./data/html/upload/uploads;
+        directory_listing on;
+    }
+}

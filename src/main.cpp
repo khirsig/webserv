@@ -30,8 +30,9 @@ int main(int argc, char** argv) {
         core::Webserver webserver(v_server);
         webserver.run();
     } catch (const std::exception& e) {
+        std::cerr << "[";
         utils::print_timestamp(std::cerr);
-        std::cerr << ": " << e.what() << "\n";
+        std::cerr << "]: " << e.what() << '\n';
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

@@ -89,6 +89,7 @@ bool Request::parse(const char *buf, size_t buf_len, size_t &buf_pos,
         _analyze_header();
         _find_server(v_server, socket_addr);
         _find_location();
+        _check_method();
         _process_path();
         if (_location->client_max_body_size < _content_len)
             throw HTTP_CONTENT_TOO_LARGE;
@@ -670,6 +671,19 @@ void Request::_find_location() {
     }
     if (_location == NULL)
         throw HTTP_NOT_FOUND;
+}
+
+void Request::_check_method() {
+    if (_location->v_accepted_method.size() == 0)
+        return;
+
+    typedef std::vector<std::string>::const_iterator const_method_it;
+    for (const_method_it it = _location->v_accepted_method.begin();
+         it != _location->v_accepted_method.end(); it++) {
+        if (*it == _method_str)
+            return;
+    }
+    throw HTTP_METHOD_NOT_ALLOWED;
 }
 
 void Request::_process_path() {

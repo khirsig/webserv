@@ -51,9 +51,6 @@ void Webserver::run() {
             if (num_events == -1)
                 throw std::runtime_error("poll_events: " + std::string(strerror(errno)));
             for (int i = 0; i < num_events; i++) {
-                // std::cerr << "_eni.events[i].ident: " << _eni.events[i].ident << std::endl;
-                // std::cerr << "_eni.events[i].flags: " << _eni.events[i].flags << std::endl;
-                // std::cerr << "_eni.events[i].filter: " << _eni.events[i].filter << std::endl;
                 try {
                     // Kevent error
                     if (_eni.events[i].flags & EV_ERROR) {
@@ -101,16 +98,16 @@ void Webserver::run() {
                         }
                     }
                 } catch (const std::exception &e) {
+                    _close_connection(_eni.events[i].ident);
                     std::cerr << "[";
                     utils::print_timestamp(std::cerr);
                     std::cerr << "]: " << e.what() << '\n';
-                    // _close_connection(_eni.events[i].ident);
                 } catch (...) {
+                    _close_connection(_eni.events[i].ident);
                     std::cerr << "[";
                     utils::print_timestamp(std::cerr);
                     std::cerr << "]: "
                               << "Unknown error\n";
-                    // _close_connection(_eni.events[i].ident);
                 }
             }
         } catch (const std::exception &e) {
@@ -175,8 +172,7 @@ void Webserver::_accept_connection(const Socket &socket) {
         _eni.delete_event(accept_fd, EVFILT_READ);
         _eni.delete_event(accept_fd, EVFILT_WRITE);
         close(accept_fd);
-        std::cerr << "connection limit reached\n";
-        return;
+        throw std::runtime_error("connection limit reached");
     } else {
         std::vector<Connection>::iterator it =
             std::find(_v_connection.begin(), _v_connection.end(), -1);
@@ -186,11 +182,6 @@ void Webserver::_accept_connection(const Socket &socket) {
 }
 
 void Webserver::_receive(int fd, size_t data_len) {
-    if (data_len < 0) {
-        throw std::runtime_error("unexpected kqueue data size");
-        return;
-    }
-
     std::vector<Connection>::iterator conn_it =
         std::find(_v_connection.begin(), _v_connection.end(), fd);
 
@@ -198,12 +189,6 @@ void Webserver::_receive(int fd, size_t data_len) {
         conn_it->receive(data_len);
         if (_eni.add_timer(fd, TIMEOUT_TIME))
             throw std::runtime_error("eni: " + std::string(strerror(errno)));
-    } catch (...) {
-        _close_connection(conn_it);
-        throw;
-    }
-
-    try {
         conn_it->parse_request(_v_server);
         if (conn_it->is_request_done()) {
             if (_eni.disable_event(fd, EVFILT_READ) || _eni.enable_event(fd, EVFILT_WRITE)) {
@@ -211,12 +196,9 @@ void Webserver::_receive(int fd, size_t data_len) {
             }
             conn_it->build_response(_eni);
         }
-    } catch (const std::exception &e) {
-        _close_connection(conn_it);
-        throw;
     } catch (...) {
         _close_connection(conn_it);
-        throw std::runtime_error("unexpected request/response error");
+        throw;
     }
 }
 
@@ -260,11 +242,6 @@ void Webserver::_close_connection(int fd) {
 }
 
 void Webserver::_close_connection(std::vector<Connection>::iterator it) {
-    // for (size_t i = 0; i < 10000000; i++) {
-    //     write(it->fd(), "HTTP/1.1 408 Request Timeout\r\n", 30);
-    // }
-    // std::cerr << "errno: " << errno << std::endl;
-    // std::cerr << "send: " << strerror(errno) << '\n';
     _eni.delete_event(it->fd(), EVFILT_TIMER);
     _eni.delete_event(it->fd(), EVFILT_READ);
     _eni.delete_event(it->fd(), EVFILT_WRITE);

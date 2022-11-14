@@ -122,6 +122,7 @@ class Request {
     void _find_server(const std::vector<config::Server> &v_server,
                       const core::Address               &socket_addr);
     void _find_location();
+    void _check_method();
     void _process_path();
     bool _parse_body_chunked(const char *buf, size_t buf_len, size_t &buf_pos);
     bool _finalize();
