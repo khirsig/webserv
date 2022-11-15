@@ -18,7 +18,7 @@ void Parser::parse(const std::string &file_path, std::vector<Server> &v_server) 
 
     if (!_is_config_valid(file_path, v_server))
         exit(EXIT_FAILURE);
-    _check_duplicate_listen(v_server);
+    _check_duplicate_listen(file_path, v_server);
 }
 
 std::string Parser::_file_to_string(std::string file_path) {
@@ -118,7 +118,8 @@ void Parser::_check_duplicate_listen(const std::string         &file_path,
                                          it6 != it2->v_server_name.end(); ++it6) {
                                         if (*it5 == *it6) {
                                             utils::print_timestamp(std::cerr);
-                                            std::cerr << " no duplicate listens allowed in "
+                                            std::cerr << " no duplicate server (same listen and "
+                                                         "server_name) allowed in "
                                                       << file_path << std::endl;
                                             exit(EXIT_FAILURE);
                                         }
@@ -133,4 +134,4 @@ void Parser::_check_duplicate_listen(const std::string         &file_path,
     }
 }
 
-// namespace config
+}  // namespace config
