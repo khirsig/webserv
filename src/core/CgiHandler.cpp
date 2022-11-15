@@ -99,8 +99,7 @@ void CgiHandler::reset(EventNotificationInterface &eni) {
     }
 }
 
-void CgiHandler::eof_read_write(EventNotificationInterface &eni) {
-    // std::cerr << "CGI EOF" << std::endl;
+void CgiHandler::eof_read(EventNotificationInterface &eni) {
     reset(eni);
     eni.enable_event(_connection_fd, EVFILT_WRITE);
     eni.add_timer(_connection_fd, TIMEOUT_TIME);
@@ -116,7 +115,13 @@ void CgiHandler::read(EventNotificationInterface &eni, size_t data_len) {
     _response.body().append(_buf, read_len);
     eni.enable_event(_connection_fd, EVFILT_WRITE);
     eni.add_timer(_connection_fd, TIMEOUT_TIME);
-    // std::cerr << "CGI read " << read_len << " bytes" << std::endl;
+}
+
+void CgiHandler::eof_write(EventNotificationInterface &eni) {
+    eni.delete_event(_write_fd, EVFILT_WRITE);
+    eni.remove_cgi_fd(_write_fd);
+    close(_write_fd);
+    _write_fd = -1;
 }
 
 void CgiHandler::write(EventNotificationInterface &eni, std::size_t max_size) {

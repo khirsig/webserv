@@ -17,24 +17,6 @@ namespace core {
 class EventNotificationInterface;
 
 class CgiHandler {
-   public:
-    CgiHandler(const http::Request &request, http::Response &response);
-    ~CgiHandler();
-
-    void init(int connection_fd);
-    void execute(EventNotificationInterface &eni, const std::string &cgi_path,
-                 const std::string &script_path);
-    void reset(EventNotificationInterface &eni);
-    void eof_read_write(EventNotificationInterface &eni);
-    void stop(EventNotificationInterface &eni);
-    void read(EventNotificationInterface &eni, size_t data_len);
-    void write(EventNotificationInterface &eni, std::size_t max_size);
-
-    bool is_done() const;
-
-    int get_read_fd() const;
-    int get_write_fd() const;
-
    private:
     const http::Request &_request;
     http::Response      &_response;
@@ -51,6 +33,25 @@ class CgiHandler {
     char **_get_env(std::map<std::string, std::string> &env);
     void   _update_env(std::map<std::string, std::string> &env);
     char **_get_argv(const std::string &path, const std::string &body);
+
+   public:
+    CgiHandler(const http::Request &request, http::Response &response);
+    ~CgiHandler();
+
+    void init(int connection_fd);
+    void execute(EventNotificationInterface &eni, const std::string &cgi_path,
+                 const std::string &script_path);
+    void reset(EventNotificationInterface &eni);
+    void stop(EventNotificationInterface &eni);
+    void eof_read(EventNotificationInterface &eni);
+    void read(EventNotificationInterface &eni, size_t data_len);
+    void eof_write(EventNotificationInterface &eni);
+    void write(EventNotificationInterface &eni, std::size_t max_size);
+
+    bool is_done() const;
+
+    int get_read_fd() const;
+    int get_write_fd() const;
 };
 
 extern std::map<int, CgiHandler *> g_executor;

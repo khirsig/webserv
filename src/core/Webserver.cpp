@@ -69,12 +69,12 @@ void Webserver::run() {
                     if (cgi) {
                         if (_eni.events[i].filter == EVFILT_READ) {
                             if (_eni.events[i].data <= 0 && _eni.events[i].flags & EV_EOF) {
-                                cgi->eof_read_write(_eni);
+                                cgi->eof_read(_eni);
                             } else if (_eni.events[i].data > 0)
                                 cgi->read(_eni, _eni.events[i].data);
                         } else if (_eni.events[i].filter == EVFILT_WRITE) {
                             if (_eni.events[i].flags & EV_EOF)
-                                cgi->eof_read_write(_eni);
+                                cgi->eof_write(_eni);
                             else if (_eni.events[i].data > 0)
                                 cgi->write(_eni, _eni.events[i].data);
                         }

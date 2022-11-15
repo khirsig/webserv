@@ -5,7 +5,6 @@
 # import cgitb
 
 # # Create instance of FieldStorage
-# form = cgi.FieldStorage()
 
 # # Get data from fields
 # first_name = form.getvalue('first_name')
@@ -13,10 +12,16 @@
 
 print("Content-Type: text/html\r\n\r\n", end = '')
 
+# import os
+# import sys
+# print(os.environ["CONTENT_LENGTH"], file=sys.stderr)
+
+
+# form = cgi.FieldStorage()
 print("1234", end = '')
 
-import time
-time.sleep(5)
+# import time
+# time.sleep(5)
 
 print("5678")
 

@@ -210,6 +210,14 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         }
 
         if (!found_needle) {
+            if (_cgi_handler.is_done()) {
+                _response.set_state(http::Response::DONE);
+                _is_response_done = true;
+                _is_active = false;
+                _should_close = true;
+                _request.init();
+                return true;
+            }
             eni.disable_event(_fd, EVFILT_WRITE);
             eni.delete_event(_fd, EVFILT_TIMER);
             return false;
