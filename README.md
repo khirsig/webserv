@@ -19,3 +19,6 @@
 - Connection keep alive bei einigen errors
 - allowed methods wenn GET nicht erlaubt und keine cgi error
 
+
+## Upload file
+curl -F 'filename=@/Users/tjensen/Documents/code/webserv/Makefile' http://localhost/upload/save_file.py

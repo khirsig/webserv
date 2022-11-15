@@ -148,7 +148,7 @@ void Webserver::_accept_connection(const Socket &socket) {
     client_addr.port = accept_addr.sin_port;
 
     int error =
-        (_eni.add_timer(accept_fd, TIMEOUT_TIME) || _eni.add_event(accept_fd, EVFILT_READ) ||
+        (_eni.add_timer(accept_fd, CONN_TIMEOUT_TIME) || _eni.add_event(accept_fd, EVFILT_READ) ||
          _eni.add_event(accept_fd, EVFILT_WRITE) || _eni.disable_event(accept_fd, EVFILT_WRITE));
 
     if (error) {
@@ -187,7 +187,7 @@ void Webserver::_receive(int fd, size_t data_len) {
 
     try {
         conn_it->receive(data_len);
-        if (_eni.add_timer(fd, TIMEOUT_TIME))
+        if (_eni.add_timer(fd, CONN_TIMEOUT_TIME))
             throw std::runtime_error("eni: " + std::string(strerror(errno)));
         conn_it->parse_request(_v_server);
         if (conn_it->is_request_done()) {
@@ -207,7 +207,7 @@ void Webserver::_send(int fd, size_t max_len) {
         std::find(_v_connection.begin(), _v_connection.end(), fd);
     try {
         if (it->send_response(_eni, max_len)) {
-            if (_eni.add_timer(fd, TIMEOUT_TIME))
+            if (_eni.add_timer(fd, CONN_TIMEOUT_TIME))
                 throw std::runtime_error("eni: " + std::string(strerror(errno)));
         }
         if (it->is_response_done()) {

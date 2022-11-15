@@ -11,4 +11,4 @@ struct Address {
     bool operator==(const Address &rhs);
 };
 
-}
+} // namespace core

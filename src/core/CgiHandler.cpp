@@ -102,7 +102,7 @@ void CgiHandler::reset(EventNotificationInterface &eni) {
 void CgiHandler::eof_read(EventNotificationInterface &eni) {
     reset(eni);
     eni.enable_event(_connection_fd, EVFILT_WRITE);
-    eni.add_timer(_connection_fd, TIMEOUT_TIME);
+    eni.add_timer(_connection_fd, CONN_TIMEOUT_TIME);
 }
 
 void CgiHandler::read(EventNotificationInterface &eni, size_t data_len) {
@@ -114,7 +114,7 @@ void CgiHandler::read(EventNotificationInterface &eni, size_t data_len) {
     }
     _response.body().append(_buf, read_len);
     eni.enable_event(_connection_fd, EVFILT_WRITE);
-    eni.add_timer(_connection_fd, TIMEOUT_TIME);
+    eni.add_timer(_connection_fd, CONN_TIMEOUT_TIME);
 }
 
 void CgiHandler::eof_write(EventNotificationInterface &eni) {
@@ -139,7 +139,7 @@ void CgiHandler::write(EventNotificationInterface &eni, std::size_t max_size) {
     if (left_bytes == 0) {
         eni.delete_event(_write_fd, EVFILT_WRITE);
         eni.remove_cgi_fd(_write_fd);
-        close(_write_fd);  // destructor?
+        close(_write_fd);
         _write_fd = -1;
     }
 }
@@ -150,6 +150,12 @@ int32_t CgiHandler::get_read_fd() const { return _read_fd; }
 
 int32_t CgiHandler::get_write_fd() const { return _write_fd; }
 
+static void free_split(char **split) {
+    for (int i = 0; split[i]; ++i)
+        free(split[i]);
+    free(split);
+}
+
 void CgiHandler::_run_program(const std::string &cgi_path, const std::string &script_path) {
     std::map<std::string, std::string> m_header(_request.m_header());
 
@@ -159,7 +165,8 @@ void CgiHandler::_run_program(const std::string &cgi_path, const std::string &sc
     chdir(_request.location()->root.c_str());
     execve(cgi_path.c_str(), argv, env);
     perror("execve");
-    // free env && argv
+    free_split(env);
+    free_split(argv);
     exit(EXIT_FAILURE);
 }
 

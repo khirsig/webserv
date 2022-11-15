@@ -1,9 +1,9 @@
 #pragma once
 
-#define PRINT_LEVEL 0
+#define PRINT_LEVEL 3
 
 #define MAX_CONNECTIONS 1024
-#define TIMEOUT_TIME 100000
+#define CONN_TIMEOUT_TIME 100000
 
 #define MAX_INFO_LEN 8196
 
