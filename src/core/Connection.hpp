@@ -22,7 +22,6 @@ class Connection {
     bool           _should_close;
     bool           _is_active;
     bool           _is_request_done;
-    bool           _is_response_done;
     int            _request_error;
     CgiHandler     _cgi_handler;
 

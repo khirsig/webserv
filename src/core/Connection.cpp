@@ -59,7 +59,7 @@ bool Connection::is_active() const { return _is_active; }
 
 bool Connection::is_request_done() const { return _is_request_done; }
 
-bool Connection::is_response_done() const { return _is_response_done; }
+bool Connection::is_response_done() const { return _response.state() == http::Response::DONE; }
 
 bool Connection::should_close() const { return _should_close; }
 
@@ -74,7 +74,6 @@ void Connection::init(int fd, Address client_addr, Address socket_addr) {
     _should_close = false;
     _is_active = false;
     _is_request_done = false;
-    _is_response_done = false;
     _request_error = 0;
     _request.init();
     _response.init();
@@ -92,7 +91,6 @@ void Connection::reinit() {
     _should_close = false;
     _is_active = false;
     _is_request_done = false;
-    _is_response_done = false;
     _request_error = 0;
     _request.init();
     _response.init();
@@ -148,6 +146,7 @@ void Connection::build_response(EventNotificationInterface& eni) {
                 _should_close = false;
             else
                 _should_close = true;
+            _response.init();
             _response.build_error(_request, error);
         }
     } else {
@@ -212,7 +211,6 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         if (!found_needle) {
             if (_cgi_handler.is_done()) {
                 _response.set_state(http::Response::DONE);
-                _is_response_done = true;
                 _is_active = false;
                 _should_close = true;
                 _request.init();
@@ -316,12 +314,170 @@ bool Connection::send_response(EventNotificationInterface& eni, size_t max_len) 
         }
     }
     if (_response.state() == http::Response::DONE) {
-        _is_response_done = true;
         _is_active = false;
         _request.init();
     }
     return true;
 }
+
+// bool Connection::send_response(EventNotificationInterface& eni, const size_t max_len) {
+//     size_t left_len;
+//     size_t to_send_len;
+//     size_t sent_len;
+//     size_t pos;
+
+//     if (_response.state() == http::Response::HEADER_CGI)
+//         std::cerr << _fd << " send_response: HEADER_CGI" << std::endl;
+//     else if (_response.state() == http::Response::BODY &&
+//              _response.body_type() == http::Response::BODY_CGI)
+//         std::cerr << _fd << " send_response: BODY_CGI" << std::endl;
+
+//     if (_response.state() == http::Response::HEADER) {
+//         pos = _response.header().pos();
+//         left_len = _response.header().size() - pos;
+//         to_send_len = left_len < max_len ? left_len : max_len;
+//         sent_len = send(_fd, &(_response.header()[pos]), to_send_len, 0);
+//         if (sent_len != to_send_len)
+//             throw std::runtime_error("send: failed");
+//         pos += sent_len;
+//         _response.header().set_pos(pos);
+//         if (pos >= _response.header().size()) {
+//             if (_response.body_type() == http::Response::BODY_NONE) {
+//                 _response.set_state(http::Response::DONE);
+//                 _is_active = false;
+//             } else if (_response.body_type() == http::Response::BODY_CGI) {
+//                 _response.set_state(http::Response::HEADER_CGI);
+//             } else {
+//                 _response.set_state(http::Response::BODY);
+//             }
+//         }
+//         return true;
+//     }
+
+//     if (_response.state() == http::Response::HEADER_CGI) {
+//         char needle_1[] = "\r\n\r\n";
+//         char needle_2[] = "\n\n";
+
+//         pos = _response.body().pos();
+//         core::ByteBuffer::const_iterator start_needle_1 =
+//             std::search(_response.body().begin() + pos, _response.body().end(), needle_1,
+//                         needle_1 + sizeof(needle_1) - 1);
+//         core::ByteBuffer::const_iterator start_needle_2 =
+//             std::search(_response.body().begin() + pos, _response.body().end(), needle_2,
+//                         needle_2 + sizeof(needle_2) - 1);
+
+//         core::ByteBuffer::const_iterator cgi_header_end = _response.body().end();
+//         bool                             found_needle = false;
+//         if (start_needle_1 < start_needle_2) {
+//             cgi_header_end = start_needle_1 + sizeof(needle_1) - 1;
+//             found_needle = true;
+//         } else if (start_needle_2 < start_needle_1) {
+//             cgi_header_end = start_needle_2 + sizeof(needle_2) - 1;
+//             found_needle = true;
+//         }
+
+//         if (!found_needle) {
+//             if (_cgi_handler.is_done()) {
+//                 _response.set_state(http::Response::DONE);
+//                 _is_active = false;
+//                 _should_close = true;
+//                 return false;
+//             }
+//             eni.disable_event(_fd, EVFILT_WRITE);
+//             eni.delete_event(_fd, EVFILT_TIMER);
+//             return false;
+//         }
+
+//         left_len = cgi_header_end - (_response.body().begin() + pos);
+//         to_send_len = left_len < max_len ? left_len : max_len;
+//         sent_len = send(_fd, &(_response.body()[pos]), to_send_len, 0);
+//         if (sent_len != to_send_len)
+//             throw std::runtime_error("send: failed");
+//         pos += sent_len;
+//         _response.body().set_pos(pos);
+//         if (sent_len == left_len)
+//             _response.set_state(http::Response::BODY);
+//         if (pos >= _response.body().size()) {
+//             if (!_cgi_handler.is_done()) {
+//                 eni.disable_event(_fd, EVFILT_WRITE);
+//                 eni.delete_event(_fd, EVFILT_TIMER);
+//             }
+//             return false;
+//         }
+//         return true;
+//     }
+
+//     if (_response.state() == http::Response::BODY) {
+//         switch (_response.body_type()) {
+//             case http::Response::BODY_BUFFER: {
+//                 pos = _response.body().pos();
+//                 left_len = _response.body().size() - pos;
+//                 to_send_len = left_len < max_len ? left_len : max_len;
+//                 sent_len = send(_fd, &(_response.body()[pos]), to_send_len, 0);
+//                 if (sent_len != to_send_len)
+//                     throw std::runtime_error("send: failed");
+//                 pos += sent_len;
+//                 _response.body().set_pos(pos);
+//                 if (pos >= _response.body().size()) {
+//                     _response.set_state(http::Response::DONE);
+//                     _is_active = false;
+//                 }
+//                 return true;
+//             }
+//             case http::Response::BODY_CGI: {
+//                 if (max_len < _max_pipe_size_str.size() + 4)  // size() + \r\n\r\n
+//                     return true;
+//                 size_t max_chunk_cont_len = max_len - _max_pipe_size_str.size() - 4;
+//                 pos = _response.body().pos();
+//                 left_len = _response.body().size() - pos;
+//                 to_send_len = left_len < max_chunk_cont_len ? left_len : max_chunk_cont_len;
+//                 if (to_send_len > 0) {
+//                     std::string chunk;
+//                     chunk.reserve(to_send_len + _max_pipe_size_str.size() + 4);
+//                     utils::num_to_str_hex(to_send_len, chunk);
+//                     chunk += "\r\n";
+//                     chunk.insert(chunk.end(), _response.body().begin() + pos,
+//                                  _response.body().begin() + pos + to_send_len);
+//                     chunk += "\r\n";
+//                     if (send(_fd, chunk.c_str(), chunk.size(), 0) != (ssize_t)chunk.size())
+//                         throw std::runtime_error("send: failed");
+//                     pos += to_send_len;
+//                     _response.body().set_pos(pos);
+//                     if (pos >= _response.body().size()) {
+//                         if (!_cgi_handler.is_done()) {
+//                             eni.disable_event(_fd, EVFILT_WRITE);
+//                             eni.delete_event(_fd, EVFILT_TIMER);
+//                         }
+//                         return false;
+//                     }
+//                 } else if (_cgi_handler.is_done()) {
+//                     if (send(_fd, "0\r\n\r\n", 5, 0) != 5)
+//                         throw std::runtime_error("send: failed");
+//                     _response.set_state(http::Response::DONE);
+//                     _is_active = false;
+//                 }
+//                 return true;
+//             }
+//             case http::Response::BODY_FILE:
+//                 to_send_len = _response.file_handler().read(max_len);
+//                 if (to_send_len > 0) {
+//                     if (send(_fd, _response.file_handler().buf(), to_send_len, 0) !=
+//                         (ssize_t)to_send_len)
+//                         throw std::runtime_error("send: failed");
+//                 }
+//                 if (_response.file_handler().left_size() == 0) {
+//                     _response.set_state(http::Response::DONE);
+//                     _is_active = false;
+//                 }
+//                 return true;
+//             case http::Response::BODY_NONE:
+//                 _response.set_state(http::Response::DONE);
+//                 _is_active = false;
+//                 return true;
+//         }
+//     }
+//     return true;
+// }
 
 void Connection::destroy(EventNotificationInterface& eni) {
     close(_fd);
