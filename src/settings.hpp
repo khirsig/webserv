@@ -20,4 +20,4 @@
 #define DIR_LISTING_CGI_PATH "/usr/bin/python3"
 #define DIR_LISTING_CGI_SCRIPT_PATH "./cgi/directory_listing.py"
 
-#define CLIENT_MAX_BODY_SIZE (1ULL << 30)  // 1GB
+#define CLIENT_MAX_BODY_SIZE (1ULL << 26)  // 64MB
