@@ -18,6 +18,7 @@ class Parser {
 
     bool _is_config_valid(const std::string &file_path, const std::vector<Server> &v_server);
     void _inherit_client_max_body_size(std::vector<Server> &v_server);
+    void _check_duplicate_listen(const std::string &file_path, const std::vector<Server> &v_server);
 };
 
 }  // namespace config

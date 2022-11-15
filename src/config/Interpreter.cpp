@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/14 14:55:40 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/15 11:18:50 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -159,6 +159,8 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
         if (it->type == OPERATOR) {
             if (it->text == ";" && !v_identifier.empty())
                 break;
+            else if (it->text == ";" && v_identifier.empty())
+                _invalid_directive_argument_amount(it);
             else {
                 _unexpected_operator(it);
             }
@@ -181,8 +183,12 @@ void Interpreter::_parse_string(const std::vector<Token>           &v_token,
                                 std::vector<Token>::const_iterator &it, std::string &identifier) {
     _increment_token(v_token, it);
 
-    if (it->type == OPERATOR)
-        _unexpected_operator(it);
+    if (it->type == OPERATOR) {
+        if (it->text == ";")
+            _invalid_directive_argument_amount(it);
+        else
+            _unexpected_operator(it);
+    }
     identifier = it->text;
     if (*_last_directive == "root" && identifier.back() != '/')
         identifier += '/';
@@ -197,17 +203,23 @@ void Interpreter::_parse_cgi_pass(const std::vector<Token>           &v_token,
                                   std::vector<Token>::const_iterator &it, CgiPass &identifier) {
     _increment_token(v_token, it);
 
-    if (it->type == OPERATOR)
+    if (it->text == ";")
+        _invalid_directive_argument_amount(it);
+    else if (it->type == OPERATOR)
         _unexpected_operator(it);
     identifier.type = it->text;
     _increment_token(v_token, it);
 
-    if (it->type == OPERATOR)
+    if (it->text == ";")
+        _invalid_directive_argument_amount(it);
+    else if (it->type == OPERATOR)
         _unexpected_operator(it);
     identifier.path = utils::get_absolute_path(it->text);
     _increment_token(v_token, it);
 
-    if (it->text != ";") {
+    if (it->type == IDENTIFIER)
+        _invalid_directive_argument_amount(it);
+    else if (it->type == OPERATOR && it->text != ";") {
         _none_terminated_directive(it);
     }
 }
@@ -341,7 +353,7 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
             _invalid_status_code(it, identifier.status_code);
         }
     } else {
-        _invalid_status_code(it, identifier.status_code);
+        _invalid_status_code(it, it->text);
     }
     _increment_token(v_token, it);
 
@@ -351,8 +363,12 @@ void Interpreter::_parse_redirect(const std::vector<Token>           &v_token,
     identifier.direction = it->text;
     _increment_token(v_token, it);
 
-    if (it->text != ";")
-        _none_terminated_directive(it);
+    if (it->text != ";") {
+        if (it->type == OPERATOR)
+            _unexpected_operator(it);
+        else
+            _none_terminated_directive(it);
+    }
 }
 
 void Interpreter::_parse_bytes(const std::vector<Token>           &v_token,
@@ -399,8 +415,13 @@ void Interpreter::_parse_bytes(const std::vector<Token>           &v_token,
 
     _increment_token(v_token, it);
 
-    if (it->text != ";") {
-        _none_terminated_directive(it);
+    if (it->type == IDENTIFIER)
+        _invalid_directive_argument_amount(it);
+    else if (it->text != ";") {
+        if (it->type == OPERATOR)
+            _unexpected_operator(it);
+        else
+            _none_terminated_directive(it);
     }
 }
 
@@ -470,9 +491,10 @@ void Interpreter::_parse_location_path(const std::vector<Token>           &v_tok
 
     _increment_token(v_token, it);
 
-    if (it->text != "{") {
+    if (it->type == OPERATOR && it->text != "{")
+        _unexpected_operator(it);
+    else if (it->text != "{" || it->type == IDENTIFIER)
         _missing_opening(it, '{');
-    }
 }
 
 void Interpreter::_parse_bool(const std::vector<Token>           &v_token,
@@ -483,16 +505,26 @@ void Interpreter::_parse_bool(const std::vector<Token>           &v_token,
         identifier = true;
     } else if (it->text == "off") {
         identifier = false;
+    } else if (it->type == OPERATOR) {
+        if (it->text == ";") {
+            _invalid_directive_argument_amount(it);
+        } else {
+            _unexpected_operator(it);
+        }
     } else {
         _invalid_bool_argument(it);
     }
     _increment_token(v_token, it);
-    if (it->text != ";") {
-        _invalid_directive(it);
+    if (it->type == IDENTIFIER)
+        _invalid_directive_argument_amount(it);
+    else if (it->text != ";") {
+        if (it->type == OPERATOR)
+            _unexpected_operator(it);
+        else
+            _none_terminated_directive(it);
     }
 }
 
-// Function that increments the iterator and checks if it is at the end of the vector
 void Interpreter::_increment_token(const std::vector<Token>           &v_token,
                                    std::vector<Token>::const_iterator &it) {
     ++it;
@@ -565,6 +597,14 @@ void Interpreter::_missing_opening(std::vector<Token>::const_iterator &it, const
 
 void Interpreter::_invalid_status_code(std::vector<Token>::const_iterator &it,
                                        const uint32_t                     &status_code) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << " invalid status code \"" << status_code << "\" for \"" << *_last_directive
+              << "\" in " << _path << ":" << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_invalid_status_code(std::vector<Token>::const_iterator &it,
+                                       const std::string                  &status_code) const {
     utils::print_timestamp(std::cerr);
     std::cerr << " invalid status code \"" << status_code << "\" for \"" << *_last_directive
               << "\" in " << _path << ":" << it->line_number << "\n";
