@@ -1,7 +1,0 @@
-check port address duplicates, especially with any
-check how nginx handles timeouts
-check how timer in kevent works
-use throw instead of return values for errors
-
-better name for eni
-_ for private functions/variables & privates at bottom
