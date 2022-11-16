@@ -23,7 +23,6 @@ FileHandler::~FileHandler() {
 
 bool FileHandler::init(const std::string &path) {
     if (_file.is_open()) {
-        std::cerr << "FileHandler::init: file is already open" << std::endl;
         _file.close();
     }
     _path = path;
