@@ -23,6 +23,8 @@ void Response::_construct_header_file(const Request &req) {
     else
         _header.append("keep-alive");
     _header.append("\r\n\r\n");
+    if (req.method() == http::Request::HEAD)
+        _file_handler.close();
 }
 
 void Response::_construct_header_cgi(const Request &req) {
@@ -236,7 +238,6 @@ void Response::build(const Request &req) {
 
     if (_file_handler.max_size() == 0 || req.method() == Request::HEAD) {
         _body_type = Response::BODY_NONE;
-        _file_handler.close();
     } else {
         _body_type = Response::BODY_FILE;
     }
