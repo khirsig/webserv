@@ -30,29 +30,12 @@ DDIR        :=	$(BUILDDIR)/deps
 DEPS        :=	$(SRCS:%.cpp=$(DDIR)/%.d)
 
 # **************************************************************************** #
-#	SYSTEM SPECIFIC SETTINGS							   					   #
-# **************************************************************************** #
-
-UNAME	:= $(shell uname -s)
-NUMPROC	:= 8
-
-ifeq ($(UNAME), Linux)
-    NUMPROC  := $(shell grep -c ^processor /proc/cpuinfo)
-	CPPFLAGS += -D Linux
-	CXXFLAGS += -Wno-unused-result
-else ifeq ($(UNAME), Darwin)
-    NUMPROC  := $(shell sysctl -n hw.ncpu)
-	CPPFLAGS += -D Darwin
-endif
-
-# **************************************************************************** #
 #   RULES                                                                      #
 # **************************************************************************** #
 
 .PHONY: all clean fclean re
 
-all:
-	@$(MAKE) $(BUILDDIR)/$(NAME) -j$(NUMPROC)
+all: $(BUILDDIR)/$(NAME)
 
 clean:
 	$(RM) -r $(DDIR) $(ODIR)
