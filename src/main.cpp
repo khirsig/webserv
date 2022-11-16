@@ -1,4 +1,3 @@
-
 #include <string>
 
 #include "config/Parser.hpp"
@@ -11,6 +10,9 @@
 const std::map<int, std::string> http::g_m_status_codes = http::new_m_status_codes();
 
 int main(int argc, char** argv) {
+    std::cout << utils::COLOR_BL_1 << "W E B S E R V" << utils::COLOR_YE 
+		<< " by " << utils::COLOR_GR_1 << "tjensen, khirsig, hepple"<< utils::COLOR_NO << std::endl;
+
     if (argc > 2) {
         std::cerr << "Error\nusage: " << argv[0] << " [config_file]\n";
         return EXIT_FAILURE;

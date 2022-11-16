@@ -43,7 +43,7 @@ Webserver::~Webserver() {}
 
 void Webserver::run() {
 #if PRINT_LEVEL > 0
-    std::cout << utils::COLOR_CY_1 << "Webserver running 🚀" << utils::COLOR_NO << std::endl;
+    std::cout << utils::COLOR_CY_1 << "Webserver running! 🚀" << utils::COLOR_NO << std::endl;
 #endif
     while (42) {
         try {
