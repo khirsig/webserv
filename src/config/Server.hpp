@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:34:22 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/09 15:34:12 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/16 09:51:48 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,12 +24,6 @@
 
 namespace config {
 
-class ErrorPage {
-   public:
-    std::string                path;
-    std::vector<std::uint32_t> v_code;
-};
-
 class Server {
    public:
     Server() : client_max_body_size(SIZE_MAX) {}
@@ -37,7 +31,6 @@ class Server {
 
     std::vector<core::Address>        v_listen;
     std::vector<std::string>          v_server_name;
-    std::vector<ErrorPage>            v_error_page;
     std::uint64_t                     client_max_body_size;
     std::vector<Location>             v_location;
     std::map<int, http::error_page_t> m_error_codes;

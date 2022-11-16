@@ -11,6 +11,8 @@ form = cgi.FieldStorage()
 method = os.environ.get('REQUEST_METHOD')
 
 UPLOAD_DIR = 'uploads/'
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
 
 file_item = form['filename']
 

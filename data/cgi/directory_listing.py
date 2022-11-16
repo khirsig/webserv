@@ -22,6 +22,15 @@ dir_suffix = os.environ['SCRIPT_FILENAME']
 if (dir_suffix != None and dir_suffix != ""):
     dir = dir_suffix
 
+if not os.path.exists(dir):
+    print("Content-Type: text/html\r\n\r\n", end='')
+    print("<html>")
+    print("<body>")
+    print("<h3>Directory does not exist</h3>")
+    print("</body>")
+    print("</html>")
+    exit()
+
 print("Content-Type: text/html\r\n")
 
 print("<html>")

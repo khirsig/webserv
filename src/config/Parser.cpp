@@ -19,6 +19,7 @@ void Parser::parse(const std::string &file_path, std::vector<Server> &v_server) 
     if (!_is_config_valid(file_path, v_server))
         exit(EXIT_FAILURE);
     _check_duplicate_listen(file_path, v_server);
+    _check_duplicate_cgi_pass(file_path, v_server);
 }
 
 std::string Parser::_file_to_string(std::string file_path) {
@@ -127,6 +128,27 @@ void Parser::_check_duplicate_listen(const std::string         &file_path,
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Parser::_check_duplicate_cgi_pass(const std::string         &file_path,
+                                       const std::vector<Server> &v_server) {
+    for (std::vector<Server>::const_iterator it = v_server.begin(); it != v_server.end(); ++it) {
+        for (std::vector<Location>::const_iterator it2 = it->v_location.begin();
+             it2 != it->v_location.end(); ++it2) {
+            for (std::vector<CgiPass>::const_iterator it3 = it2->v_cgi_pass.begin();
+                 it3 != it2->v_cgi_pass.end(); ++it3) {
+                for (std::vector<CgiPass>::const_iterator it4 = it2->v_cgi_pass.begin();
+                     it4 != it2->v_cgi_pass.end(); ++it4) {
+                    if (it3 != it4 && it3->type == it4->type) {
+                        utils::print_timestamp(std::cerr);
+                        std::cerr << " no duplicate types in cgi_pass allowed in " << file_path
+                                  << std::endl;
+                        exit(EXIT_FAILURE);
                     }
                 }
             }

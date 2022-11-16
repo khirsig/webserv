@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:26:34 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/15 11:05:39 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/16 09:57:34 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,7 @@ class Interpreter {
                               const std::string                  &status_code) const;
     void _invalid_path(std::vector<Token>::const_iterator &it) const;
     void _invalid_error_code(std::vector<Token>::const_iterator &it, const int32_t &code) const;
+    void _duplicate_error_code(std::vector<Token>::const_iterator &it, const int32_t &code) const;
     void _could_not_open_file(std::vector<Token>::const_iterator &it) const;
     void _invalid_port(std::vector<Token>::const_iterator &it, const std::string &port_str) const;
     void _numeric_char_expected(std::vector<Token>::const_iterator &it,

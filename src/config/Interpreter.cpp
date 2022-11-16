@@ -6,7 +6,7 @@
 /*   By: khirsig <khirsig@student.42heilbronn.de    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 09:25:07 by khirsig           #+#    #+#             */
-/*   Updated: 2022/11/15 11:18:50 by khirsig          ###   ########.fr       */
+/*   Updated: 2022/11/16 09:58:54 by khirsig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -320,7 +320,10 @@ void Interpreter::_parse_error_page(const std::vector<Token>           &v_token,
         new_error_page.content_type = "text/plain";
 
     for (std::size_t i = 0; i < v_code.size(); ++i) {
-        m_error_page.insert(std::make_pair(v_code[i], new_error_page));
+        std::pair<std::map<int, http::error_page_t>::iterator, bool> is_added =
+            m_error_page.insert(std::make_pair(v_code[i], new_error_page));
+        if (is_added.second == false)
+            _duplicate_error_code(it, v_code[i]);
     }
 
     _increment_token(v_token, it);
@@ -622,6 +625,15 @@ void Interpreter::_invalid_error_code(std::vector<Token>::const_iterator &it,
                                       const int32_t                      &code) const {
     utils::print_timestamp(std::cerr);
     std::cerr << " invalid error_code \"" << code << "\""
+              << " for directive \"" << *_last_directive << "\" in " << _path << ":"
+              << it->line_number << "\n";
+    exit(EXIT_FAILURE);
+}
+
+void Interpreter::_duplicate_error_code(std::vector<Token>::const_iterator &it,
+                                        const int32_t                      &code) const {
+    utils::print_timestamp(std::cerr);
+    std::cerr << " duplicate error_code \"" << code << "\""
               << " for directive \"" << *_last_directive << "\" in " << _path << ":"
               << it->line_number << "\n";
     exit(EXIT_FAILURE);
