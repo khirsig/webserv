@@ -33,9 +33,3 @@ curl -v -X DELETE -d 'filename=Makefile' 'http://localhost/delete/delete_file.py
 siege -b -c10 -r1 http://localhost:80/empty
 siege -b -c10 -r1 http://localhost:80/test.py
 ```
-
-## Run intra tester -> runs until PUT test
-```bash
-make && build/webserv ./tests/intra_tester/intra_tester.conf
-./tests/intra_tester/tester http://localhost:8080
-```
