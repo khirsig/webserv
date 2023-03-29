@@ -1,6 +1,6 @@
 # 42-webserv
 
-This repository contains one of my projects of the core curriculum at [42 Heilbronn], done together with [tjensen42] and [hepple].
+This repository contains one of my projects of the core curriculum at [42 Heilbronn], done together with [tjensen](https://github.com/tjensen42) and [hepple](https://github.com/hepple42).
 
 The project webserv is about implementing an HTTP web server in C++.
 As with all C++ projects at 42 Heilbronn, the code has to be written according to the C++98 standard.
